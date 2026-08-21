@@ -46,6 +46,15 @@ const fixtures = [
     membershipId: "d4000000-0000-4000-8000-000000000001",
     organizationName: "Marina A Organization",
     marinaName: "Marina A",
+    role: "marina_admin",
+  },
+  {
+    email: "staff-a@berthio.test",
+    organizationId: "d0000000-0000-4000-8000-000000000001",
+    membershipId: "d4000000-0000-4000-8000-000000000003",
+    organizationName: "Marina A Organization",
+    marinaName: "Marina A",
+    role: "marina_staff",
   },
   {
     email: "admin-b@berthio.test",
@@ -53,6 +62,7 @@ const fixtures = [
     membershipId: "e4000000-0000-4000-8000-000000000002",
     organizationName: "Marina B Organization",
     marinaName: "Marina B",
+    role: "marina_admin",
   },
 ];
 
@@ -90,14 +100,15 @@ async function ensureMembership(fixture, userId) {
   const { error: deleteError } = await admin
     .from("organization_members")
     .delete()
-    .eq("organization_id", fixture.organizationId);
+    .eq("organization_id", fixture.organizationId)
+    .eq("user_id", userId);
   if (deleteError) throw deleteError;
 
   const { error: insertError } = await admin.from("organization_members").insert({
     id: fixture.membershipId,
     organization_id: fixture.organizationId,
     user_id: userId,
-    role: "marina_admin",
+    role: fixture.role,
     status: "active",
   });
   if (insertError) throw insertError;
@@ -117,7 +128,8 @@ async function verifyFixture(fixture) {
 
   const { data: memberships, error: membershipError } = await client
     .from("organization_members")
-    .select("organization_id, role, status");
+    .select("organization_id, role, status")
+    .eq("user_id", signIn.user.id);
   const { data: organizations, error: organizationError } = await client
     .from("organizations")
     .select("id, name");
@@ -131,7 +143,7 @@ async function verifyFixture(fixture) {
   if (
     memberships?.length !== 1 ||
     memberships[0].organization_id !== fixture.organizationId ||
-    memberships[0].role !== "marina_admin" ||
+    memberships[0].role !== fixture.role ||
     memberships[0].status !== "active" ||
     organizations?.length !== 1 ||
     organizations[0].id !== fixture.organizationId ||
@@ -153,7 +165,7 @@ for (const fixture of fixtures) {
 
 for (const fixture of fixtures) {
   await verifyFixture(fixture);
-  console.log(`PASS ${fixture.email}: marina_admin for ${fixture.organizationName}`);
+  console.log(`PASS ${fixture.email}: ${fixture.role} for ${fixture.organizationName}`);
 }
 
 console.log("Local Phase 2 test users are ready. The password was not stored.");

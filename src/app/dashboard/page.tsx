@@ -1,37 +1,75 @@
+import { QuickInsights } from "@/components/admin/overview/quick-insights";
+import { TodaysActivity } from "@/components/admin/overview/todays-activity";
 import { AppShell } from "@/components/app-shell";
-import { ArrowRight, CalendarDays, Rows3 } from "lucide-react";
-import Link from "next/link";
+import { MarinaMap } from "@/components/marina-map/marina-map";
+import { listBerths } from "@/domain/berths/repository";
+import { mapBerthsToLayout } from "@/domain/marina-map/model";
+import { PILOT_BERTH_LAYOUT } from "@/domain/marina-map/pilot-layout";
+import { deriveOverviewMetrics, deriveTodaysActivity, marinaDateKey } from "@/domain/overview/model";
+import { listOverviewBookings } from "@/domain/overview/repository";
 import { requireMarinaMembership } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
+import { updateBerthStatusAction } from "@/app/dashboard/berths/actions";
 
 export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
   const context = await requireMarinaMembership("/dashboard");
+  const supabase = await createClient();
+  const now = new Date();
+  const today = marinaDateKey(now, context.timezone);
+  // Two UTC days safely cover one complete marina-local day across all IANA zones;
+  // the model performs the authoritative timezone filter after retrieval.
+  const recentCreatedAt = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
+
+  const overviewData = await Promise.all([
+      listBerths(supabase, context.marinaId),
+      listOverviewBookings(supabase, context.marinaId, today, recentCreatedAt),
+    ]).catch(() => null);
+
+  if (!overviewData) {
+    return (
+      <AppShell
+        context={context}
+        title="Marina dashboard"
+        description={`Operational overview for ${today}, calculated in ${context.timezone}.`}
+        wide
+      >
+        <section className="overview-error" role="alert">
+          <strong>Overview data is unavailable</strong>
+          <p>Berth and booking records could not be loaded safely. Refresh to try again.</p>
+        </section>
+      </AppShell>
+    );
+  }
+
+  const [berths, bookings] = overviewData;
+  const { mappedBerths, unmappedBerths } = mapBerthsToLayout(berths, PILOT_BERTH_LAYOUT);
+  const metrics = deriveOverviewMetrics(bookings, berths, today);
+  const activity = deriveTodaysActivity(bookings, today, context.timezone);
 
   return (
-    <AppShell
-      context={context}
-      title="Marina dashboard"
-      description="Tenant-isolated physical inventory and manual booking operations are active."
-    >
-      <div className="dashboard-modules">
-        <div className="dashboard-module">
-          <span><Rows3 size={15} aria-hidden="true" />Phase 3 / Physical inventory</span>
-          <h2>Berths remain the physical source of truth.</h2>
-          <p>Review dimensions, zones, priority, and operational status for this marina.</p>
-          <Link className="button button-secondary" href="/dashboard/berths">
-            Manage berths <ArrowRight size={16} aria-hidden="true" />
-          </Link>
+      <AppShell
+        context={context}
+        title="Marina dashboard"
+        description={`Operational overview for ${today}, calculated in ${context.timezone}.`}
+        wide
+      >
+        <div className="overview-dashboard">
+          <QuickInsights metrics={metrics} />
+          <div className="overview-operations-grid">
+            <div className="overview-map-panel">
+              <MarinaMap
+                compact
+                mappedBerths={mappedBerths}
+                marinaName={context.marinaName}
+                unmappedCount={unmappedBerths.length}
+                updateStatusAction={context.role === "marina_admin" ? updateBerthStatusAction : undefined}
+              />
+            </div>
+            <TodaysActivity activity={activity} />
+          </div>
         </div>
-        <div className="dashboard-module dashboard-module-active">
-          <span><CalendarDays size={15} aria-hidden="true" />Phase 4 / Manual bookings</span>
-          <h2>Record guaranteed marina capacity.</h2>
-          <p>Create customer and vessel snapshots without assigning a permanent berth.</p>
-          <Link className="button button-primary" href="/dashboard/bookings">
-            Manage bookings <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-        </div>
-      </div>
-    </AppShell>
+      </AppShell>
   );
 }

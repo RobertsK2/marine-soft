@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Berth, BerthInput } from "@/domain/berths/types";
+import type { Berth, BerthInput, BerthStatus } from "@/domain/berths/types";
 import type { Database } from "@/types/database";
 
 export class BerthRepositoryError extends Error {
@@ -100,6 +100,28 @@ export async function updateBerth(
 
   if (error) {
     throw new BerthRepositoryError("Unable to update berth.", error.code, {
+      cause: error,
+    });
+  }
+  return Boolean(data);
+}
+
+export async function updateBerthStatus(
+  supabase: SupabaseClient<Database>,
+  marinaId: string,
+  berthId: string,
+  status: BerthStatus,
+) {
+  const { data, error } = await supabase
+    .from("berths")
+    .update({ status })
+    .eq("id", berthId)
+    .eq("marina_id", marinaId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    throw new BerthRepositoryError("Unable to update berth status.", error.code, {
       cause: error,
     });
   }
