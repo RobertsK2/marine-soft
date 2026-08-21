@@ -1,5 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
-import { validateBookingCapacity } from "@/domain/bookings/capacity";
+import { describe, expect, it } from "vitest";
 import { validateBookingInput } from "@/domain/bookings/validation";
 
 const validInput = {
@@ -78,31 +77,4 @@ describe("booking validation", () => {
     if (result.success) expect(result.data.vesselName).toBeNull();
   });
 
-  it("calls the capacity boundary with the booking stay and dimensions", async () => {
-    const lookup = vi.fn().mockResolvedValue(true);
-    const request = {
-      arrivalDate: "2026-09-10",
-      departureDate: "2026-09-12",
-      vesselLengthM: 12.5,
-      vesselBeamM: 3.8,
-      vesselDraftM: 2.1,
-    };
-    await expect(validateBookingCapacity(request, lookup)).resolves.toBe(true);
-    expect(lookup).toHaveBeenCalledWith(request);
-  });
-
-  it("propagates a capacity rejection", async () => {
-    await expect(
-      validateBookingCapacity(
-        {
-          arrivalDate: "2026-09-10",
-          departureDate: "2026-09-12",
-          vesselLengthM: 50,
-          vesselBeamM: 12,
-          vesselDraftM: 8,
-        },
-        async () => false,
-      ),
-    ).resolves.toBe(false);
-  });
 });

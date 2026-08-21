@@ -217,6 +217,41 @@ test.describe("local Supabase marina auth", () => {
     await page.getByRole("link", { name: "Create booking" }).click();
     await page.getByLabel("Arrival date").fill(isoDate(arrival));
     await page.getByLabel("Departure date").fill(isoDate(departure));
+    await page.getByLabel("ETA").fill("16:00");
+    await page.getByLabel("ETD").fill("08:00");
+    await page.getByLabel("Customer name").fill("Scarce Large Berth Guest");
+    await page.getByLabel("Email").fill("large-one@example.test");
+    await page.getByLabel("Phone").fill("+371 20000011");
+    await page.getByLabel("Vessel name").fill("Large One");
+    await page.getByLabel("Length (m)").fill("19");
+    await page.getByLabel("Beam (m)").fill("5.8");
+    await page.getByLabel("Draft (m)").fill("3.1");
+    await page.getByRole("button", { name: "Create booking" }).click();
+    await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/);
+    await expect(page.getByText("Large One", { exact: true })).toBeVisible();
+
+    await page.getByRole("link", { name: "Back to bookings" }).click();
+    await page.getByRole("link", { name: "Create booking" }).click();
+    await page.getByLabel("Arrival date").fill(isoDate(arrival));
+    await page.getByLabel("Departure date").fill(isoDate(departure));
+    await page.getByLabel("ETA").fill("17:00");
+    await page.getByLabel("ETD").fill("09:00");
+    await page.getByLabel("Customer name").fill("Competing Large Berth Guest");
+    await page.getByLabel("Email").fill("large-two@example.test");
+    await page.getByLabel("Phone").fill("+371 20000012");
+    await page.getByLabel("Vessel name").fill("Large Two");
+    await page.getByLabel("Length (m)").fill("19");
+    await page.getByLabel("Beam (m)").fill("5.8");
+    await page.getByLabel("Draft (m)").fill("3.1");
+    await page.getByRole("button", { name: "Create booking" }).click();
+    await expect(page.getByText(
+      "No safe berth capacity is available for this vessel and stay.",
+      { exact: true },
+    )).toBeVisible();
+
+    await page.goto("/dashboard/bookings/new");
+    await page.getByLabel("Arrival date").fill(isoDate(arrival));
+    await page.getByLabel("Departure date").fill(isoDate(departure));
     await page.getByLabel("ETA").fill("15:00");
     await page.getByLabel("ETD").fill("09:00");
     await page.getByLabel("Customer name").fill("Oversize Vessel Guest");
@@ -227,7 +262,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Draft (m)").fill("10");
     await page.getByRole("button", { name: "Create booking" }).click();
     await expect(page.getByText(
-      "No operational berth can safely accommodate these vessel dimensions.",
+      "No safe berth capacity is available for this vessel and stay.",
       { exact: true },
     )).toBeVisible();
   });

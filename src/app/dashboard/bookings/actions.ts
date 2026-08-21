@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { validateBookingCapacity } from "@/domain/bookings/capacity";
+import { checkAvailability } from "@/domain/availability/matching";
+import { loadAvailabilitySnapshot } from "@/domain/availability/repository";
 import {
   BookingRepositoryError,
   createBooking,
-  hasPhysicalCapacity,
   updateBookingStatus,
 } from "@/domain/bookings/repository";
 import {
@@ -75,14 +75,24 @@ export async function createBookingAction(
   let bookingId: string;
   try {
     const supabase = await createClient();
-    const hasCapacity = await validateBookingCapacity(
-      validation.data,
-      (request) => hasPhysicalCapacity(supabase, context.marinaId, request),
+    const availabilityRequest = {
+      marinaId: context.marinaId,
+      arrivalDate: validation.data.arrivalDate,
+      departureDate: validation.data.departureDate,
+      vesselLengthM: validation.data.vesselLengthM,
+      vesselBeamM: validation.data.vesselBeamM,
+      vesselDraftM: validation.data.vesselDraftM,
+    };
+    const snapshot = await loadAvailabilitySnapshot(supabase, availabilityRequest);
+    const availability = checkAvailability(
+      availabilityRequest,
+      snapshot.berths,
+      snapshot.bookings,
     );
-    if (!hasCapacity) {
+    if (!availability.available) {
       return {
         status: "error",
-        message: "No operational berth can safely accommodate these vessel dimensions.",
+        message: "No safe berth capacity is available for this vessel and stay.",
       };
     }
 

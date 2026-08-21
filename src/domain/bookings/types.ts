@@ -38,12 +38,3 @@ export type BookingField =
   | "vesselDraftM";
 
 export type BookingFieldErrors = Partial<Record<BookingField, string>>;
-
-export type BookingCapacityRequest = Pick<
-  BookingInput,
-  | "arrivalDate"
-  | "departureDate"
-  | "vesselLengthM"
-  | "vesselBeamM"
-  | "vesselDraftM"
->;

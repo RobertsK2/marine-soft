@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   Booking,
-  BookingCapacityRequest,
   BookingInput,
   BookingStatus,
 } from "@/domain/bookings/types";
@@ -71,35 +70,6 @@ export async function getBooking(
     });
   }
   return data;
-}
-
-export async function hasPhysicalCapacity(
-  supabase: SupabaseClient<Database>,
-  marinaId: string,
-  request: BookingCapacityRequest,
-) {
-  // Phase 4 checks only that the marina owns an operational berth with safe
-  // physical limits. Date conflicts and berth ranking belong to Phase 5.
-  const { data, error } = await supabase
-    .from("berths")
-    .select("id")
-    .eq("marina_id", marinaId)
-    .eq("status", "available")
-    .eq("allow_smaller_vessels", true)
-    .gte("max_length_m", request.vesselLengthM)
-    .gte("max_beam_m", request.vesselBeamM)
-    .gte("max_draft_m", request.vesselDraftM)
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    throw new BookingRepositoryError(
-      "Unable to validate physical marina capacity.",
-      error.code,
-      { cause: error },
-    );
-  }
-  return Boolean(data);
 }
 
 export async function createBooking(
