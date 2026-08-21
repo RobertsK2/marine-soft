@@ -1,4 +1,4 @@
-import { Anchor, LogOut } from "lucide-react";
+import { Anchor, LayoutDashboard, LogOut, Rows3 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { logoutAction } from "@/app/auth/actions";
@@ -9,11 +9,13 @@ export function AppShell({
   title,
   description,
   children,
+  wide = false,
 }: {
   context: AuthorizationContext;
   title: string;
   description: string;
   children?: ReactNode;
+  wide?: boolean;
 }) {
   return (
     <div className="app-shell">
@@ -24,6 +26,16 @@ export function AppShell({
           </span>
           Berthio
         </Link>
+        <nav aria-label="Marina administration" className="app-nav">
+          <Link href="/dashboard">
+            <LayoutDashboard size={15} aria-hidden="true" />
+            Dashboard
+          </Link>
+          <Link href="/dashboard/berths">
+            <Rows3 size={15} aria-hidden="true" />
+            Berths
+          </Link>
+        </nav>
         <div className="app-user">
           <span>{context.email ?? "Marina user"}</span>
           <form action={logoutAction}>
@@ -34,7 +46,7 @@ export function AppShell({
           </form>
         </div>
       </header>
-      <main className="app-placeholder">
+      <main className={`app-placeholder${wide ? " app-placeholder-wide" : ""}`}>
         <div className="app-status">
           <span>{context.role.replace("_", " ").toUpperCase()}</span>
           <span>{context.timezone}</span>

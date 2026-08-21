@@ -123,4 +123,48 @@ test.describe("local Supabase marina auth", () => {
     await page.getByRole("button", { name: "Log in" }).click();
     await expect(page).toHaveURL("http://localhost:3000/dashboard");
   });
+
+  test("marina admin can create and operate a berth", async ({ page }) => {
+    const email = process.env.E2E_MARINA_EMAIL;
+    const password = process.env.E2E_MARINA_PASSWORD;
+    test.skip(!email || !password, "Requires invited marina credentials.");
+    const code = `E2E-${Date.now().toString().slice(-8)}`;
+
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(email!);
+    await page.getByLabel("Password").fill(password!);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await page.goto("/dashboard/berths");
+    await expect(page.getByRole("heading", { name: "Berth inventory" })).toBeVisible();
+    await expect(page.getByText("A-01", { exact: true })).toBeVisible();
+
+    await page.getByRole("link", { name: "Add berth" }).click();
+    await page.getByLabel("Berth code").fill(code);
+    await page.getByLabel("Zone").fill("E2E Pier");
+    await page.getByLabel("Maximum length (m)", { exact: true }).fill("17.5");
+    await page.getByLabel("Maximum beam (m)", { exact: true }).fill("5.2");
+    await page.getByLabel("Maximum draft (m)", { exact: true }).fill("2.9");
+    await page.getByLabel("Priority").fill("7");
+    await page.getByLabel("Status").selectOption("available");
+    await page.getByLabel("Allow smaller vessels").uncheck();
+    await page.getByRole("button", { name: "Create berth" }).click();
+
+    await expect(page).toHaveURL(/\/dashboard\/berths\/[0-9a-f-]+$/);
+    await expect(page.getByRole("heading", { name: `Berth ${code}` })).toBeVisible();
+    await expect(page.getByText("Not allowed", { exact: true })).toBeVisible();
+
+    await page.getByRole("link", { name: "Edit berth" }).click();
+    await page.getByLabel("Zone").fill("E2E North Pier");
+    await page.getByLabel("Status").selectOption("blocked");
+    await page.getByRole("button", { name: "Save berth" }).click();
+    await expect(page.getByText("Blocked", { exact: true })).toBeVisible();
+    await expect(page.getByText("E2E North Pier", { exact: true })).toBeVisible();
+    await expect(page.getByText("17.50 m", { exact: true })).toBeVisible();
+
+    await page.getByRole("link", { name: "Edit berth" }).click();
+    await page.getByLabel("Status").selectOption("out_of_service");
+    await page.getByRole("button", { name: "Save berth" }).click();
+    await expect(page.getByText("Out of service", { exact: true })).toBeVisible();
+  });
 });

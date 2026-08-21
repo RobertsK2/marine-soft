@@ -9,6 +9,47 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      berths: {
+        Row: {
+          allow_smaller_vessels: boolean;
+          code: string;
+          created_at: string;
+          id: string;
+          marina_id: string;
+          max_beam_m: number;
+          max_draft_m: number;
+          max_length_m: number;
+          priority: number;
+          status: Database["public"]["Enums"]["berth_status"];
+          updated_at: string;
+          zone: string;
+        };
+        Insert: {
+          allow_smaller_vessels?: boolean;
+          code: string;
+          created_at?: string;
+          id?: string;
+          marina_id: string;
+          max_beam_m: number;
+          max_draft_m: number;
+          max_length_m: number;
+          priority?: number;
+          status?: Database["public"]["Enums"]["berth_status"];
+          updated_at?: string;
+          zone: string;
+        };
+        Update: {
+          allow_smaller_vessels?: boolean;
+          code?: string;
+          max_beam_m?: number;
+          max_draft_m?: number;
+          max_length_m?: number;
+          priority?: number;
+          status?: Database["public"]["Enums"]["berth_status"];
+          zone?: string;
+        };
+        Relationships: [];
+      };
       organizations: {
         Row: {
           created_at: string;
@@ -78,6 +119,7 @@ export type Database = {
     Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: {
+      berth_status: "available" | "blocked" | "out_of_service";
       membership_status: "active" | "suspended";
       organization_role: "marina_admin" | "marina_staff";
     };
