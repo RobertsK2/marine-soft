@@ -45,7 +45,6 @@ test.describe("local Supabase marina auth", () => {
     const email = process.env.E2E_MARINA_EMAIL;
     const password = process.env.E2E_MARINA_PASSWORD;
     test.skip(!email || !password, "Requires invited marina credentials.");
-
     await page.goto("/login");
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password").fill(password!);
@@ -166,5 +165,70 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Status").selectOption("out_of_service");
     await page.getByRole("button", { name: "Save berth" }).click();
     await expect(page.getByText("Out of service", { exact: true })).toBeVisible();
+  });
+
+  test("marina user can create and manage a manual booking", async ({ page }) => {
+    const email = process.env.E2E_MARINA_EMAIL;
+    const password = process.env.E2E_MARINA_PASSWORD;
+    test.skip(!email || !password, "Requires invited marina credentials.");
+    const guestName = `E2E Transit Guest ${Date.now().toString().slice(-6)}`;
+    const today = new Date();
+    const arrival = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 30));
+    const departure = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 33));
+    const isoDate = (value: Date) => value.toISOString().slice(0, 10);
+
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(email!);
+    await page.getByLabel("Password").fill(password!);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+
+    await page.goto("/dashboard/bookings");
+    await expect(page.getByRole("heading", { name: "Bookings", exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Create booking" }).click();
+    await page.getByLabel("Arrival date").fill(isoDate(arrival));
+    await page.getByLabel("Departure date").fill(isoDate(departure));
+    await page.getByLabel("ETA").fill("14:30");
+    await page.getByLabel("ETD").fill("10:00");
+    await page.getByLabel("Customer name").fill(guestName);
+    await page.getByLabel("Email").fill("transit@example.test");
+    await page.getByLabel("Phone").fill("+371 20000009");
+    await page.getByLabel("Vessel name").fill("Test Aurora");
+    await page.getByLabel("Length (m)").fill("9.5");
+    await page.getByLabel("Beam (m)").fill("3.1");
+    await page.getByLabel("Draft (m)").fill("1.7");
+    await page.getByRole("button", { name: "Create booking" }).click();
+
+    await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/);
+    await expect(page.locator("h1")).toHaveText(/^BK-[A-Z0-9]{10}$/);
+    await expect(page.getByText(guestName, { exact: true })).toBeVisible();
+    await expect(page.getByText("Test Aurora", { exact: true })).toBeVisible();
+    await expect(page.getByText("Manual", { exact: true })).toBeVisible();
+    await expect(page.getByText("3", { exact: true })).toBeVisible();
+
+    await page.getByLabel("Booking status").selectOption("checked_in");
+    await page.getByRole("button", { name: "Update status" }).click();
+    await expect(page.getByText("Checked in", { exact: true })).toBeVisible();
+
+    await page.getByRole("link", { name: "Back to bookings" }).click();
+    await expect(page.getByText(guestName, { exact: true })).toBeVisible();
+    await expect(page.getByText("Checked in", { exact: true })).toBeVisible();
+
+    await page.getByRole("link", { name: "Create booking" }).click();
+    await page.getByLabel("Arrival date").fill(isoDate(arrival));
+    await page.getByLabel("Departure date").fill(isoDate(departure));
+    await page.getByLabel("ETA").fill("15:00");
+    await page.getByLabel("ETD").fill("09:00");
+    await page.getByLabel("Customer name").fill("Oversize Vessel Guest");
+    await page.getByLabel("Email").fill("oversize@example.test");
+    await page.getByLabel("Phone").fill("+371 20000010");
+    await page.getByLabel("Length (m)").fill("99");
+    await page.getByLabel("Beam (m)").fill("20");
+    await page.getByLabel("Draft (m)").fill("10");
+    await page.getByRole("button", { name: "Create booking" }).click();
+    await expect(page.getByText(
+      "No operational berth can safely accommodate these vessel dimensions.",
+      { exact: true },
+    )).toBeVisible();
   });
 });

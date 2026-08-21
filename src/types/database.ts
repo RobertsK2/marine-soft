@@ -9,6 +9,63 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          arrival_date: string;
+          created_at: string;
+          customer_email: string;
+          customer_name: string;
+          customer_phone: string;
+          departure_date: string;
+          eta: string;
+          etd: string;
+          id: string;
+          marina_id: string;
+          reference: string;
+          source: Database["public"]["Enums"]["booking_source"];
+          status: Database["public"]["Enums"]["booking_status"];
+          updated_at: string;
+          vessel_beam_m: number;
+          vessel_draft_m: number;
+          vessel_length_m: number;
+          vessel_name: string | null;
+        };
+        Insert: {
+          arrival_date: string;
+          created_at?: string;
+          customer_email: string;
+          customer_name: string;
+          customer_phone: string;
+          departure_date: string;
+          eta: string;
+          etd: string;
+          id?: string;
+          marina_id: string;
+          reference?: string;
+          source?: Database["public"]["Enums"]["booking_source"];
+          status?: Database["public"]["Enums"]["booking_status"];
+          updated_at?: string;
+          vessel_beam_m: number;
+          vessel_draft_m: number;
+          vessel_length_m: number;
+          vessel_name?: string | null;
+        };
+        Update: {
+          arrival_date?: string;
+          customer_email?: string;
+          customer_name?: string;
+          customer_phone?: string;
+          departure_date?: string;
+          eta?: string;
+          etd?: string;
+          status?: Database["public"]["Enums"]["booking_status"];
+          vessel_beam_m?: number;
+          vessel_draft_m?: number;
+          vessel_length_m?: number;
+          vessel_name?: string | null;
+        };
+        Relationships: [];
+      };
       berths: {
         Row: {
           allow_smaller_vessels: boolean;
@@ -120,6 +177,8 @@ export type Database = {
     Functions: Record<string, never>;
     Enums: {
       berth_status: "available" | "blocked" | "out_of_service";
+      booking_source: "manual";
+      booking_status: "confirmed" | "cancelled" | "checked_in" | "checked_out";
       membership_status: "active" | "suspended";
       organization_role: "marina_admin" | "marina_staff";
     };

@@ -1,4 +1,4 @@
-import { Anchor, LayoutDashboard, LogOut, Rows3 } from "lucide-react";
+import { Anchor, CalendarDays, LayoutDashboard, LogOut, Rows3 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { logoutAction } from "@/app/auth/actions";
@@ -34,6 +34,10 @@ export function AppShell({
           <Link href="/dashboard/berths">
             <Rows3 size={15} aria-hidden="true" />
             Berths
+          </Link>
+          <Link href="/dashboard/bookings">
+            <CalendarDays size={15} aria-hidden="true" />
+            Bookings
           </Link>
         </nav>
         <div className="app-user">
