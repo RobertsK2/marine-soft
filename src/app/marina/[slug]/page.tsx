@@ -1,20 +1,30 @@
 /* eslint-disable @next/next/no-img-element -- Marina-managed image URLs are intentionally unrestricted by a global Next image allowlist. */
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
-import { Anchor, ArrowDown, Clock3, Compass, Map } from "lucide-react";
+import { Anchor, ArrowDown, Clock3, Compass } from "lucide-react";
 import { notFound } from "next/navigation";
+import { BookingSearchForm } from "@/components/public-booking/booking-search-form";
+import {
+  bookingSearchFormValues,
+  hasBookingSearchParams,
+  marinaDateKey,
+  validatePublicBookingSearch,
+} from "@/domain/public-booking/validation";
 import { marinaInitials, timezoneLabel } from "@/domain/public-marinas/model";
 import { getPublicMarinaBySlug } from "@/domain/public-marinas/repository";
 import { createPublicClient } from "@/lib/supabase/public";
 
-type MarinaPageProps = { params: Promise<{ slug: string }> };
+type MarinaParams = { params: Promise<{ slug: string }> };
+type MarinaPageProps = MarinaParams & {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 type BrandedStyle = CSSProperties & { "--marina-brand": string };
 
 async function loadMarina(slug: string) {
   return getPublicMarinaBySlug(createPublicClient(), slug);
 }
 
-export async function generateMetadata({ params }: MarinaPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: MarinaParams): Promise<Metadata> {
   const marina = await loadMarina((await params).slug);
   if (!marina) return { title: "Marina not found" };
 
@@ -24,10 +34,20 @@ export async function generateMetadata({ params }: MarinaPageProps): Promise<Met
   };
 }
 
-export default async function PublicMarinaPage({ params }: MarinaPageProps) {
+export default async function PublicMarinaPage({ params, searchParams }: MarinaPageProps) {
   const marina = await loadMarina((await params).slug);
   if (!marina) notFound();
 
+  const query = await searchParams;
+  const formValues = bookingSearchFormValues(query);
+  const submitted = hasBookingSearchParams(query);
+  const validation = submitted
+    ? validatePublicBookingSearch(query, marina.timezone)
+    : null;
+  const minArrivalDate = marinaDateKey(new Date(), marina.timezone) ?? "";
+  const errors = validation && !validation.success ? validation.errors : {};
+  const formError = validation && !validation.success ? validation.formError : undefined;
+  const searchRequest = validation?.success ? validation.data : null;
   const brandStyle: BrandedStyle = { "--marina-brand": marina.primaryColor };
   const localTimeZone = timezoneLabel(marina.timezone);
 
@@ -83,38 +103,39 @@ export default async function PublicMarinaPage({ params }: MarinaPageProps) {
         </div>
       </section>
 
-      {(marina.localText || marina.mapImageUrl) ? (
+      {marina.localText ? (
         <section className="public-marina-details" aria-label="Marina information">
-          {marina.localText ? (
-            <article className="public-marina-local-note">
-              <p className="public-marina-section-code">Local harbour note</p>
-              <h2>{marina.localLanguage ?? "Local information"}</h2>
-              <p lang={marina.localLanguage ? undefined : "en"}>{marina.localText}</p>
-            </article>
-          ) : null}
-
-          {marina.mapImageUrl ? (
-            <figure className="public-marina-map-preview">
-              <figcaption><Map size={15} /> Public marina map preview</figcaption>
-              <img alt={`${marina.name} marina map preview`} src={marina.mapImageUrl} />
-            </figure>
-          ) : null}
+          <article className="public-marina-local-note">
+            <p className="public-marina-section-code">Local harbour note</p>
+            <h2>{marina.localLanguage ?? "Local information"}</h2>
+            <p lang={marina.localLanguage ? undefined : "en"}>{marina.localText}</p>
+          </article>
         </section>
       ) : null}
 
       <section className="public-marina-booking" id="booking-entry">
         <div>
-          <p className="public-marina-section-code">Booking entry / Phase 1</p>
+          <p className="public-marina-section-code">Booking search / Phase 2</p>
           <h2>Request a berth</h2>
           <p>
-            Start here to plan a direct stay with {marina.name}. Dates and vessel details are the next step in the booking flow.
+            Enter the stay window and the vessel&apos;s safe maximum dimensions. This step prepares an availability request only.
           </p>
+          <dl className="public-booking-semantics">
+            <div><dt>Stay model</dt><dd>[arrival, departure)</dd></div>
+            <div><dt>Timezone</dt><dd>{marina.timezone}</dd></div>
+            <div><dt>Booking created</dt><dd>No</dd></div>
+          </dl>
         </div>
-        <ol aria-label="Booking details coming next">
-          <li><span>01</span><strong>Stay dates</strong><small>Arrival and departure</small></li>
-          <li><span>02</span><strong>Vessel dimensions</strong><small>Length, beam, and draft</small></li>
-          <li><span>03</span><strong>Marina response</strong><small>Availability follows later in the booking flow</small></li>
-        </ol>
+        <BookingSearchForm
+          errors={errors}
+          formError={formError}
+          marinaName={marina.name}
+          marinaSlug={marina.slug}
+          marinaTimezone={marina.timezone}
+          minArrivalDate={minArrivalDate}
+          request={searchRequest}
+          values={formValues}
+        />
       </section>
 
       <footer className="public-marina-footer">

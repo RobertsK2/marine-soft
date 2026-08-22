@@ -21,9 +21,11 @@ test.describe("public marina page", () => {
   test("published marina data is available without admin controls", async ({ page }) => {
     await page.goto("/marina/marina-a");
     await expect(page.getByRole("heading", { name: "Marina A", level: 1 })).toBeVisible();
-    await expect(page.getByText("Europe/Riga", { exact: true })).toBeVisible();
+    await expect(
+      page.getByLabel("Marina local time context").getByText("Europe/Riga", { exact: true }),
+    ).toBeVisible();
     await expect(page.getByRole("heading", { name: "Request a berth" })).toBeVisible();
-    await expect(page.getByRole("img", { name: "Marina A marina map preview" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "Marina A marina map preview" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /dashboard|admin/i })).toHaveCount(0);
   });
 
@@ -33,6 +35,50 @@ test.describe("public marina page", () => {
 
     await page.goto("/marina/not-a-marina");
     await expect(page.locator("body")).toContainText("404");
+  });
+
+  test("booking search validates and preserves a clean timezone-aware request", async ({ page }) => {
+    const today = new Date();
+    const arrival = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 20));
+    const departure = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 23));
+    const isoDate = (value: Date) => value.toISOString().slice(0, 10);
+
+    await page.goto("/marina/marina-a#booking-entry");
+    await page.getByLabel("Arrival date").fill(isoDate(arrival));
+    await page.getByLabel("Departure date").fill(isoDate(departure));
+    await page.getByLabel("ETA").fill("14:30");
+    await page.getByLabel("ETD").fill("10:00");
+    await page.getByLabel("Vessel name").fill("Test Aurora");
+    await page.getByLabel("Length (m)").fill("12.5");
+    await page.getByLabel("Beam (m)").fill("3.8");
+    await page.getByLabel("Draft (m)").fill("2.1");
+    await page.getByRole("button", { name: "Check availability" }).click();
+
+    await expect(page).toHaveURL(/arrivalDate=.*&departureDate=.*&eta=14%3A30/);
+    await expect(page.getByRole("status")).toContainText("Search request validated");
+    await expect(page.getByRole("status")).toContainText("3 nights");
+    await expect(page.getByRole("status")).toContainText("No booking has been created");
+    await expect(page.getByLabel("Vessel name")).toHaveValue("Test Aurora");
+    await expect(
+      page.locator("#booking-entry").getByText("Europe/Riga", { exact: true }),
+    ).toBeVisible();
+  });
+
+  test("booking search reports invalid stay and dimensions without losing input", async ({ page }) => {
+    const today = new Date();
+    const arrival = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 20));
+    const isoDate = arrival.toISOString().slice(0, 10);
+
+    await page.goto(
+      `/marina/marina-a?arrivalDate=${isoDate}&departureDate=${isoDate}&eta=25%3A00&etd=10%3A00&vesselName=Kept+Name&vesselLengthM=0&vesselBeamM=3.8&vesselDraftM=2.1#booking-entry`,
+    );
+
+    await expect(page.getByText("Departure must be after arrival.")).toBeVisible();
+    await expect(page.getByText("Enter a valid ETA in marina local time.")).toBeVisible();
+    await expect(page.getByText(/Vessel length must be between/)).toBeVisible();
+    await expect(page.getByLabel("Vessel name")).toHaveValue("Kept Name");
+    await expect(page.getByLabel("Length (m)")).toHaveValue("0");
+    await expect(page.locator("[data-search-ready='true']")).toHaveCount(0);
   });
 });
 
