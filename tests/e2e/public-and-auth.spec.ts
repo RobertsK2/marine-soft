@@ -12,6 +12,30 @@ test("public foundation and login routes remain available", async ({ page }) => 
   await expect(page.getByLabel("Password")).toBeVisible();
 });
 
+test.describe("public marina page", () => {
+  test.skip(
+    !process.env.E2E_SUPABASE_READY,
+    "Requires the seeded local Supabase stack.",
+  );
+
+  test("published marina data is available without admin controls", async ({ page }) => {
+    await page.goto("/marina/marina-a");
+    await expect(page.getByRole("heading", { name: "Marina A", level: 1 })).toBeVisible();
+    await expect(page.getByText("Europe/Riga", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Request a berth" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "Marina A marina map preview" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /dashboard|admin/i })).toHaveCount(0);
+  });
+
+  test("unpublished and unknown marina slugs return not found", async ({ page }) => {
+    await page.goto("/marina/marina-b");
+    await expect(page.locator("body")).toContainText("404");
+
+    await page.goto("/marina/not-a-marina");
+    await expect(page.locator("body")).toContainText("404");
+  });
+});
+
 test("protected dashboard routes preserve a safe return destination", async ({ page }) => {
   await page.goto("/dashboard/arrivals");
   await expect(page).toHaveURL(/\/login\?next=%2Fdashboard%2Farrivals$/);

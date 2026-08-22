@@ -9,21 +9,45 @@ values
   ('d0000000-0000-4000-8000-000000000001', 'Marina A Organization'),
   ('e0000000-0000-4000-8000-000000000002', 'Marina B Organization');
 
-insert into public.marinas (id, organization_id, name, slug, timezone)
+insert into public.marinas (
+  id,
+  organization_id,
+  name,
+  slug,
+  timezone,
+  is_public,
+  primary_color,
+  public_description,
+  public_description_local,
+  local_language,
+  map_image_url
+)
 values
   (
     'd1000000-0000-4000-8000-000000000001',
     'd0000000-0000-4000-8000-000000000001',
     'Marina A',
     'marina-a',
-    'Europe/Riga'
+    'Europe/Riga',
+    true,
+    '#0A4D68',
+    'A sheltered Baltic harbour with visitor berths, shore access, and deep-water approaches managed from Riga local time.',
+    'Aizsargāta Baltijas osta ar viesu piestātnēm, piekļuvi krastam un dziļūdens pieeju.',
+    'Latviešu',
+    '/mockup/marine-map-reference.jpeg'
   ),
   (
     'e1000000-0000-4000-8000-000000000002',
     'e0000000-0000-4000-8000-000000000002',
     'Marina B',
     'marina-b',
-    'Europe/Riga'
+    'Europe/Riga',
+    false,
+    '#0A192F',
+    null,
+    null,
+    null,
+    null
   );
 
 -- Phase 3 local-only physical inventory for the Marina A pilot. Lower priority

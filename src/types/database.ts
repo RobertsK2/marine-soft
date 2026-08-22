@@ -125,25 +125,49 @@ export type Database = {
       };
       marinas: {
         Row: {
+          cover_image_url: string | null;
           created_at: string;
           id: string;
+          is_public: boolean;
+          local_language: string | null;
+          logo_url: string | null;
+          map_image_url: string | null;
           name: string;
           organization_id: string;
+          primary_color: string;
+          public_description: string | null;
+          public_description_local: string | null;
           slug: string;
           timezone: string;
           updated_at: string;
         };
         Insert: {
+          cover_image_url?: string | null;
           created_at?: string;
           id?: string;
+          is_public?: boolean;
+          local_language?: string | null;
+          logo_url?: string | null;
+          map_image_url?: string | null;
           name: string;
           organization_id: string;
+          primary_color?: string;
+          public_description?: string | null;
+          public_description_local?: string | null;
           slug: string;
           timezone?: string;
           updated_at?: string;
         };
         Update: {
+          cover_image_url?: string | null;
+          is_public?: boolean;
+          local_language?: string | null;
+          logo_url?: string | null;
+          map_image_url?: string | null;
           name?: string;
+          primary_color?: string;
+          public_description?: string | null;
+          public_description_local?: string | null;
           slug?: string;
           timezone?: string;
         };
