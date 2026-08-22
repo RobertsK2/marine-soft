@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 
 test("public foundation and login routes remain available", async ({ page }) => {
   await page.goto("/");
@@ -55,13 +56,90 @@ test.describe("public marina page", () => {
     await page.getByRole("button", { name: "Check availability" }).click();
 
     await expect(page).toHaveURL(/arrivalDate=.*&departureDate=.*&eta=14%3A30/);
-    await expect(page.getByRole("status")).toContainText("Search request validated");
+    await expect(page.getByRole("status")).toContainText("Available for these dates");
     await expect(page.getByRole("status")).toContainText("3 nights");
     await expect(page.getByRole("status")).toContainText("No booking has been created");
     await expect(page.getByLabel("Vessel name")).toHaveValue("Test Aurora");
     await expect(
       page.locator("#booking-entry").getByText("Europe/Riga", { exact: true }),
     ).toBeVisible();
+  });
+
+  test("public availability returns a safe no-fit result and ignores browser marina ids", async ({ page }) => {
+    const today = new Date();
+    const arrival = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 30));
+    const departure = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 33));
+    const isoDate = (value: Date) => value.toISOString().slice(0, 10);
+    const query = new URLSearchParams({
+      arrivalDate: isoDate(arrival),
+      departureDate: isoDate(departure),
+      eta: "14:30",
+      etd: "10:00",
+      marinaId: "e1000000-0000-4000-8000-000000000002",
+      vesselBeamM: "20",
+      vesselDraftM: "10",
+      vesselLengthM: "99",
+      vesselName: "Oversize Test",
+    });
+
+    await page.goto(`/marina/marina-a?${query.toString()}#booking-entry`);
+    const result = page.locator("[data-availability='no_suitable_berth']");
+    await expect(result).toContainText("Unavailable — vessel does not fit");
+    await expect(result).not.toContainText(/d5000000|BK-|A-01|berth id|booking id|price/i);
+    await expect(page.locator("[data-berth-id]")).toHaveCount(0);
+  });
+
+  test("public availability distinguishes suitable capacity that is full", async ({ page }) => {
+    const secretKey = process.env.SUPABASE_SECRET_KEY;
+    test.skip(!secretKey, "Requires the local server-only Supabase secret key.");
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321",
+      secretKey!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const today = new Date();
+    const arrival = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 40));
+    const departure = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 43));
+    const isoDate = (value: Date) => value.toISOString().slice(0, 10);
+    const { data: booking, error } = await supabase
+      .from("bookings")
+      .insert({
+        arrival_date: isoDate(arrival),
+        customer_email: "capacity-fixture@example.test",
+        customer_name: "Capacity fixture",
+        customer_phone: "+371 20000999",
+        departure_date: isoDate(departure),
+        eta: "14:00",
+        etd: "10:00",
+        marina_id: "d1000000-0000-4000-8000-000000000001",
+        vessel_beam_m: 5.8,
+        vessel_draft_m: 3.1,
+        vessel_length_m: 19,
+        vessel_name: "Capacity Fixture",
+      })
+      .select("id")
+      .single();
+    expect(error).toBeNull();
+    expect(booking).toBeTruthy();
+
+    try {
+      const query = new URLSearchParams({
+        arrivalDate: isoDate(arrival),
+        departureDate: isoDate(departure),
+        eta: "15:00",
+        etd: "09:00",
+        vesselBeamM: "5.8",
+        vesselDraftM: "3.1",
+        vesselLengthM: "19",
+      });
+      await page.goto(`/marina/marina-a?${query.toString()}#booking-entry`);
+
+      const result = page.locator("[data-availability='capacity_full']");
+      await expect(result).toContainText("Unavailable — suitable capacity is full");
+      await expect(result).not.toContainText(/d5000000|BK-|C-03|berth id|booking id|price/i);
+    } finally {
+      if (booking) await supabase.from("bookings").delete().eq("id", booking.id);
+    }
   });
 
   test("booking search reports invalid stay and dimensions without losing input", async ({ page }) => {

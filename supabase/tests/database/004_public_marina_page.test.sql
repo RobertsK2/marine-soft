@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(12);
 
 insert into public.organizations (id, name)
 values ('c0000000-0000-4000-8000-000000000003', 'Public profile test organization');
@@ -49,6 +49,14 @@ select ok(
 select ok(
   not has_column_privilege('anon', 'public.marinas', 'organization_id', 'select'),
   'anonymous users cannot select tenant ownership data'
+);
+select ok(
+  not has_table_privilege('anon', 'public.berths', 'select'),
+  'anonymous users cannot read raw berth inventory'
+);
+select ok(
+  not has_table_privilege('anon', 'public.bookings', 'select'),
+  'anonymous users cannot read raw booking data'
 );
 
 set local role anon;

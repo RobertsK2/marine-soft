@@ -13,6 +13,7 @@
     "test:db": "supabase test db",
     "test:e2e": "playwright test",
     "test-users:setup": "node scripts/setup-local-test-users.mjs",
+    "supabase:sync-secret": "node scripts/sync-supabase-secret.mjs",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:reset": "supabase db reset"

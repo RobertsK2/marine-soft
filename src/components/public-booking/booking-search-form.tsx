@@ -1,9 +1,17 @@
-import { ArrowRight, CalendarDays, Clock3, Ruler } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  Ruler,
+  XCircle,
+} from "lucide-react";
 import type {
   BookingSearchField,
   BookingSearchFieldErrors,
   PublicBookingSearch,
 } from "@/domain/public-booking/types";
+import type { PublicAvailabilityResult } from "@/domain/public-availability/types";
 
 type FormValues = Record<BookingSearchField, string>;
 
@@ -16,6 +24,8 @@ function describedBy(errors: BookingSearchFieldErrors, field: BookingSearchField
 }
 
 export function BookingSearchForm({
+  availability,
+  availabilityError,
   errors,
   formError,
   marinaName,
@@ -25,6 +35,8 @@ export function BookingSearchForm({
   request,
   values,
 }: {
+  availability: PublicAvailabilityResult | null;
+  availabilityError?: string;
   errors: BookingSearchFieldErrors;
   formError?: string;
   marinaName: string;
@@ -122,11 +134,44 @@ export function BookingSearchForm({
       </fieldset>
 
       {formError ? <p className="form-message form-error" role="alert">{formError}</p> : null}
-      {request ? (
-        <div className="public-booking-ready" data-search-ready="true" role="status">
-          <strong>Search request validated</strong>
-          <span>{request.stayNights} {request.stayNights === 1 ? "night" : "nights"} · {request.vesselLengthM.toFixed(2)} × {request.vesselBeamM.toFixed(2)} × {request.vesselDraftM.toFixed(2)} m</span>
-          <small>Your entries remain in this URL for the availability step. No booking has been created.</small>
+      {availabilityError ? (
+        <div className="public-availability-result public-availability-error" role="alert">
+          <XCircle aria-hidden="true" size={22} />
+          <div>
+            <strong>Availability could not be checked</strong>
+            <p>{availabilityError}</p>
+          </div>
+        </div>
+      ) : null}
+      {request && availability ? (
+        <div
+          className={`public-availability-result ${availability.available ? "public-availability-available" : "public-availability-unavailable"}`}
+          data-availability={availability.available ? "available" : availability.reason}
+          role="status"
+        >
+          {availability.available ? (
+            <CheckCircle2 aria-hidden="true" size={22} />
+          ) : (
+            <XCircle aria-hidden="true" size={22} />
+          )}
+          <div>
+            <strong>
+              {availability.available
+                ? "Available for these dates"
+                : availability.reason === "no_suitable_berth"
+                  ? "Unavailable — vessel does not fit"
+                  : "Unavailable — suitable capacity is full"}
+            </strong>
+            <p>
+              {availability.available
+                ? "Compatible physical berth capacity is available for this stay."
+                : availability.reason === "no_suitable_berth"
+                  ? "The entered dimensions do not fit a currently bookable berth."
+                  : "Compatible berth capacity is already committed during part of this stay."}
+            </p>
+            <span>{request.stayNights} {request.stayNights === 1 ? "night" : "nights"} · {request.vesselLengthM.toFixed(2)} × {request.vesselBeamM.toFixed(2)} × {request.vesselDraftM.toFixed(2)} m</span>
+            <small>This is a live capacity check, not a berth assignment. No booking has been created.</small>
+          </div>
         </div>
       ) : null}
 

@@ -648,10 +648,15 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .public-dimension-input { position: relative; }
 .public-dimension-input input { padding-right: 2.25rem; }
 .public-dimension-input svg { position: absolute; top: 50%; right: .75rem; color: var(--brass); transform: translateY(-50%); pointer-events: none; }
-.public-booking-ready { display: grid; gap: .2rem; border: 1px solid var(--navy); border-left: 5px solid var(--brass); padding: .85rem 1rem; }
-.public-booking-ready strong { font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .78rem; text-transform: uppercase; }
-.public-booking-ready span { font-family: "JetBrains Mono", monospace; font-size: .72rem; }
-.public-booking-ready small { color: var(--salt); font-size: .68rem; }
+.public-availability-result { display: grid; grid-template-columns: auto 1fr; gap: .75rem; border: 1px solid var(--navy); border-left: 5px solid var(--brass); padding: 1rem; }
+.public-availability-result > svg { color: var(--brass); }
+.public-availability-result > div { display: grid; gap: .25rem; }
+.public-availability-result strong { font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .82rem; letter-spacing: .03em; text-transform: uppercase; }
+.public-availability-result p { max-width: 62ch; margin: 0; font-size: .78rem; }
+.public-availability-result span { font-family: "JetBrains Mono", monospace; font-size: .72rem; }
+.public-availability-result small { color: var(--salt); font-size: .68rem; }
+.public-availability-unavailable, .public-availability-error { border-left-color: var(--orange); }
+.public-availability-unavailable > svg, .public-availability-error > svg { color: var(--orange); }
 .public-booking-form > .button { width: 100%; }
 .public-marina-footer { display: flex; justify-content: space-between; gap: 1rem; padding: 1.25rem clamp(1rem, 4vw, 4rem); font-family: "JetBrains Mono", monospace; font-size: .62rem; text-transform: uppercase; }
 

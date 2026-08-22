@@ -12,6 +12,9 @@ import {
 } from "@/domain/public-booking/validation";
 import { marinaInitials, timezoneLabel } from "@/domain/public-marinas/model";
 import { getPublicMarinaBySlug } from "@/domain/public-marinas/repository";
+import { getPublicAvailability } from "@/domain/public-availability/service";
+import type { PublicAvailabilityResult } from "@/domain/public-availability/types";
+import { captureServerError } from "@/lib/monitoring/server";
 import { createPublicClient } from "@/lib/supabase/public";
 
 type MarinaParams = { params: Promise<{ slug: string }> };
@@ -48,6 +51,21 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
   const errors = validation && !validation.success ? validation.errors : {};
   const formError = validation && !validation.success ? validation.formError : undefined;
   const searchRequest = validation?.success ? validation.data : null;
+  let availability: PublicAvailabilityResult | null = null;
+  let availabilityError: string | undefined;
+
+  if (searchRequest) {
+    try {
+      availability = await getPublicAvailability(marina.slug, searchRequest);
+      if (!availability) availabilityError = "The marina is not available for public booking.";
+    } catch (error) {
+      captureServerError(error, {
+        marina_slug: marina.slug,
+        operation: "public_availability_check",
+      });
+      availabilityError = "Please try again. No booking or berth assignment was created.";
+    }
+  }
   const brandStyle: BrandedStyle = { "--marina-brand": marina.primaryColor };
   const localTimeZone = timezoneLabel(marina.timezone);
 
@@ -115,10 +133,10 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
 
       <section className="public-marina-booking" id="booking-entry">
         <div>
-          <p className="public-marina-section-code">Booking search / Phase 2</p>
+          <p className="public-marina-section-code">Availability / Phase 3</p>
           <h2>Request a berth</h2>
           <p>
-            Enter the stay window and the vessel&apos;s safe maximum dimensions. This step prepares an availability request only.
+            Enter the stay window and the vessel&apos;s safe maximum dimensions. Berthio checks real physical capacity without assigning a berth.
           </p>
           <dl className="public-booking-semantics">
             <div><dt>Stay model</dt><dd>[arrival, departure)</dd></div>
@@ -127,6 +145,8 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
           </dl>
         </div>
         <BookingSearchForm
+          availability={availability}
+          availabilityError={availabilityError}
           errors={errors}
           formError={formError}
           marinaName={marina.name}
