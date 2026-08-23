@@ -14,6 +14,7 @@ import type {
 import type { PublicAvailabilityResult } from "@/domain/public-availability/types";
 import { PriceQuote } from "@/components/public-booking/price-quote";
 import type { PublicPriceQuote } from "@/domain/pricing/types";
+import { HoldControl } from "@/components/public-booking/hold-control";
 
 type FormValues = Record<BookingSearchField, string>;
 
@@ -36,6 +37,7 @@ export function BookingSearchForm({
   minArrivalDate,
   priceError,
   priceQuote,
+  holdIdempotencyKey,
   request,
   values,
 }: {
@@ -49,6 +51,7 @@ export function BookingSearchForm({
   minArrivalDate: string;
   priceError?: string;
   priceQuote: PublicPriceQuote | null;
+  holdIdempotencyKey: string;
   request: PublicBookingSearch | null;
   values: FormValues;
 }) {
@@ -183,6 +186,10 @@ export function BookingSearchForm({
 
       {availability?.available ? (
         <PriceQuote error={priceError} quote={priceQuote} />
+      ) : null}
+
+      {availability?.available && priceQuote ? (
+        <HoldControl idempotencyKey={holdIdempotencyKey} marinaSlug={marinaSlug} />
       ) : null}
 
       <button className="button button-primary button-large" type="submit">

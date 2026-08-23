@@ -54,6 +54,12 @@ function repositoryFailure(error: unknown): BookingActionState {
   if (error instanceof BookingRepositoryError && error.code === "23505") {
     return { status: "error", message: "A booking reference collision occurred. Try again." };
   }
+  if (error instanceof BookingRepositoryError && error.code === "P0001") {
+    return {
+      status: "error",
+      message: "An active public checkout hold has priority for this capacity. Wait for it to expire or choose another stay or vessel.",
+    };
+  }
   return {
     status: "error",
     message: "Booking changes could not be saved. Review the values and try again.",

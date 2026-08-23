@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- Marina-managed image URLs are intentionally unrestricted by a global Next image allowlist. */
 import type { CSSProperties } from "react";
+import { randomUUID } from "node:crypto";
 import type { Metadata } from "next";
 import { Anchor, ArrowDown, Clock3, Compass } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -149,7 +150,7 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
 
       <section className="public-marina-booking" id="booking-entry">
         <div>
-          <p className="public-marina-section-code">Availability + pricing / Phase 4</p>
+          <p className="public-marina-section-code">Availability + pricing + hold / Phase 5</p>
           <h2>Request a berth</h2>
           <p>
             Enter the stay window and the vessel&apos;s safe maximum dimensions. Berthio checks real physical capacity without assigning a berth.
@@ -165,6 +166,7 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
           availabilityError={availabilityError}
           errors={errors}
           formError={formError}
+          holdIdempotencyKey={randomUUID()}
           marinaName={marina.name}
           marinaSlug={marina.slug}
           marinaTimezone={marina.timezone}

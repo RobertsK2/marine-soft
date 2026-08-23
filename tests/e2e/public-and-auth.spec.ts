@@ -119,6 +119,41 @@ test.describe("public marina page", () => {
     await expect(page.locator("[data-booking-id], [data-hold-id]")).toHaveCount(0);
   });
 
+  test("public customer can create and safely release a 15-minute capacity hold", async ({ page }) => {
+    const secretKey = process.env.SUPABASE_SECRET_KEY;
+    test.skip(!secretKey, "Requires the local server-only Supabase secret key.");
+    const query = new URLSearchParams({
+      arrivalDate: "2026-12-10",
+      departureDate: "2026-12-12",
+      eta: "14:30",
+      etd: "10:00",
+      vesselBeamM: "5.8",
+      vesselDraftM: "3.1",
+      vesselLengthM: "19",
+      vesselName: "Hold UI Test",
+    });
+    await page.goto(`/marina/marina-a?${query.toString()}#booking-entry`);
+    await page.getByRole("button", { name: "Continue to payment" }).click();
+
+    const result = page.locator("[data-hold-token]");
+    await expect(result).toContainText("Capacity is held for 15 minutes");
+    await expect(result).toContainText("Hold expires at");
+    await expect(page.getByRole("button", { name: "Capacity held" })).toBeDisabled();
+
+    const holdToken = await result.getAttribute("data-hold-token");
+    expect(holdToken).toMatch(/^[0-9a-f-]{36}$/i);
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321",
+      secretKey!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { data, error } = await supabase.rpc("release_booking_hold_after_checkout_failure", {
+      target_hold_token: holdToken!,
+    });
+    expect(error).toBeNull();
+    expect(data).toBe(true);
+  });
+
   test("public availability distinguishes suitable capacity that is full", async ({ page }) => {
     const secretKey = process.env.SUPABASE_SECRET_KEY;
     test.skip(!secretKey, "Requires the local server-only Supabase secret key.");

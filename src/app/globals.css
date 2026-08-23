@@ -658,6 +658,11 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .public-availability-unavailable, .public-availability-error { border-left-color: var(--orange); }
 .public-availability-unavailable > svg, .public-availability-error > svg { color: var(--orange); }
 .public-booking-form > .button { width: 100%; }
+.public-hold-control { display: grid; gap: .65rem; }
+.public-hold-control > .button { width: 100%; }
+.public-hold-message { margin: 0; border-left: 5px solid var(--orange); padding: .75rem 1rem; background: var(--white); font-size: .75rem; }
+.public-hold-message strong { font-family: DIN, "Helvetica Now Display", sans-serif; text-transform: uppercase; }
+.public-hold-held { border-left-color: var(--brass); }
 .public-price-error { display: grid; grid-template-columns: auto 1fr; gap: .75rem; border: 1px solid var(--navy); border-left: 5px solid var(--brass); padding: 1rem; }
 .public-price-error > svg { color: var(--brass); }
 .public-price-error strong { font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .82rem; letter-spacing: .03em; text-transform: uppercase; }

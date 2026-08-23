@@ -17,7 +17,7 @@ export async function loadAvailabilitySnapshot(
   supabase: SupabaseClient<Database>,
   request: AvailabilityRequest,
 ) {
-  const [berthResult, bookingResult] = await Promise.all([
+  const [berthResult, bookingResult, holdResult] = await Promise.all([
     supabase
       .from("berths")
       .select("id, marina_id, code, priority, status, allow_smaller_vessels, max_length_m, max_beam_m, max_draft_m")
@@ -27,9 +27,15 @@ export async function loadAvailabilitySnapshot(
       .select("id, marina_id, arrival_date, departure_date, status, vessel_length_m, vessel_beam_m, vessel_draft_m")
       .eq("marina_id", request.marinaId)
       .in("status", ["confirmed", "checked_in"]),
+    supabase
+      .from("booking_holds")
+      .select("id, marina_id, arrival_date, departure_date, vessel_length_m, vessel_beam_m, vessel_draft_m")
+      .eq("marina_id", request.marinaId)
+      .eq("status", "active")
+      .gt("expires_at", new Date().toISOString()),
   ]);
 
-  const error = berthResult.error ?? bookingResult.error;
+  const error = berthResult.error ?? bookingResult.error ?? holdResult.error;
   if (error) {
     throw new AvailabilityRepositoryError(
       "Unable to load marina availability.",
@@ -58,7 +64,16 @@ export async function loadAvailabilitySnapshot(
     vesselLengthM: booking.vessel_length_m,
     vesselBeamM: booking.vessel_beam_m,
     vesselDraftM: booking.vessel_draft_m,
-  }));
+  })).concat((holdResult.data ?? []).map((hold) => ({
+    id: `hold:${hold.id}`,
+    marinaId: hold.marina_id,
+    arrivalDate: hold.arrival_date,
+    departureDate: hold.departure_date,
+    status: "confirmed" as const,
+    vesselLengthM: hold.vessel_length_m,
+    vesselBeamM: hold.vessel_beam_m,
+    vesselDraftM: hold.vessel_draft_m,
+  })));
 
   return { berths, bookings };
 }
