@@ -14,6 +14,8 @@ import { marinaInitials, timezoneLabel } from "@/domain/public-marinas/model";
 import { getPublicMarinaBySlug } from "@/domain/public-marinas/repository";
 import { getPublicAvailability } from "@/domain/public-availability/service";
 import type { PublicAvailabilityResult } from "@/domain/public-availability/types";
+import { getPublicPriceQuote } from "@/domain/pricing/service";
+import type { PublicPriceQuote } from "@/domain/pricing/types";
 import { captureServerError } from "@/lib/monitoring/server";
 import { createPublicClient } from "@/lib/supabase/public";
 
@@ -53,6 +55,8 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
   const searchRequest = validation?.success ? validation.data : null;
   let availability: PublicAvailabilityResult | null = null;
   let availabilityError: string | undefined;
+  let priceQuote: PublicPriceQuote | null = null;
+  let priceError: string | undefined;
 
   if (searchRequest) {
     try {
@@ -64,6 +68,18 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
         operation: "public_availability_check",
       });
       availabilityError = "Please try again. No booking or berth assignment was created.";
+    }
+  }
+  if (searchRequest && availability?.available) {
+    try {
+      priceQuote = await getPublicPriceQuote(marina.slug, searchRequest);
+      if (!priceQuote) priceError = "Pricing is not configured for these dates.";
+    } catch (error) {
+      captureServerError(error, {
+        marina_slug: marina.slug,
+        operation: "public_price_quote",
+      });
+      priceError = "Please try again. No booking, payment, or capacity hold was created.";
     }
   }
   const brandStyle: BrandedStyle = { "--marina-brand": marina.primaryColor };
@@ -133,7 +149,7 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
 
       <section className="public-marina-booking" id="booking-entry">
         <div>
-          <p className="public-marina-section-code">Availability / Phase 3</p>
+          <p className="public-marina-section-code">Availability + pricing / Phase 4</p>
           <h2>Request a berth</h2>
           <p>
             Enter the stay window and the vessel&apos;s safe maximum dimensions. Berthio checks real physical capacity without assigning a berth.
@@ -153,6 +169,8 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
           marinaSlug={marina.slug}
           marinaTimezone={marina.timezone}
           minArrivalDate={minArrivalDate}
+          priceError={priceError}
+          priceQuote={priceQuote}
           request={searchRequest}
           values={formValues}
         />

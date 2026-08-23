@@ -12,6 +12,8 @@ import type {
   PublicBookingSearch,
 } from "@/domain/public-booking/types";
 import type { PublicAvailabilityResult } from "@/domain/public-availability/types";
+import { PriceQuote } from "@/components/public-booking/price-quote";
+import type { PublicPriceQuote } from "@/domain/pricing/types";
 
 type FormValues = Record<BookingSearchField, string>;
 
@@ -32,6 +34,8 @@ export function BookingSearchForm({
   marinaSlug,
   marinaTimezone,
   minArrivalDate,
+  priceError,
+  priceQuote,
   request,
   values,
 }: {
@@ -43,6 +47,8 @@ export function BookingSearchForm({
   marinaSlug: string;
   marinaTimezone: string;
   minArrivalDate: string;
+  priceError?: string;
+  priceQuote: PublicPriceQuote | null;
   request: PublicBookingSearch | null;
   values: FormValues;
 }) {
@@ -175,8 +181,12 @@ export function BookingSearchForm({
         </div>
       ) : null}
 
+      {availability?.available ? (
+        <PriceQuote error={priceError} quote={priceQuote} />
+      ) : null}
+
       <button className="button button-primary button-large" type="submit">
-        Check availability <ArrowRight aria-hidden="true" size={17} />
+        Check availability and price <ArrowRight aria-hidden="true" size={17} />
       </button>
     </form>
   );

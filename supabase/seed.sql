@@ -80,3 +80,66 @@ values
   ('d5000000-0000-4000-8000-000000000012', 'd1000000-0000-4000-8000-000000000001', 'V-01', 'Visitor Quay', 13.00, 4.00, 2.20, 15, 'available', true),
   ('e5000000-0000-4000-8000-000000000001', 'e1000000-0000-4000-8000-000000000002', 'E-01', 'East Pier', 10.00, 3.20, 1.80, 10, 'available', true),
   ('e5000000-0000-4000-8000-000000000002', 'e1000000-0000-4000-8000-000000000002', 'E-02', 'East Pier', 16.00, 5.00, 2.80, 20, 'available', true);
+
+-- Milestone 2 Phase 4 pricing fixtures. Monetary amounts use minor currency
+-- units. Seasonal date ranges use [starts_on, ends_on) semantics.
+insert into public.marina_pricing_configs (
+  marina_id,
+  currency,
+  model,
+  tax_behavior,
+  tax_rate_bps
+)
+values
+  ('d1000000-0000-4000-8000-000000000001', 'EUR', 'per_meter', 'exclusive', 2100),
+  ('e1000000-0000-4000-8000-000000000002', 'EUR', 'length_interval', 'inclusive', 2100);
+
+insert into public.pricing_seasons (
+  id,
+  marina_id,
+  name,
+  starts_on,
+  ends_on
+)
+values
+  ('d6000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000001', 'Baltic low season', '2026-01-01', '2026-06-01'),
+  ('d6000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000001', 'Baltic high season', '2026-06-01', '2026-10-01'),
+  ('d6000000-0000-4000-8000-000000000003', 'd1000000-0000-4000-8000-000000000001', 'Baltic autumn season', '2026-10-01', '2027-01-01'),
+  ('e6000000-0000-4000-8000-000000000001', 'e1000000-0000-4000-8000-000000000002', 'Standard season', '2026-01-01', '2027-01-01');
+
+insert into public.pricing_season_meter_rates (
+  season_id,
+  marina_id,
+  nightly_rate_per_meter_minor
+)
+values
+  ('d6000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000001', 200),
+  ('d6000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000001', 300),
+  ('d6000000-0000-4000-8000-000000000003', 'd1000000-0000-4000-8000-000000000001', 220);
+
+insert into public.pricing_season_length_rates (
+  season_id,
+  marina_id,
+  min_length_m,
+  max_length_m,
+  nightly_rate_minor
+)
+values
+  ('e6000000-0000-4000-8000-000000000001', 'e1000000-0000-4000-8000-000000000002', 0, 10, 2500),
+  ('e6000000-0000-4000-8000-000000000001', 'e1000000-0000-4000-8000-000000000002', 10, 20, 4000),
+  ('e6000000-0000-4000-8000-000000000001', 'e1000000-0000-4000-8000-000000000002', 20, 10000, 6000);
+
+insert into public.marina_mandatory_fees (
+  id,
+  marina_id,
+  name,
+  fee_type,
+  amount_minor,
+  percentage_bps,
+  sort_order
+)
+values
+  ('d7000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000001', 'Harbour administration', 'per_booking', 500, null, 10),
+  ('d7000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000001', 'Environmental fee', 'per_night', 150, null, 20),
+  ('d7000000-0000-4000-8000-000000000003', 'd1000000-0000-4000-8000-000000000001', 'Vessel registration', 'per_vessel', 200, null, 30),
+  ('d7000000-0000-4000-8000-000000000004', 'd1000000-0000-4000-8000-000000000001', 'Infrastructure levy', 'percentage', null, 250, 40);

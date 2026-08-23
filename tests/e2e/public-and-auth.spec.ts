@@ -59,6 +59,13 @@ test.describe("public marina page", () => {
     await expect(page.getByRole("status")).toContainText("Available for these dates");
     await expect(page.getByRole("status")).toContainText("3 nights");
     await expect(page.getByRole("status")).toContainText("No booking has been created");
+    const quote = page.locator("[data-price-total-minor='15344']");
+    await expect(quote).toContainText("Price breakdown");
+    await expect(quote).toContainText("Baltic high season");
+    await expect(quote).toContainText("Harbour administration");
+    await expect(quote).toContainText("Tax / VAT 21%");
+    await expect(quote).toContainText("€153.44");
+    await expect(quote).toContainText(/no booking, payment, or capacity hold has been created/i);
     await expect(page.getByLabel("Vessel name")).toHaveValue("Test Aurora");
     await expect(
       page.locator("#booking-entry").getByText("Europe/Riga", { exact: true }),
@@ -87,6 +94,29 @@ test.describe("public marina page", () => {
     await expect(result).toContainText("Unavailable — vessel does not fit");
     await expect(result).not.toContainText(/d5000000|BK-|A-01|berth id|booking id|price/i);
     await expect(page.locator("[data-berth-id]")).toHaveCount(0);
+    await expect(page.locator("[data-price-total-minor]")).toHaveCount(0);
+  });
+
+  test("public pricing applies each seasonal nightly rate across a boundary", async ({ page }) => {
+    const query = new URLSearchParams({
+      arrivalDate: "2026-09-30",
+      departureDate: "2026-10-02",
+      eta: "14:30",
+      etd: "10:00",
+      priceTotalMinor: "1",
+      pricingCurrency: "USD",
+      taxRateBps: "0",
+      vesselBeamM: "3.8",
+      vesselDraftM: "2.1",
+      vesselLengthM: "12.5",
+    });
+
+    await page.goto(`/marina/marina-a?${query.toString()}#booking-entry`);
+    const quote = page.locator("[data-price-total-minor='9272']");
+    await expect(quote).toContainText("Baltic high season");
+    await expect(quote).toContainText("Baltic autumn season");
+    await expect(quote).toContainText("€92.72");
+    await expect(page.locator("[data-booking-id], [data-hold-id]")).toHaveCount(0);
   });
 
   test("public availability distinguishes suitable capacity that is full", async ({ page }) => {

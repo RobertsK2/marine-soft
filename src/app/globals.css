@@ -658,6 +658,26 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .public-availability-unavailable, .public-availability-error { border-left-color: var(--orange); }
 .public-availability-unavailable > svg, .public-availability-error > svg { color: var(--orange); }
 .public-booking-form > .button { width: 100%; }
+.public-price-error { display: grid; grid-template-columns: auto 1fr; gap: .75rem; border: 1px solid var(--navy); border-left: 5px solid var(--brass); padding: 1rem; }
+.public-price-error > svg { color: var(--brass); }
+.public-price-error strong { font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .82rem; letter-spacing: .03em; text-transform: uppercase; }
+.public-price-error p { margin: .25rem 0 0; font-size: .78rem; }
+.public-price-quote { border: 1px solid var(--navy); background: var(--white); }
+.public-price-quote > header { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; border-bottom: 2px solid var(--navy); padding: 1rem; }
+.public-price-quote > header p { display: flex; align-items: center; gap: .4rem; margin: 0 0 .35rem; color: var(--brass); font-family: "JetBrains Mono", monospace; font-size: .62rem; letter-spacing: .06em; text-transform: uppercase; }
+.public-price-quote > header h3 { margin: 0; font-family: DIN, "Helvetica Now Display", sans-serif; font-size: 1.35rem; font-weight: 900; text-transform: uppercase; }
+.public-price-quote > header > strong { font-family: "JetBrains Mono", monospace; font-size: 1.35rem; white-space: nowrap; }
+.public-price-lines { margin: 0; }
+.public-price-lines > div { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 1rem; border-bottom: 1px solid var(--salt); padding: .8rem 1rem; }
+.public-price-lines dt { display: grid; gap: .2rem; }
+.public-price-lines dt strong { font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .76rem; letter-spacing: .03em; text-transform: uppercase; }
+.public-price-lines dt span { color: var(--salt); font-family: "JetBrains Mono", monospace; font-size: .62rem; }
+.public-price-lines dd { margin: 0; font-family: "JetBrains Mono", monospace; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+.public-price-lines .public-price-subtotal { background: var(--cream); font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .72rem; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+.public-price-lines .public-price-total { border-bottom: 0; background: var(--navy); color: var(--cream); }
+.public-price-total dt { display: flex; align-items: center; gap: .45rem; font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .78rem; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+.public-price-total dd { font-size: 1rem; }
+.public-price-note { margin: 0; border-top: 1px solid var(--navy); padding: .8rem 1rem; color: var(--salt); font-family: "JetBrains Mono", monospace; font-size: .62rem; }
 .public-marina-footer { display: flex; justify-content: space-between; gap: 1rem; padding: 1.25rem clamp(1rem, 4vw, 4rem); font-family: "JetBrains Mono", monospace; font-size: .62rem; text-transform: uppercase; }
 
 @media (max-width: 1000px) {
@@ -734,6 +754,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .public-marina-details { width: min(100% - 2rem, 1240px); margin-block: 2rem; }
   .public-marina-booking { grid-template-columns: 1fr; padding-inline: 1rem; }
   .public-booking-grid-four { grid-template-columns: 1fr; }
+  .public-price-quote > header { align-items: flex-start; flex-direction: column; }
   .public-marina-footer { flex-direction: column; }
 }
 
