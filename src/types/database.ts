@@ -12,10 +12,13 @@ export type Database = {
       bookings: {
         Row: {
           arrival_date: string;
+          booking_hold_id: string | null;
+          booking_payment_id: string | null;
           created_at: string;
           customer_email: string;
           customer_name: string;
           customer_phone: string;
+          customer_snapshot: Json | null;
           departure_date: string;
           eta: string;
           etd: string;
@@ -32,13 +35,17 @@ export type Database = {
           vessel_draft_m: number;
           vessel_length_m: number;
           vessel_name: string | null;
+          vessel_snapshot: Json | null;
         };
         Insert: {
           arrival_date: string;
+          booking_hold_id?: string | null;
+          booking_payment_id?: string | null;
           created_at?: string;
           customer_email: string;
           customer_name: string;
           customer_phone: string;
+          customer_snapshot?: Json | null;
           departure_date: string;
           eta: string;
           etd: string;
@@ -55,6 +62,7 @@ export type Database = {
           vessel_draft_m: number;
           vessel_length_m: number;
           vessel_name?: string | null;
+          vessel_snapshot?: Json | null;
         };
         Update: {
           arrival_date?: string;
@@ -68,6 +76,8 @@ export type Database = {
           price_snapshot?: Json | null;
           price_total_minor?: number | null;
           status?: Database["public"]["Enums"]["booking_status"];
+          customer_snapshot?: Json | null;
+          vessel_snapshot?: Json | null;
           vessel_beam_m?: number;
           vessel_draft_m?: number;
           vessel_length_m?: number;
@@ -82,7 +92,7 @@ export type Database = {
           vessel_name: string | null; vessel_length_m: number; vessel_beam_m: number;
           vessel_draft_m: number; status: Database["public"]["Enums"]["booking_hold_status"];
           expires_at: string; price_currency: string; price_total_minor: number;
-          price_snapshot: Json; released_at: string | null; release_reason: string | null;
+          price_snapshot: Json; released_at: string | null; release_reason: string | null; payment_confirmed_at: string | null; consumed_at: string | null;
           created_at: string; updated_at: string;
         };
         Insert: {
@@ -91,10 +101,22 @@ export type Database = {
           vessel_name?: string | null; vessel_length_m: number; vessel_beam_m: number;
           vessel_draft_m: number; status?: Database["public"]["Enums"]["booking_hold_status"];
           expires_at: string; price_currency: string; price_total_minor: number;
-          price_snapshot: Json; released_at?: string | null; release_reason?: string | null;
+          price_snapshot: Json; released_at?: string | null; release_reason?: string | null; payment_confirmed_at?: string | null; consumed_at?: string | null;
           created_at?: string; updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["booking_holds"]["Insert"]>;
+        Relationships: [];
+      };
+      booking_payments: {
+        Row: { id: string; hold_id: string; marina_id: string; stripe_account_id: string; stripe_checkout_session_id: string | null; stripe_payment_intent_id: string | null; status: Database["public"]["Enums"]["booking_payment_status"]; amount_total_minor: number; currency: string; price_snapshot: Json; paid_at: string | null; failed_at: string | null; created_at: string; updated_at: string };
+        Insert: { id?: string; hold_id: string; marina_id: string; stripe_account_id: string; stripe_checkout_session_id?: string | null; stripe_payment_intent_id?: string | null; status?: Database["public"]["Enums"]["booking_payment_status"]; amount_total_minor: number; currency: string; price_snapshot: Json; paid_at?: string | null; failed_at?: string | null; created_at?: string; updated_at?: string };
+        Update: Partial<Database["public"]["Tables"]["booking_payments"]["Insert"]>;
+        Relationships: [];
+      };
+      stripe_webhook_events: {
+        Row: { stripe_event_id: string; event_type: string; stripe_account_id: string; stripe_checkout_session_id: string | null; outcome: string; processed_at: string; booking_id: string | null; error_detail: string | null };
+        Insert: { stripe_event_id: string; event_type: string; stripe_account_id: string; stripe_checkout_session_id?: string | null; outcome: string; processed_at?: string; booking_id?: string | null; error_detail?: string | null };
+        Update: { outcome?: string; booking_id?: string | null; error_detail?: string | null; processed_at?: string };
         Relationships: [];
       };
       marina_mandatory_fees: {
@@ -230,6 +252,7 @@ export type Database = {
           public_description_local: string | null;
           slug: string;
           timezone: string;
+          stripe_account_id: string | null;
           updated_at: string;
         };
         Insert: {
@@ -247,6 +270,7 @@ export type Database = {
           public_description_local?: string | null;
           slug: string;
           timezone?: string;
+          stripe_account_id?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -261,6 +285,7 @@ export type Database = {
           public_description_local?: string | null;
           slug?: string;
           timezone?: string;
+          stripe_account_id?: string | null;
         };
         Relationships: [];
       };
@@ -384,11 +409,22 @@ export type Database = {
         Args: { target_hold_token: string };
         Returns: boolean;
       };
+      prepare_booking_checkout: {
+        Args: { target_hold_token: string };
+        Returns: { outcome: string; payment_id: string | null; hold_id: string | null; marina_id: string | null; marina_slug: string | null; marina_name: string | null; stripe_account_id: string | null; amount_total_minor: number | null; currency: string | null; price_snapshot: Json | null; hold_expires_at: string | null; existing_checkout_session_id: string | null }[];
+      };
+      attach_booking_checkout_session: { Args: { target_payment_id: string; target_session_id: string }; Returns: boolean };
+      fail_booking_checkout_creation: { Args: { target_payment_id: string }; Returns: boolean };
+      process_stripe_checkout_event: {
+        Args: { target_event_id: string; target_event_type: string; target_stripe_account_id: string; target_session_id: string; target_payment_intent_id: string | null; target_payment_status: string; target_amount_total_minor: number; target_currency: string; target_hold_token: string; target_customer_name?: string | null; target_customer_email?: string | null; target_customer_phone?: string | null };
+        Returns: string;
+      };
     };
     Enums: {
       berth_status: "available" | "blocked" | "out_of_service";
-      booking_hold_status: "active" | "released" | "expired";
-      booking_source: "manual";
+      booking_hold_status: "active" | "released" | "expired" | "consumed";
+      booking_payment_status: "pending" | "paid" | "failed" | "expired";
+      booking_source: "manual" | "online";
       booking_status: "confirmed" | "cancelled" | "checked_in" | "checked_out";
       mandatory_fee_type:
         | "per_booking"

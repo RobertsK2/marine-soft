@@ -663,6 +663,16 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .public-hold-message { margin: 0; border-left: 5px solid var(--orange); padding: .75rem 1rem; background: var(--white); font-size: .75rem; }
 .public-hold-message strong { font-family: DIN, "Helvetica Now Display", sans-serif; text-transform: uppercase; }
 .public-hold-held { border-left-color: var(--brass); }
+.checkout-return { min-height: 100vh; display: grid; align-content: center; justify-items: start; gap: 1rem; padding: clamp(1.5rem, 8vw, 7rem); background: var(--cream); color: var(--navy); }
+.checkout-return h1 { max-width: 14ch; margin: 0; font-family: DIN, "Helvetica Now Display", sans-serif; font-size: clamp(2.5rem, 8vw, 5rem); line-height: 1; text-transform: uppercase; }
+.checkout-return > p { max-width: 62ch; }
+.checkout-confirmation-grid { display: grid; width: min(100%, 880px); margin: .5rem 0; border: 1px solid var(--navy); grid-template-columns: repeat(2, minmax(0, 1fr)); background: var(--white); }
+.checkout-confirmation-grid > div { border-right: 1px solid var(--salt); border-bottom: 1px solid var(--salt); padding: 1rem; }
+.checkout-confirmation-grid dt { color: var(--salt); font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.checkout-confirmation-grid dd { margin: .35rem 0 0; font-family: "JetBrains Mono", monospace; font-size: .78rem; font-weight: 500; text-transform: capitalize; }
+.checkout-next-steps { max-width: 880px; border-left: 5px solid var(--brass); padding: 1rem 1.25rem; background: var(--white); }
+.checkout-next-steps h2 { margin: 0; font-family: DIN, "Helvetica Now Display", sans-serif; font-size: 1rem; text-transform: uppercase; }
+.checkout-next-steps p { max-width: 70ch; margin: .5rem 0 0; }
 .public-price-error { display: grid; grid-template-columns: auto 1fr; gap: .75rem; border: 1px solid var(--navy); border-left: 5px solid var(--brass); padding: 1rem; }
 .public-price-error > svg { color: var(--brass); }
 .public-price-error strong { font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .82rem; letter-spacing: .03em; text-transform: uppercase; }
@@ -760,6 +770,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .public-marina-booking { grid-template-columns: 1fr; padding-inline: 1rem; }
   .public-booking-grid-four { grid-template-columns: 1fr; }
   .public-price-quote > header { align-items: flex-start; flex-direction: column; }
+  .checkout-confirmation-grid { grid-template-columns: 1fr; }
   .public-marina-footer { flex-direction: column; }
 }
 

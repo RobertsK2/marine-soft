@@ -5,6 +5,9 @@ import type { BookingHoldActionState } from "@/domain/booking-holds/types";
 import { validatePublicBookingSearch } from "@/domain/public-booking/validation";
 import { captureServerError } from "@/lib/monitoring/server";
 import { createPrivilegedClient } from "@/lib/supabase/privileged";
+import { redirect } from "next/navigation";
+import { createCheckoutForHold } from "@/domain/checkout/service";
+import type { CheckoutActionState } from "@/domain/checkout/types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -48,4 +51,27 @@ export async function createBookingHoldAction(
     captureServerError(holdError, { operation: "public_booking_hold", marinaSlug });
     return { status: "error", message: "The capacity hold could not be created. Try again." };
   }
+}
+
+export async function startBookingCheckoutAction(
+  marinaSlug: string,
+  _state: CheckoutActionState,
+  formData: FormData,
+): Promise<CheckoutActionState> {
+  const holdToken = String(formData.get("checkoutHoldToken") ?? "");
+  if (!UUID.test(holdToken)) return { status: "error", message: "The capacity hold is invalid." };
+  let checkoutUrl: string | null = null;
+  try {
+    const result = await createCheckoutForHold(holdToken);
+    if (result.outcome !== "ready" || !result.url) {
+      return { status: "error", message: result.outcome === "expired" ? "The capacity hold expired. Check availability again." : "Checkout is not available for this hold." };
+    }
+    const url = new URL(result.url);
+    if (url.protocol !== "https:" || url.hostname !== "checkout.stripe.com") throw new Error("Unexpected Stripe Checkout URL.");
+    checkoutUrl = url.toString();
+  } catch (checkoutError) {
+    captureServerError(checkoutError, { operation: "stripe_checkout_create", marinaSlug });
+    return { status: "error", message: "Secure checkout could not be opened. The capacity hold was released." };
+  }
+  redirect(checkoutUrl);
 }

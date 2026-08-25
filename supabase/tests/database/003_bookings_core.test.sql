@@ -15,8 +15,8 @@ select is(
 );
 select is(
   enum_range(null::public.booking_source)::text,
-  '{manual}',
-  'booking source is manual-only in Phase 4'
+  '{manual,online}',
+  'booking source includes Phase 7 online intake'
 );
 
 insert into auth.users (

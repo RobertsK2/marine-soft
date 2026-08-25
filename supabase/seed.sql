@@ -143,3 +143,8 @@ values
   ('d7000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000001', 'Environmental fee', 'per_night', 150, null, 20),
   ('d7000000-0000-4000-8000-000000000003', 'd1000000-0000-4000-8000-000000000001', 'Vessel registration', 'per_vessel', 200, null, 30),
   ('d7000000-0000-4000-8000-000000000004', 'd1000000-0000-4000-8000-000000000001', 'Infrastructure levy', 'percentage', null, 250, 40);
+
+-- Local-only Connect identifier. Stripe calls still require explicit test secrets.
+update public.marinas
+set stripe_account_id = 'acct_testmarinaa'
+where id = 'd1000000-0000-4000-8000-000000000001';

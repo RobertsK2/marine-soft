@@ -26,6 +26,9 @@ export default async function BookingDetailPage({
   const booking = await getBooking(supabase, context.marinaId, bookingId);
   if (!booking) notFound();
   const statusAction = updateBookingStatusAction.bind(null, booking.id);
+  const paidTotal = booking.price_currency && booking.price_total_minor !== null
+    ? new Intl.NumberFormat("en-GB", { style: "currency", currency: booking.price_currency }).format(booking.price_total_minor / 100)
+    : null;
 
   return (
     <AppShell
@@ -71,7 +74,8 @@ export default async function BookingDetailPage({
           <div className="panel-heading"><h2>Booking record</h2></div>
           <dl>
             <div><dt>Reference</dt><dd>{booking.reference}</dd></div>
-            <div><dt>Source</dt><dd>Manual</dd></div>
+            <div><dt>Source</dt><dd>{booking.source === "online" ? "Online · Stripe paid" : "Manual"}</dd></div>
+            {paidTotal ? <div><dt>Paid total</dt><dd>{paidTotal}</dd></div> : null}
             <div><dt>Booking ID</dt><dd className="mono-cell">{booking.id}</dd></div>
           </dl>
           <BookingStatusForm action={statusAction} status={booking.status} />

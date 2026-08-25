@@ -26,7 +26,7 @@ export default async function BookingsPage() {
   return (
     <AppShell
       context={context}
-      description="Manual transit bookings from phone, email, walk-in, or an existing marina system."
+      description="Manual and confirmed online transit bookings in one capacity view."
       title="Bookings"
       wide
     >
@@ -46,7 +46,7 @@ export default async function BookingsPage() {
       {bookings.length === 0 ? (
         <div className="inventory-empty">
           <CalendarDays size={28} aria-hidden="true" />
-          <h2>No manual bookings recorded</h2>
+          <h2>No bookings recorded</h2>
           <p>Create the first capacity booking for this marina.</p>
         </div>
       ) : (
@@ -56,7 +56,7 @@ export default async function BookingsPage() {
             <tbody>
               {bookings.map((booking) => (
                 <tr key={booking.id}>
-                  <td className="mono-cell"><strong>{booking.reference}</strong><span>Manual</span></td>
+                  <td className="mono-cell"><strong>{booking.reference}</strong><span>{booking.source === "online" ? "Online · paid" : "Manual"}</span></td>
                   <td><strong>{formatBookingDate(booking.arrival_date)}</strong><span>to {formatBookingDate(booking.departure_date)} / ETA {formatBookingTime(booking.eta)}</span></td>
                   <td><strong>{booking.customer_name}</strong><span>{booking.customer_email}</span></td>
                   <td><strong>{formatVesselName(booking.vessel_name)}</strong><span>{booking.vessel_length_m} × {booking.vessel_beam_m} × {booking.vessel_draft_m} m</span></td>

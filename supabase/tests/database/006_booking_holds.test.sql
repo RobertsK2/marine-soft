@@ -5,7 +5,7 @@ select plan(17);
 
 select has_table('public', 'booking_holds', 'booking holds table exists');
 select ok((select relrowsecurity from pg_class where oid = 'public.booking_holds'::regclass), 'booking holds use RLS');
-select is(enum_range(null::public.booking_hold_status)::text, '{active,released,expired}', 'hold lifecycle is limited');
+select is(enum_range(null::public.booking_hold_status)::text, '{active,released,expired,consumed}', 'hold lifecycle includes Phase 7 consumption');
 select ok(not has_table_privilege('anon', 'public.booking_holds', 'select'), 'anonymous users cannot inspect holds');
 select ok(not has_function_privilege('anon', 'public.create_booking_hold(uuid,uuid,date,date,time without time zone,time without time zone,text,numeric,numeric,numeric,text,bigint,jsonb)', 'execute'), 'anonymous users cannot create holds');
 

@@ -2,14 +2,18 @@
 
 import { useActionState } from "react";
 import { LockKeyhole } from "lucide-react";
-import { createBookingHoldAction } from "@/app/marina/[slug]/actions";
+import { createBookingHoldAction, startBookingCheckoutAction } from "@/app/marina/[slug]/actions";
+import type { CheckoutActionState } from "@/domain/checkout/types";
 import type { BookingHoldActionState } from "@/domain/booking-holds/types";
 
 const initialState: BookingHoldActionState = { status: "idle" };
+const initialCheckoutState: CheckoutActionState = { status: "idle" };
 
 export function HoldControl({ idempotencyKey, marinaSlug }: { idempotencyKey: string; marinaSlug: string }) {
   const action = createBookingHoldAction.bind(null, marinaSlug);
   const [state, formAction, pending] = useActionState(action, initialState);
+  const checkoutAction = startBookingCheckoutAction.bind(null, marinaSlug);
+  const [checkoutState, checkoutFormAction, checkoutPending] = useActionState(checkoutAction, initialCheckoutState);
   return (
     <div className="public-hold-control">
       <input name="holdIdempotencyKey" type="hidden" value={idempotencyKey} />
@@ -22,6 +26,16 @@ export function HoldControl({ idempotencyKey, marinaSlug }: { idempotencyKey: st
           <strong>{state.message}</strong>
           {state.expiresAt ? <> Hold expires at {new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(state.expiresAt))}.</> : null}
         </p>
+      ) : null}
+      {state.status === "held" && state.holdToken ? (
+        <>
+          <input name="checkoutHoldToken" type="hidden" value={state.holdToken} />
+          <button className="button button-primary button-large" disabled={checkoutPending} formAction={checkoutFormAction} type="submit">
+            <LockKeyhole aria-hidden="true" size={17} />
+            {checkoutPending ? "Opening Stripe…" : "Pay securely with Stripe"}
+          </button>
+          {checkoutState.status === "error" ? <p className="public-hold-message public-hold-error" role="alert">{checkoutState.message}</p> : null}
+        </>
       ) : null}
     </div>
   );

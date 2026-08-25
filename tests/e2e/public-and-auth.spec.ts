@@ -154,6 +154,40 @@ test.describe("public marina page", () => {
     expect(data).toBe(true);
   });
 
+  test("Stripe return stays pending until the signed webhook result is recorded", async ({ page }, testInfo) => {
+    const secretKey = process.env.SUPABASE_SECRET_KEY;
+    test.skip(!secretKey, "Requires the local server-only Supabase secret key.");
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321", secretKey!, { auth: { autoRefreshToken: false, persistSession: false } });
+    const holdKey = crypto.randomUUID();
+    const arrivalDate = testInfo.project.name === "mobile" ? "2027-02-03" : "2027-02-01";
+    const departureDate = testInfo.project.name === "mobile" ? "2027-02-05" : "2027-02-03";
+    const sessionId = `cs_test_${crypto.randomUUID().replaceAll("-", "")}`;
+    const { data: holdRows, error: holdError } = await supabase.rpc("create_booking_hold", {
+      target_marina_id: "d1000000-0000-4000-8000-000000000001", request_idempotency_key: holdKey,
+      requested_arrival: arrivalDate, requested_departure: departureDate, requested_eta: "14:00", requested_etd: "10:00",
+      requested_vessel_name: "Webhook Return", requested_length_m: 19, requested_beam_m: 5.8, requested_draft_m: 3.1,
+      calculated_price_currency: "EUR", calculated_price_total_minor: 10000,
+      calculated_price_snapshot: { version: 1, currency: "EUR", totalMinor: 10000, arrivalDate, departureDate, vesselLengthM: 19 },
+    });
+    expect(holdError).toBeNull();
+    const holdToken = holdRows![0].hold_token!;
+    const { data: prepared } = await supabase.rpc("prepare_booking_checkout", { target_hold_token: holdToken });
+    await supabase.rpc("attach_booking_checkout_session", { target_payment_id: prepared![0].payment_id!, target_session_id: sessionId });
+
+    await page.goto(`/marina/marina-a/checkout/return?session_id=${sessionId}`);
+    await expect(page.getByRole("heading", { name: "Payment confirmation pending" })).toBeVisible();
+    await expect(page.getByText(/browser return does not confirm payment/i)).toBeVisible();
+
+    const { error: eventError } = await supabase.rpc("process_stripe_checkout_event", {
+      target_event_id: `evt_${crypto.randomUUID().replaceAll("-", "")}`, target_event_type: "checkout.session.completed",
+      target_stripe_account_id: "acct_testmarinaa", target_session_id: sessionId, target_payment_intent_id: `pi_${testInfo.project.name}`,
+      target_payment_status: "paid", target_amount_total_minor: 10000, target_currency: "eur", target_hold_token: holdToken,
+    });
+    expect(eventError).toBeNull();
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
+  });
+
   test("public availability distinguishes suitable capacity that is full", async ({ page }) => {
     const secretKey = process.env.SUPABASE_SECRET_KEY;
     test.skip(!secretKey, "Requires the local server-only Supabase secret key.");
