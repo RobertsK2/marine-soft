@@ -2,6 +2,8 @@ import type { MapDisplayStatus } from "@/domain/marina-map/types";
 
 const ITEMS: { label: string; status: MapDisplayStatus; note: string }[] = [
   { label: "Available", status: "available", note: "Operational" },
+  { label: "Reserved", status: "reserved", note: "Real assignment" },
+  { label: "Occupied", status: "occupied", note: "Assigned + checked in" },
   { label: "Unavailable", status: "unavailable", note: "Blocked or out of service" },
 ];
 

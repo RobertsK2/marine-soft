@@ -25,6 +25,11 @@ export type BookingActionState = {
   fieldErrors?: BookingFieldErrors;
 };
 
+export type BerthAssignmentActionState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+};
+
 function formValues(formData: FormData) {
   return {
     arrivalDate: formData.get("arrivalDate"),
@@ -144,4 +149,52 @@ export async function updateBookingStatusAction(
   revalidatePath("/dashboard/bookings");
   revalidatePath(`/dashboard/bookings/${bookingId}`);
   redirect(`/dashboard/bookings/${bookingId}`);
+}
+
+export async function assignBookingBerthAction(
+  bookingId: string,
+  _state: BerthAssignmentActionState,
+  formData: FormData,
+): Promise<BerthAssignmentActionState> {
+  const berthId = String(formData.get("berthId") ?? "");
+  if (!isUuid(bookingId) || !isUuid(berthId)) {
+    return { status: "error", message: "Choose a valid berth." };
+  }
+
+  const context = await getAuthorizationContext();
+  if (!context) return { status: "error", message: "Marina access is required." };
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("assign_booking_berth", {
+      target_booking_id: bookingId,
+      target_berth_id: berthId,
+    });
+    if (error) throw error;
+    const result = data?.[0];
+    if (!result) throw new Error("Berth assignment returned no result.");
+
+    const messages: Record<string, string> = {
+      assigned: `Berth ${result.berth_code} assigned.`,
+      reassigned: `Booking reassigned to berth ${result.berth_code}. Prior assignment kept in history.`,
+      existing: `Berth ${result.berth_code} is already assigned.`,
+      conflict: `Berth ${result.berth_code} has an overlapping assignment. Choose another berth.`,
+      incompatible: `Berth ${result.berth_code} does not safely fit this vessel.`,
+      berth_unavailable: `Berth ${result.berth_code} is blocked or out of service.`,
+      booking_not_assignable: "Only confirmed bookings can be assigned in this phase.",
+      berth_not_found: "That berth is not part of this marina.",
+      not_found: "Booking not found for this marina.",
+      unauthorized: "Marina access is required.",
+    };
+    if (!["assigned", "reassigned", "existing"].includes(result.outcome)) {
+      return { status: "error", message: messages[result.outcome] ?? "The berth could not be assigned." };
+    }
+
+    revalidatePath(`/dashboard/bookings/${bookingId}`);
+    revalidatePath("/dashboard/marina-map");
+    return { status: "success", message: messages[result.outcome] };
+  } catch (error) {
+    captureServerError(error, { operation: "booking_berth_assignment", bookingId, marinaId: context.marinaId });
+    return { status: "error", message: "The berth assignment could not be saved. Try again." };
+  }
 }

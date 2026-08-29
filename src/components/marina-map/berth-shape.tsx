@@ -1,7 +1,7 @@
 import type { KeyboardEvent } from "react";
 import type { MappedBerth } from "@/domain/marina-map/types";
 
-function statusLabel(status: MappedBerth["berth"]["status"]) {
+function statusLabel(status: string) {
   return status.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
@@ -15,7 +15,8 @@ export function BerthShape({
   onSelect: (berthId: string) => void;
 }) {
   const { berth, displayStatus, placement } = mappedBerth;
-  const label = `Berth ${berth.code}, ${statusLabel(berth.status)}`;
+  const mapStatus = displayStatus === "unavailable" ? statusLabel(berth.status) : statusLabel(displayStatus);
+  const label = `Berth ${berth.code}, ${mapStatus}`;
   const select = () => onSelect(berth.id);
   const handleKeyDown = (event: KeyboardEvent<SVGGElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -42,7 +43,7 @@ export function BerthShape({
       <path className="map-berth-deck" d="M -17 -26 H 17 M -19 19 H 19" />
       <text className="map-berth-code" textAnchor="middle" y="2">{berth.code}</text>
       <text className="map-berth-state" textAnchor="middle" y="17">
-        {displayStatus === "available" ? "OPEN" : "HOLD"}
+        {displayStatus === "available" ? "OPEN" : displayStatus === "reserved" ? "RSVD" : displayStatus === "occupied" ? "OCC" : "HOLD"}
       </text>
     </g>
   );

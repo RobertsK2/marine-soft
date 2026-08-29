@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mapBerthsToLayout, deriveMapDisplayStatus } from "@/domain/marina-map/model";
 import { PILOT_BERTH_LAYOUT } from "@/domain/marina-map/pilot-layout";
 import type { Berth } from "@/domain/berths/types";
+import type { MapBookingAssignment } from "@/domain/berth-assignments/types";
 
 function berth(overrides: Partial<Berth> = {}): Berth {
   return {
@@ -38,6 +39,16 @@ describe("Phase 6 marina map model", () => {
     ["out_of_service", "unavailable"],
   ] as const)("derives %s as %s without inventing booking state", (status, expected) => {
     expect(deriveMapDisplayStatus(berth({ status }))).toBe(expected);
+  });
+
+  it("shows reserved and occupied only from real active assignments", () => {
+    const reserved: MapBookingAssignment = {
+      bookingId: "booking-1", reference: "BK-RESERVED01", status: "confirmed",
+      arrivalDate: "2028-06-01", departureDate: "2028-06-03",
+    };
+    expect(deriveMapDisplayStatus(berth(), [reserved])).toBe("reserved");
+    expect(deriveMapDisplayStatus(berth(), [{ ...reserved, status: "checked_in" }])).toBe("occupied");
+    expect(deriveMapDisplayStatus(berth({ status: "blocked" }), [reserved])).toBe("unavailable");
   });
 
   it("joins geometry to real rows by berth id and reports unmapped inventory", () => {

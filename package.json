@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:db": "supabase test db",
     "test:hold-concurrency": "node --env-file=.env.local scripts/test-booking-hold-concurrency.mjs",
+    "test:assignment-concurrency": "node --env-file=.env.local scripts/test-berth-assignment-concurrency.mjs",
     "test:e2e": "playwright test",
     "stripe:verify": "node --env-file=.env.local scripts/verify-stripe-phase6.mjs",
     "stripe:setup-marina-a": "node --env-file=.env.local scripts/setup-local-marina-a-stripe-account.mjs",

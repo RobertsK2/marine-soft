@@ -1,10 +1,12 @@
-import { ArrowLeft, CalendarRange, Contact, Ruler } from "lucide-react";
+import { Anchor, ArrowLeft, CalendarRange, Contact, Ruler } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { updateBookingStatusAction } from "@/app/dashboard/bookings/actions";
+import { assignBookingBerthAction, updateBookingStatusAction } from "@/app/dashboard/bookings/actions";
 import { AppShell } from "@/components/app-shell";
 import { BookingStatusBadge } from "@/components/bookings/booking-status";
 import { BookingStatusForm } from "@/components/bookings/booking-status-form";
+import { BerthAssignmentForm } from "@/components/bookings/berth-assignment-form";
+import { getBookingBerthAssignmentState } from "@/domain/berth-assignments/repository";
 import {
   bookingNights,
   formatBookingDate,
@@ -25,7 +27,9 @@ export default async function BookingDetailPage({
   const supabase = await createClient();
   const booking = await getBooking(supabase, context.marinaId, bookingId);
   if (!booking) notFound();
+  const assignment = await getBookingBerthAssignmentState(supabase, context.marinaId, booking);
   const statusAction = updateBookingStatusAction.bind(null, booking.id);
+  const assignmentAction = assignBookingBerthAction.bind(null, booking.id);
   const paidTotal = booking.price_currency && booking.price_total_minor !== null
     ? new Intl.NumberFormat("en-GB", { style: "currency", currency: booking.price_currency }).format(booking.price_total_minor / 100)
     : null;
@@ -43,6 +47,15 @@ export default async function BookingDetailPage({
       </div>
 
       <div className="booking-detail-grid">
+        <section className="booking-detail-panel booking-assignment-panel">
+          <div className="panel-heading"><Anchor size={18} aria-hidden="true" /><h2>Physical berth assignment</h2></div>
+          <p className="assignment-intro">Manual confirmation only. Berthio checks operational state, vessel fit, tenant ownership, and overlapping assignments before saving.</p>
+          <BerthAssignmentForm
+            action={assignmentAction}
+            assignable={booking.status === "confirmed"}
+            assignment={assignment}
+          />
+        </section>
         <section className="booking-detail-panel booking-stay-panel">
           <div className="panel-heading"><CalendarRange size={18} aria-hidden="true" /><h2>Stay window</h2></div>
           <dl>

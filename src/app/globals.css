@@ -424,6 +424,21 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .booking-detail-panel dl > div { display: grid; grid-template-columns: minmax(110px, .45fr) 1fr; gap: 1rem; border-top: 1px solid var(--salt); padding: .8rem 0; }
 .booking-detail-panel dt { color: var(--salt); font-family: "JetBrains Mono", monospace; font-size: .65rem; text-transform: uppercase; }
 .booking-detail-panel dd { overflow-wrap: anywhere; margin: 0; font-size: .85rem; font-weight: 700; }
+.booking-assignment-panel { grid-column: 1 / -1; }
+.assignment-intro { max-width: 72ch; margin: .8rem 0 0; color: var(--salt); font-size: .82rem; }
+.berth-assignment-control { display: grid; gap: 1rem; margin-top: 1.2rem; }
+.assignment-status-line { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; border: 1px solid var(--navy); padding: .8rem; background: var(--cream); }
+.assignment-status-line span, .berth-assignment-form label { color: var(--salt); font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.assignment-status-line strong { font-family: "JetBrains Mono", monospace; font-size: .75rem; text-transform: uppercase; }
+.berth-assignment-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .55rem .75rem; }
+.berth-assignment-form label { grid-column: 1 / -1; }
+.berth-assignment-form select { min-height: 2.75rem; border: 1px solid var(--salt); border-radius: 2px; padding: .55rem .7rem; background: var(--cream); color: var(--navy); }
+.assignment-warning { margin: 0; border-left: 3px solid var(--orange); padding: .65rem .8rem; background: var(--cream); color: var(--navy); font-size: .75rem; }
+.assignment-history { border-top: 1px solid var(--navy); padding-top: 1rem; }
+.assignment-history h3, .map-assignment-list h3 { margin: 0 0 .7rem; font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .78rem; text-transform: uppercase; }
+.assignment-history ol { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.assignment-history li { display: grid; grid-template-columns: 90px 1fr auto; gap: .75rem; border-bottom: 1px solid var(--salt); padding: .55rem 0; font-family: "JetBrains Mono", monospace; font-size: .65rem; }
+.assignment-history small { color: var(--brass); text-transform: uppercase; }
 .booking-stay-panel dd { font-family: "JetBrains Mono", monospace; font-size: .75rem; }
 .booking-status-form { display: grid; gap: .55rem; margin-top: 1.25rem; border-top: 1px solid var(--navy); padding-top: 1.25rem; }
 .booking-status-form > label { color: var(--salt); font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
@@ -443,6 +458,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .map-legend li > span:last-child { grid-column: 2; color: var(--salt); font-family: "JetBrains Mono", monospace; font-size: .55rem; text-transform: uppercase; }
 .map-legend-swatch { width: 12px; height: 12px; grid-row: 1 / 3; border: 1px solid var(--navy); }
 .map-legend-available { background: #7BBF78; }
+.map-legend-reserved { background: var(--brass); }
+.map-legend-occupied { background: var(--orange); }
 .map-legend-unavailable { background: var(--salt); }
 .marina-map-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 320px; min-height: 650px; }
 .marina-map-canvas { min-width: 0; overflow: auto; border-right: 1px solid var(--navy); background: #E8F0F0; }
@@ -457,6 +474,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .map-berth { color: var(--navy); cursor: pointer; outline: none; }
 .map-berth-hull { fill: #7BBF78; stroke: var(--navy); stroke-width: 2; transition: stroke-width .15s ease, filter .15s ease; }
 .map-berth-unavailable .map-berth-hull { fill: var(--salt); }
+.map-berth-reserved .map-berth-hull { fill: var(--brass); }
+.map-berth-occupied .map-berth-hull { fill: var(--orange); }
 .map-berth-mooring, .map-berth-deck { fill: none; stroke: var(--navy); stroke-width: 3; }
 .map-berth-deck { stroke-width: 1; opacity: .65; }
 .map-berth-code { fill: var(--navy); font-family: DIN, "Helvetica Now Display", sans-serif; font-size: 13px; font-weight: 900; pointer-events: none; }
@@ -480,6 +499,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .map-status-form .button { width: 100%; }
 .map-status-form .form-message { font-size: .68rem; }
 .map-readonly-note { border-top: 1px solid var(--navy); padding-top: 1rem; color: var(--salt); font-size: .72rem; }
+.map-assignment-list { display: grid; gap: .5rem; margin-top: 1rem; border-top: 1px solid var(--navy); padding-top: 1rem; }
+.map-assignment-list a { display: grid; gap: .2rem; border: 1px solid var(--navy); padding: .6rem; background: var(--white); font-family: "JetBrains Mono", monospace; font-size: .62rem; }
+.map-assignment-list small { color: var(--brass); text-transform: uppercase; }
 .map-berth-id { overflow-wrap: anywhere; margin: 1.5rem 0 0; color: var(--salt); font-family: "JetBrains Mono", monospace; font-size: .52rem; }
 
 /* Public marina profile */
@@ -782,6 +804,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .inventory-toolbar, .detail-toolbar { align-items: flex-start; flex-direction: column; }
   .inventory-stats { grid-template-columns: repeat(2, 1fr); }
   .dashboard-modules, .berth-form-grid-two, .berth-form-grid-three, .berth-detail-grid, .booking-form-grid-three, .booking-form-grid-four, .booking-detail-grid { grid-template-columns: 1fr; }
+  .berth-assignment-form { grid-template-columns: 1fr; }
+  .berth-assignment-form label { grid-column: auto; }
+  .assignment-history li { grid-template-columns: 1fr; }
   .overview-insights-grid { grid-template-columns: 1fr; }
   .overview-insight-card { min-height: 165px; }
   .form-section { padding: 1rem; }

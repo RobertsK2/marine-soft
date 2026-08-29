@@ -18,7 +18,7 @@ export function MarinaSvg({
       viewBox="0 0 1000 680"
     >
       <title>Pilot marina physical berth map</title>
-      <desc>Choose a berth to inspect dimensions and update its operational status.</desc>
+      <desc>Choose a berth to inspect dimensions, operational status, and real booking assignments.</desc>
       <rect className="map-water" height="680" width="1000" />
       <g aria-hidden="true" className="map-compass" transform="translate(80 82)">
         <circle r="28" />

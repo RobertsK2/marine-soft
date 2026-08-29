@@ -495,6 +495,56 @@ test.describe("local Supabase marina auth", () => {
     await expect(page.getByRole("button", { name: "Berth A-01, Available" })).toBeVisible();
   });
 
+  test("marina staff can assign and reassign a suitable real berth", async ({ page }, testInfo) => {
+    const email = process.env.E2E_MARINA_STAFF_EMAIL ?? process.env.E2E_MARINA_EMAIL;
+    const password = process.env.E2E_MARINA_PASSWORD;
+    test.skip(!email || !password, "Requires invited marina credentials.");
+    const today = new Date();
+    const runOffset = (testInfo.project.name === "mobile" ? 16_000 : 6_000) + (Date.now() % 1_000);
+    const arrival = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + runOffset));
+    const departure = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + runOffset + 3));
+    const isoDate = (value: Date) => value.toISOString().slice(0, 10);
+
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(email!);
+    await page.getByLabel("Password").fill(password!);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await page.goto("/dashboard/bookings/new");
+    await page.getByLabel("Arrival date").fill(isoDate(arrival));
+    await page.getByLabel("Departure date").fill(isoDate(departure));
+    await page.getByLabel("ETA").fill("14:30");
+    await page.getByLabel("ETD").fill("10:00");
+    await page.getByLabel("Customer name").fill(`Assignment E2E ${testInfo.project.name}`);
+    await page.getByLabel("Email").fill(`assignment-${testInfo.project.name}@example.test`);
+    await page.getByLabel("Phone").fill("+371 20000123");
+    await page.getByLabel("Vessel name").fill("Assignment Test Vessel");
+    await page.getByLabel("Length (m)").fill("8.5");
+    await page.getByLabel("Beam (m)").fill("2.9");
+    await page.getByLabel("Draft (m)").fill("1.5");
+    await page.getByRole("button", { name: "Create booking" }).click();
+
+    await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/);
+    const bookingReference = (await page.locator("h1").textContent())?.trim();
+    expect(bookingReference).toMatch(/^BK-[A-Z0-9]{10}$/);
+    await expect(page.getByText("Capacity-based / unassigned", { exact: true })).toBeVisible();
+
+    await page.getByLabel("Suitable operational berth").selectOption("d5000000-0000-4000-8000-000000000002");
+    await page.getByRole("button", { name: "Assign berth" }).click();
+    await expect(page.getByText("Berth A-02 assigned.", { exact: true })).toBeVisible();
+    await expect(page.locator(".assignment-status-line").getByText("Berth A-02", { exact: true })).toBeVisible();
+
+    await page.getByLabel("Suitable operational berth").selectOption("d5000000-0000-4000-8000-000000000003");
+    await page.getByRole("button", { name: "Reassign berth" }).click();
+    await expect(page.getByText(/reassigned to berth A-03/i)).toBeVisible();
+    await expect(page.locator(".assignment-history li")).toHaveCount(2);
+
+    await page.goto("/dashboard/marina-map");
+    await expect(page.getByRole("button", { name: "Berth A-03, Reserved" })).toBeVisible();
+    await page.getByRole("button", { name: "Berth A-03, Reserved" }).click();
+    await expect(page.getByRole("link", { name: new RegExp(bookingReference!) })).toBeVisible();
+  });
+
   test("marina user can create and manage a manual booking", async ({ page }, testInfo) => {
     const email = process.env.E2E_MARINA_EMAIL;
     const password = process.env.E2E_MARINA_PASSWORD;

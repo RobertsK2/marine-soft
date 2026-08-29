@@ -29,7 +29,7 @@ export function BerthDetailsPanel({
     );
   }
 
-  const { berth } = mappedBerth;
+  const { berth, assignments } = mappedBerth;
   return (
     <aside className="map-detail-panel" aria-live="polite" aria-labelledby="selected-berth-heading">
       <div className="map-detail-heading">
@@ -46,6 +46,18 @@ export function BerthDetailsPanel({
         <div><dt>Priority</dt><dd>{berth.priority} <small>lower first</small></dd></div>
         <div><dt>Smaller vessels</dt><dd>{berth.allow_smaller_vessels ? "Allowed" : "Exact class"}</dd></div>
       </dl>
+      {assignments.length > 0 ? (
+        <section className="map-assignment-list" aria-label="Real berth assignments">
+          <h3>Real assignment{assignments.length === 1 ? "" : "s"}</h3>
+          {assignments.map((assignment) => (
+            <Link href={`/dashboard/bookings/${assignment.bookingId}`} key={assignment.bookingId}>
+              <strong>{assignment.reference}</strong>
+              <span>{assignment.arrivalDate} → {assignment.departureDate}</span>
+              <small>{assignment.status === "checked_in" ? "Occupied" : "Reserved"}</small>
+            </Link>
+          ))}
+        </section>
+      ) : <p className="map-readonly-note">No real booking assignment.</p>}
       {updateStatusAction ? (
         <BerthMapStatusForm
           action={updateStatusAction.bind(null, berth.id)}

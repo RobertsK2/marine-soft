@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      booking_berth_assignments: {
+        Row: {
+          id: string;
+          marina_id: string;
+          booking_id: string;
+          berth_id: string;
+          arrival_date: string;
+          departure_date: string;
+          assigned_at: string;
+          assigned_by: string | null;
+          ended_at: string | null;
+          ended_by: string | null;
+          ended_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          marina_id: string;
+          booking_id: string;
+          berth_id: string;
+          arrival_date: string;
+          departure_date: string;
+          assigned_at?: string;
+          assigned_by?: string | null;
+          ended_at?: string | null;
+          ended_by?: string | null;
+          ended_reason?: string | null;
+        };
+        Update: { ended_at?: string | null; ended_by?: string | null; ended_reason?: string | null };
+        Relationships: [];
+      };
       guest_booking_access_grants: {
         Row: {
           id: string;
@@ -412,6 +442,10 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      assign_booking_berth: {
+        Args: { target_booking_id: string; target_berth_id: string };
+        Returns: { outcome: string; assignment_id: string | null; berth_code: string | null }[];
+      };
       ensure_guest_booking_access: {
         Args: { target_booking_id: string; requested_ttl?: string };
         Returns: { grant_id: string; expires_at: string }[];
