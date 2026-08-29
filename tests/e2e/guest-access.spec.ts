@@ -4,7 +4,9 @@ import { createClient } from "@supabase/supabase-js";
 
 test("signed guest link shows one safe booking, edits times, and stops after revocation", async ({ page }, testInfo) => {
   const secretKey = process.env.SUPABASE_SECRET_KEY;
-  const signingSecret = process.env.GUEST_ACCESS_SIGNING_SECRET;
+  const signingSecret = process.env.GUEST_ACCESS_SIGNING_SECRET
+    ?? process.env.SUPABASE_SECRET_KEY
+    ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
   test.skip(!secretKey || !signingSecret, "Requires local Supabase and the guest signing secret.");
 
   const supabase = createClient(

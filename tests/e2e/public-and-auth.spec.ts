@@ -159,8 +159,12 @@ test.describe("public marina page", () => {
     test.skip(!secretKey, "Requires the local server-only Supabase secret key.");
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321", secretKey!, { auth: { autoRefreshToken: false, persistSession: false } });
     const holdKey = crypto.randomUUID();
-    const arrivalDate = testInfo.project.name === "mobile" ? "2027-02-03" : "2027-02-01";
-    const departureDate = testInfo.project.name === "mobile" ? "2027-02-05" : "2027-02-03";
+    const dateOffset = Number.parseInt(holdKey.replaceAll("-", "").slice(0, 8), 16) % 1_000;
+    const arrival = new Date(Date.UTC(2035, 0, 1 + dateOffset));
+    const departure = new Date(arrival);
+    departure.setUTCDate(arrival.getUTCDate() + 2);
+    const arrivalDate = arrival.toISOString().slice(0, 10);
+    const departureDate = departure.toISOString().slice(0, 10);
     const sessionId = `cs_test_${crypto.randomUUID().replaceAll("-", "")}`;
     const { data: holdRows, error: holdError } = await supabase.rpc("create_booking_hold", {
       target_marina_id: "d1000000-0000-4000-8000-000000000001", request_idempotency_key: holdKey,
@@ -170,22 +174,29 @@ test.describe("public marina page", () => {
       calculated_price_snapshot: { version: 1, currency: "EUR", totalMinor: 10000, arrivalDate, departureDate, vesselLengthM: 19 },
     });
     expect(holdError).toBeNull();
+    expect(holdRows?.[0].outcome).toBe("created");
     const holdToken = holdRows![0].hold_token!;
-    const { data: prepared } = await supabase.rpc("prepare_booking_checkout", { target_hold_token: holdToken });
-    await supabase.rpc("attach_booking_checkout_session", { target_payment_id: prepared![0].payment_id!, target_session_id: sessionId });
+    const { data: prepared, error: prepareError } = await supabase.rpc("prepare_booking_checkout", { target_hold_token: holdToken });
+    expect(prepareError).toBeNull();
+    expect(prepared?.[0].outcome).toBe("ready");
+    const { data: attached, error: attachError } = await supabase.rpc("attach_booking_checkout_session", { target_payment_id: prepared![0].payment_id!, target_session_id: sessionId });
+    expect(attachError).toBeNull();
+    expect(attached).toBe(true);
 
     await page.goto(`/marina/marina-a/checkout/return?session_id=${sessionId}`);
-    await expect(page.getByRole("heading", { name: "Payment confirmation pending" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Confirmation in progress" })).toBeVisible();
     await expect(page.getByText(/browser return does not confirm payment/i)).toBeVisible();
 
     const { error: eventError } = await supabase.rpc("process_stripe_checkout_event", {
       target_event_id: `evt_${crypto.randomUUID().replaceAll("-", "")}`, target_event_type: "checkout.session.completed",
       target_stripe_account_id: "acct_testmarinaa", target_session_id: sessionId, target_payment_intent_id: `pi_${testInfo.project.name}`,
       target_payment_status: "paid", target_amount_total_minor: 10000, target_currency: "eur", target_hold_token: holdToken,
+      target_customer_name: "Webhook Return Guest", target_customer_email: "webhook-return@example.test",
+      target_customer_phone: "+37120000000",
     });
     expect(eventError).toBeNull();
     await page.reload();
-    await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Booking confirmed" })).toBeVisible();
   });
 
   test("public availability distinguishes suitable capacity that is full", async ({ page }) => {
