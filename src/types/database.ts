@@ -9,6 +9,24 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      guest_booking_access_grants: {
+        Row: {
+          id: string;
+          booking_id: string;
+          issued_at: string;
+          expires_at: string;
+          revoked_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          issued_at?: string;
+          expires_at: string;
+          revoked_at?: string | null;
+        };
+        Update: { expires_at?: string; revoked_at?: string | null };
+        Relationships: [];
+      };
       bookings: {
         Row: {
           arrival_date: string;
@@ -394,6 +412,41 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      ensure_guest_booking_access: {
+        Args: { target_booking_id: string; requested_ttl?: string };
+        Returns: { grant_id: string; expires_at: string }[];
+      };
+      rotate_guest_booking_access: {
+        Args: { target_booking_id: string; requested_ttl?: string };
+        Returns: { grant_id: string; expires_at: string }[];
+      };
+      revoke_guest_booking_access: {
+        Args: { target_grant_id: string };
+        Returns: boolean;
+      };
+      get_guest_booking: {
+        Args: { target_grant_id: string };
+        Returns: {
+          booking_reference: string;
+          marina_name: string;
+          arrival_date: string;
+          departure_date: string;
+          eta: string;
+          etd: string;
+          vessel_name: string | null;
+          vessel_length_m: number;
+          vessel_beam_m: number;
+          vessel_draft_m: number;
+          price_total_minor: number;
+          price_currency: string;
+          booking_status: Database["public"]["Enums"]["booking_status"];
+          access_expires_at: string;
+        }[];
+      };
+      update_guest_booking_times: {
+        Args: { target_grant_id: string; requested_eta: string; requested_etd: string };
+        Returns: boolean;
+      };
       create_booking_hold: {
         Args: {
           target_marina_id: string; request_idempotency_key: string;

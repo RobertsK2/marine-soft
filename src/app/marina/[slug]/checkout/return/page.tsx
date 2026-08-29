@@ -40,6 +40,7 @@ export default async function CheckoutReturnPage({ params, searchParams }: {
           <section className="checkout-next-steps">
             <h2>Next steps</h2>
             <p>Keep the booking reference for marina check-in. The marina will provide arrival instructions and berth assignment separately. No specific berth has been assigned by this confirmation.</p>
+            {payment.guestManagementUrl ? <a className="button button-primary" href={payment.guestManagementUrl}>Manage booking</a> : null}
           </section>
         </>
       ) : (

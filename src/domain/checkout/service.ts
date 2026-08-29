@@ -5,6 +5,7 @@ import { getSiteUrl, isStripeLocalPlatformFallbackEnabled } from "@/lib/env";
 import { createPrivilegedClient } from "@/lib/supabase/privileged";
 import { getStripe } from "@/lib/stripe/server";
 import { buildCheckoutSessionParams, LOCAL_PLATFORM_ACCOUNT_MARKER } from "@/domain/checkout/model";
+import { issueGuestManagementUrl } from "@/domain/guest-access/service";
 
 export class CheckoutServiceError extends Error {
   constructor(message: string, options?: ErrorOptions) { super(message, options); this.name = "CheckoutServiceError"; }
@@ -67,9 +68,12 @@ export async function getCheckoutReturnStatus(marinaSlug: string, sessionId: str
     .eq("marina_id", marina.id).eq("stripe_checkout_session_id", sessionId).maybeSingle();
   if (error || !data) return null;
   const { data: booking, error: bookingError } = await supabase.from("bookings")
-    .select("reference, arrival_date, departure_date, eta, etd, vessel_name, vessel_length_m, vessel_beam_m, vessel_draft_m, status")
+    .select("id, reference, arrival_date, departure_date, eta, etd, vessel_name, vessel_length_m, vessel_beam_m, vessel_draft_m, status")
     .eq("marina_id", marina.id).eq("booking_payment_id", data.id).maybeSingle();
   if (bookingError) throw new CheckoutServiceError("Unable to load booking confirmation.", { cause: bookingError });
+  const guestManagementUrl = booking
+    ? await issueGuestManagementUrl(booking.id).catch(() => null)
+    : null;
   const confirmation = booking ? {
     reference: booking.reference,
     marinaName: marina.name,
@@ -89,5 +93,6 @@ export async function getCheckoutReturnStatus(marinaSlug: string, sessionId: str
     currency: data.currency,
     paidAt: data.paid_at,
     confirmation,
+    guestManagementUrl,
   };
 }

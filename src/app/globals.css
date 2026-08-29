@@ -670,6 +670,33 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .checkout-confirmation-grid > div { border-right: 1px solid var(--salt); border-bottom: 1px solid var(--salt); padding: 1rem; }
 .checkout-confirmation-grid dt { color: var(--salt); font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .checkout-confirmation-grid dd { margin: .35rem 0 0; font-family: "JetBrains Mono", monospace; font-size: .78rem; font-weight: 500; text-transform: capitalize; }
+.checkout-next-steps .button { margin-top: .5rem; }
+
+.guest-booking-page { min-height: 100vh; background: var(--cream); color: var(--navy); }
+.guest-booking-header { display: flex; min-height: 4.5rem; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--navy); padding: 0 max(1.5rem, calc((100% - 1080px) / 2)); }
+.guest-booking-header > span { display: inline-flex; align-items: center; gap: .45rem; color: var(--brass); font-family: "JetBrains Mono", monospace; font-size: .65rem; text-transform: uppercase; }
+.guest-booking-brand { color: var(--navy); }
+.guest-booking-brand .brand-mark { border-color: var(--navy); }
+.guest-booking-shell { width: min(1080px, calc(100% - 3rem)); margin: 0 auto; padding: clamp(3.5rem, 8vw, 7rem) 0; }
+.guest-booking-shell > h1, .guest-booking-unavailable h1 { max-width: 16ch; margin: .6rem 0 1.25rem; font-family: DIN, "Helvetica Now Display", sans-serif; font-size: clamp(2.8rem, 8vw, 5.5rem); line-height: 1; text-transform: uppercase; }
+.guest-booking-intro { max-width: 68ch; color: var(--salt); }
+.guest-booking-grid { display: grid; margin: 3rem 0 1rem; border-top: 1px solid var(--navy); border-left: 1px solid var(--navy); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.guest-booking-grid > div { min-height: 112px; border-right: 1px solid var(--navy); border-bottom: 1px solid var(--navy); padding: 1rem; background: var(--white); }
+.guest-booking-grid dt { color: var(--salt); font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .66rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.guest-booking-grid dd { margin: 1.2rem 0 0; font-family: "JetBrains Mono", monospace; font-size: .74rem; font-weight: 500; text-transform: capitalize; }
+.guest-booking-editor { display: grid; align-items: start; gap: 3rem; margin-top: 1rem; border: 1px solid var(--navy); padding: 1.5rem; background: var(--white); grid-template-columns: minmax(0, .8fr) minmax(340px, 1.2fr); }
+.guest-booking-editor h2 { margin: .7rem 0; font-family: DIN, "Helvetica Now Display", sans-serif; font-size: 1.6rem; text-transform: uppercase; }
+.guest-booking-editor > div > p:last-child { max-width: 48ch; margin-bottom: 0; color: var(--salt); font-size: .8rem; }
+.guest-booking-editor .public-marina-section-code { display: flex; align-items: center; gap: .4rem; }
+.guest-times-form { display: grid; gap: 1rem; }
+.guest-times-fields { display: grid; gap: 1rem; grid-template-columns: repeat(2, 1fr); }
+.guest-times-form .form-field input { background: var(--cream); }
+.guest-times-form .button { justify-self: start; }
+.guest-booking-readonly { margin: 0; border-left: 5px solid var(--salt); padding: 1rem; background: var(--cream); }
+.guest-booking-footer { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1.25rem; color: var(--brass); font-family: "JetBrains Mono", monospace; font-size: .62rem; text-transform: uppercase; }
+.guest-booking-unavailable { display: grid; min-height: 100vh; align-content: center; justify-items: start; gap: 1rem; padding: clamp(1.5rem, 8vw, 7rem); background: var(--cream); color: var(--navy); }
+.guest-booking-unavailable h1 { margin: 0; }
+.guest-booking-unavailable > p:not(.public-marina-section-code) { max-width: 52ch; }
 .checkout-next-steps { max-width: 880px; border-left: 5px solid var(--brass); padding: 1rem 1.25rem; background: var(--white); }
 .checkout-next-steps h2 { margin: 0; font-family: DIN, "Helvetica Now Display", sans-serif; font-size: 1rem; text-transform: uppercase; }
 .checkout-next-steps p { max-width: 70ch; margin: .5rem 0 0; }
@@ -771,6 +798,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .public-booking-grid-four { grid-template-columns: 1fr; }
   .public-price-quote > header { align-items: flex-start; flex-direction: column; }
   .checkout-confirmation-grid { grid-template-columns: 1fr; }
+  .guest-booking-header { padding-inline: 1rem; }
+  .guest-booking-shell { width: min(100% - 2rem, 1080px); padding-block: 4rem; }
+  .guest-booking-grid, .guest-booking-editor, .guest-times-fields { grid-template-columns: 1fr; }
+  .guest-booking-footer { flex-direction: column; }
   .public-marina-footer { flex-direction: column; }
 }
 

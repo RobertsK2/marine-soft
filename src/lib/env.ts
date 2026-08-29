@@ -48,6 +48,18 @@ export function getSiteUrl() {
   return url.origin;
 }
 
+export function getGuestAccessSigningSecret() {
+  const value = (
+    process.env.GUEST_ACCESS_SIGNING_SECRET
+    ?? process.env.SUPABASE_SECRET_KEY
+    ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+  )?.trim();
+  if (!value || Buffer.byteLength(value, "utf8") < 32) {
+    throw new Error("GUEST_ACCESS_SIGNING_SECRET must contain at least 32 bytes.");
+  }
+  return value;
+}
+
 export function getStripeServerEnv() {
   return {
     secretKey: readRequiredPublicValue("STRIPE_SECRET_KEY", process.env.STRIPE_SECRET_KEY),
