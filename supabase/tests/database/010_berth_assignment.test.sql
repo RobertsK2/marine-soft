@@ -55,7 +55,7 @@ select throws_ok(
   '42501',null,'direct assignment insertion is denied');
 select throws_ok(
   $$update public.bookings set vessel_length_m=9.5 where id='8a200000-0000-4000-8000-000000000001'$$,
-  '23514','An assigned booking stay or vessel cannot change before reassignment support is implemented.','active assignment snapshot cannot be invalidated');
+  '42501',null,'direct booking edits cannot bypass the server revalidation workflow');
 select is((select outcome from public.assign_booking_berth('8a200000-0000-4000-8000-000000000003','d5000000-0000-4000-8000-000000000003')),'assigned','back-to-back stays do not conflict');
 
 select set_config('request.jwt.claims','{"sub":"81000000-0000-4000-8000-000000000002","role":"authenticated"}',true);

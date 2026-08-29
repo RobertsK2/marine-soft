@@ -7,6 +7,7 @@ import { loadAvailabilitySnapshot } from "@/domain/availability/repository";
 import {
   BookingRepositoryError,
   createBooking,
+  getBooking,
   updateBookingStatus,
 } from "@/domain/bookings/repository";
 import {
@@ -15,12 +16,22 @@ import {
   type BookingStatus,
 } from "@/domain/bookings/types";
 import { validateBookingInput } from "@/domain/bookings/validation";
+import { bookingNights } from "@/domain/bookings/formatting";
+import { calculatePriceSnapshot } from "@/domain/pricing/model";
+import { loadPricingCatalog } from "@/domain/pricing/repository";
 import { getAuthorizationContext } from "@/lib/auth/session";
 import { captureServerError } from "@/lib/monitoring/server";
+import { createPrivilegedClient } from "@/lib/supabase/privileged";
 import { createClient } from "@/lib/supabase/server";
 
 export type BookingActionState = {
   status: "idle" | "error";
+  message?: string;
+  fieldErrors?: BookingFieldErrors;
+};
+
+export type BookingChangeActionState = {
+  status: "idle" | "success" | "error";
   message?: string;
   fieldErrors?: BookingFieldErrors;
 };
@@ -120,6 +131,129 @@ export async function createBookingAction(
 
   revalidatePath("/dashboard/bookings");
   redirect(`/dashboard/bookings/${bookingId}`);
+}
+
+function formatMoney(amountMinor: number, currency: string) {
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(amountMinor / 100);
+}
+
+export async function updateBookingDetailsAction(
+  bookingId: string,
+  expectedUpdatedAt: string,
+  _state: BookingChangeActionState,
+  formData: FormData,
+): Promise<BookingChangeActionState> {
+  if (!isUuid(bookingId) || Number.isNaN(Date.parse(expectedUpdatedAt))) {
+    return { status: "error", message: "The booking version is invalid. Refresh and try again." };
+  }
+
+  const validation = validateBookingInput(formValues(formData));
+  if (!validation.success) {
+    return { status: "error", fieldErrors: validation.errors };
+  }
+
+  const context = await getAuthorizationContext();
+  if (!context) return { status: "error", message: "Marina access is required." };
+
+  try {
+    const privileged = createPrivilegedClient();
+    const current = await getBooking(privileged, context.marinaId, bookingId);
+    if (!current) return { status: "error", message: "Booking not found for this marina." };
+
+    const priceAffecting = current.arrival_date !== validation.data.arrivalDate
+      || current.departure_date !== validation.data.departureDate
+      || current.vessel_length_m !== validation.data.vesselLengthM;
+    let calculatedPriceSnapshot = null;
+
+    if (priceAffecting && current.price_snapshot) {
+      const catalog = await loadPricingCatalog(privileged, context.marinaId);
+      if (!catalog) {
+        return {
+          status: "error",
+          message: "Pricing is not configured for the revised stay. No changes were saved.",
+        };
+      }
+      calculatedPriceSnapshot = calculatePriceSnapshot({
+        arrivalDate: validation.data.arrivalDate,
+        departureDate: validation.data.departureDate,
+        eta: validation.data.eta,
+        etd: validation.data.etd,
+        marinaTimezone: context.timezone,
+        stayNights: bookingNights(validation.data.arrivalDate, validation.data.departureDate),
+        vesselName: validation.data.vesselName,
+        vesselLengthM: validation.data.vesselLengthM,
+        vesselBeamM: validation.data.vesselBeamM,
+        vesselDraftM: validation.data.vesselDraftM,
+      }, catalog);
+    }
+
+    const { data, error } = await privileged.rpc("update_booking_details", {
+      target_marina_id: context.marinaId,
+      target_booking_id: bookingId,
+      target_actor_id: context.userId,
+      expected_updated_at: expectedUpdatedAt,
+      requested_arrival: validation.data.arrivalDate,
+      requested_departure: validation.data.departureDate,
+      requested_eta: validation.data.eta,
+      requested_etd: validation.data.etd,
+      requested_customer_name: validation.data.customerName,
+      requested_customer_email: validation.data.customerEmail,
+      requested_customer_phone: validation.data.customerPhone,
+      requested_vessel_name: validation.data.vesselName,
+      requested_length_m: validation.data.vesselLengthM,
+      requested_beam_m: validation.data.vesselBeamM,
+      requested_draft_m: validation.data.vesselDraftM,
+      calculated_price_snapshot: calculatedPriceSnapshot,
+    });
+    if (error) throw error;
+    const result = data?.[0];
+    if (!result) throw new Error("Booking detail update returned no result.");
+
+    const errors: Record<string, string> = {
+      unauthorized: "Marina access is required.",
+      not_found: "Booking not found for this marina.",
+      not_editable: "Only confirmed bookings can be edited in this phase.",
+      stale: "This booking changed after the form loaded. Refresh before saving again.",
+      invalid: "The revised booking values are invalid. No changes were saved.",
+      unavailable: "No safe berth capacity is available for the revised vessel and stay.",
+      assignment_invalid: "The current berth would become invalid or conflict with another assignment. Keep the current stay and vessel limits, or reassign the berth first.",
+      invalid_price: "The server price no longer matches this booking. No changes were saved.",
+    };
+    if (errors[result.outcome]) return { status: "error", message: errors[result.outcome] };
+    if (result.outcome === "unchanged") {
+      return { status: "success", message: "No booking details changed." };
+    }
+    if (result.outcome !== "updated") throw new Error(`Unexpected booking update outcome: ${result.outcome}`);
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/bookings");
+    revalidatePath(`/dashboard/bookings/${bookingId}`);
+    revalidatePath("/dashboard/marina-map");
+
+    const assignmentNote = result.assignment_preserved
+      ? " The current berth was revalidated and preserved in assignment history."
+      : "";
+    if (result.price_difference_minor !== null && result.price_currency && result.revised_total_minor !== null) {
+      const revised = formatMoney(result.revised_total_minor, result.price_currency);
+      if (result.price_difference_minor > 0) {
+        return {
+          status: "success",
+          message: `Changes saved. Revised total: ${revised}. ${formatMoney(result.price_difference_minor, result.price_currency)} remains due; no payment was taken.${assignmentNote}`,
+        };
+      }
+      if (result.price_difference_minor < 0) {
+        return {
+          status: "success",
+          message: `Changes saved. Revised total: ${revised}. ${formatMoney(Math.abs(result.price_difference_minor), result.price_currency)} is refundable; no refund was issued.${assignmentNote}`,
+        };
+      }
+      return { status: "success", message: `Changes saved. Price remains ${revised}.${assignmentNote}` };
+    }
+    return { status: "success", message: `Changes saved.${assignmentNote}` };
+  } catch (error) {
+    captureServerError(error, { operation: "booking_detail_update", bookingId, marinaId: context.marinaId });
+    return { status: "error", message: "Booking changes could not be saved. Refresh and try again." };
+  }
 }
 
 export async function updateBookingStatusAction(

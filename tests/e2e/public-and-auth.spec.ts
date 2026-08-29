@@ -534,10 +534,25 @@ test.describe("local Supabase marina auth", () => {
     await expect(page.getByText("Berth A-02 assigned.", { exact: true })).toBeVisible();
     await expect(page.locator(".assignment-status-line").getByText("Berth A-02", { exact: true })).toBeVisible();
 
+    const extendedDeparture = new Date(departure);
+    extendedDeparture.setUTCDate(extendedDeparture.getUTCDate() + 1);
+    await page.getByLabel("Departure date", { exact: true }).fill(isoDate(extendedDeparture));
+    await page.getByLabel("ETA", { exact: true }).fill("15:15");
+    await page.getByRole("button", { name: "Save booking changes" }).click();
+    await expect(page.getByText(/changes saved.*current berth was revalidated and preserved/i)).toBeVisible();
+    await expect(page.getByLabel("Departure date", { exact: true })).toHaveValue(isoDate(extendedDeparture));
+    await expect(page.getByLabel("ETA", { exact: true })).toHaveValue("15:15");
+
+    await page.getByLabel("Length (m)", { exact: true }).fill("10");
+    await page.getByLabel("Beam (m)", { exact: true }).fill("3.2");
+    await page.getByLabel("Draft (m)", { exact: true }).fill("1.7");
+    await page.getByRole("button", { name: "Save booking changes" }).click();
+    await expect(page.getByText(/current berth would become invalid/i)).toBeVisible();
+
     await page.getByLabel("Suitable operational berth").selectOption("d5000000-0000-4000-8000-000000000003");
     await page.getByRole("button", { name: "Reassign berth" }).click();
     await expect(page.getByText(/reassigned to berth A-03/i)).toBeVisible();
-    await expect(page.locator(".assignment-history li")).toHaveCount(2);
+    await expect(page.locator(".assignment-history li")).toHaveCount(3);
 
     await page.goto("/dashboard/marina-map");
     await expect(page.getByRole("button", { name: "Berth A-03, Reserved" })).toBeVisible();

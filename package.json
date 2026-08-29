@@ -20,6 +20,7 @@
     "stripe:listen:connect": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-stripe-connect-webhook.ps1",
     "stripe:verify-checkout": "node --env-file=.env.local scripts/verify-stripe-phase6-checkout.mjs",
     "test-users:setup": "node scripts/setup-local-test-users.mjs",
+    "booking:reset-local": "node --env-file=.env.local scripts/reset-local-test-booking.mjs",
     "supabase:sync-secret": "node scripts/sync-supabase-secret.mjs",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",

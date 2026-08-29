@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      booking_price_adjustments: {
+        Row: {
+          id: string;
+          marina_id: string;
+          booking_id: string;
+          previous_price_total_minor: number;
+          revised_price_total_minor: number;
+          difference_from_paid_minor: number;
+          currency: string;
+          previous_price_snapshot: Json;
+          revised_price_snapshot: Json;
+          changed_at: string;
+          changed_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          marina_id: string;
+          booking_id: string;
+          previous_price_total_minor: number;
+          revised_price_total_minor: number;
+          difference_from_paid_minor: number;
+          currency: string;
+          previous_price_snapshot: Json;
+          revised_price_snapshot: Json;
+          changed_at?: string;
+          changed_by?: string | null;
+        };
+        Update: never;
+        Relationships: [];
+      };
       booking_berth_assignments: {
         Row: {
           id: string;
@@ -454,6 +484,33 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      update_booking_details: {
+        Args: {
+          target_marina_id: string;
+          target_booking_id: string;
+          target_actor_id: string;
+          expected_updated_at: string;
+          requested_arrival: string;
+          requested_departure: string;
+          requested_eta: string;
+          requested_etd: string;
+          requested_customer_name: string;
+          requested_customer_email: string;
+          requested_customer_phone: string;
+          requested_vessel_name: string | null;
+          requested_length_m: number;
+          requested_beam_m: number;
+          requested_draft_m: number;
+          calculated_price_snapshot: Json | null;
+        };
+        Returns: {
+          outcome: string;
+          price_difference_minor: number | null;
+          revised_total_minor: number | null;
+          price_currency: string | null;
+          assignment_preserved: boolean;
+        }[];
+      };
       assign_booking_berth: {
         Args: { target_booking_id: string; target_berth_id: string };
         Returns: { outcome: string; assignment_id: string | null; berth_code: string | null }[];

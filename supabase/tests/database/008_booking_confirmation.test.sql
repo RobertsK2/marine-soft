@@ -60,8 +60,8 @@ select is(public.process_stripe_checkout_event(
 select is((select count(*)::integer from public.bookings where booking_payment_id=(select payment_id from critical_payment)),1,'healed retry creates exactly one booking');
 
 select throws_ok(
-  $$update public.bookings set customer_name='Changed' where booking_payment_id=(select payment_id from phase7_payment)$$,
-  '23514','Online booking customer, vessel, hold, and payment snapshots are immutable.','online customer and vessel snapshots are immutable');
+  $$update public.bookings set customer_snapshot='{"version":1,"name":"Changed","email":"changed@example.test","phone":"+37120000000","source":"stripe_checkout"}'::jsonb where booking_payment_id=(select payment_id from phase7_payment)$$,
+  '23514','Online booking payment, customer, and vessel origin snapshots are immutable.','online payment and origin snapshots are immutable');
 
 select * from finish();
 rollback;

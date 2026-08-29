@@ -9,6 +9,7 @@ export const BOOKING_STATUSES = [
 
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 export type Booking = Database["public"]["Tables"]["bookings"]["Row"];
+export type BookingPriceAdjustment = Database["public"]["Tables"]["booking_price_adjustments"]["Row"];
 
 export type BookingInput = {
   arrivalDate: string;

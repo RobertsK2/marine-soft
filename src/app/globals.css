@@ -375,7 +375,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .form-section { border: 1px solid var(--navy); padding: 1.5rem; background: var(--white); }
 .form-section-heading { display: flex; gap: 1rem; align-items: flex-start; border-bottom: 1px solid var(--salt); padding-bottom: 1rem; }
 .form-section-heading > span { display: inline-flex; min-width: 2rem; min-height: 2rem; align-items: center; justify-content: center; border: 1px solid var(--brass); color: var(--brass); font-family: "JetBrains Mono", monospace; font-size: .68rem; }
-.form-section-heading h2 { margin: 0; font-family: DIN, "Helvetica Now Display", sans-serif; font-size: 1.05rem; text-transform: uppercase; }
+.form-section-heading h2, .form-section-heading h3 { margin: 0; font-family: DIN, "Helvetica Now Display", sans-serif; font-size: 1.05rem; text-transform: uppercase; }
 .form-section-heading p { margin: .2rem 0 0; color: var(--salt); font-size: .8rem; }
 .berth-form-grid { display: grid; gap: 1rem; margin-top: 1.25rem; }
 .berth-form-grid-two { grid-template-columns: repeat(2, 1fr); }
@@ -425,6 +425,14 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .booking-detail-panel dt { color: var(--salt); font-family: "JetBrains Mono", monospace; font-size: .65rem; text-transform: uppercase; }
 .booking-detail-panel dd { overflow-wrap: anywhere; margin: 0; font-size: .85rem; font-weight: 700; }
 .booking-assignment-panel { grid-column: 1 / -1; }
+.booking-change-panel { grid-column: 1 / -1; }
+.booking-change-form { gap: 1rem; margin-top: 1rem; }
+.booking-change-form .form-section { padding: 1rem; }
+.booking-change-safety-note { margin: 0; border-left: 3px solid var(--orange); padding: .75rem .9rem; background: var(--cream); color: var(--navy); font-family: "JetBrains Mono", monospace; font-size: .68rem; }
+.booking-financial-panel { grid-column: 1 / -1; }
+.booking-price-history { display: grid; gap: .5rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+.booking-price-history li { display: grid; grid-template-columns: minmax(180px, .7fr) 1fr auto; gap: .75rem; border-top: 1px solid var(--salt); padding: .7rem 0; font-family: "JetBrains Mono", monospace; font-size: .65rem; }
+.booking-price-history small { color: var(--brass); text-transform: uppercase; }
 .assignment-intro { max-width: 72ch; margin: .8rem 0 0; color: var(--salt); font-size: .82rem; }
 .berth-assignment-control { display: grid; gap: 1rem; margin-top: 1.2rem; }
 .assignment-status-line { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; border: 1px solid var(--navy); padding: .8rem; background: var(--cream); }
@@ -812,7 +820,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .dashboard-modules, .berth-form-grid-two, .berth-form-grid-three, .berth-detail-grid, .booking-form-grid-three, .booking-form-grid-four, .booking-detail-grid { grid-template-columns: 1fr; }
   .berth-assignment-form { grid-template-columns: 1fr; }
   .berth-assignment-form label { grid-column: auto; }
-  .assignment-history li { grid-template-columns: 1fr; }
+  .assignment-history li, .booking-price-history li { grid-template-columns: 1fr; }
   .overview-insights-grid { grid-template-columns: 1fr; }
   .overview-insight-card { min-height: 165px; }
   .form-section { padding: 1rem; }

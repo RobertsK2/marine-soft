@@ -57,6 +57,24 @@ both local test accounts. Keep it local, do not reuse it, and do not place it in
 Supabase intentionally returns a successful reset response for unknown email
 addresses but does not send a message. Use one of the exact test addresses.
 
+## Reset one checked-in local test booking
+
+This is a local recovery utility for repeating check-in tests. It does not add
+an API endpoint or change any production migration, trigger, or transition.
+
+List explicit candidates, then reset exactly one by reference or UUID:
+
+```powershell
+npm run booking:reset-local -- --list
+npm run booking:reset-local -- BK-ABC1234567
+```
+
+The command refuses non-HTTP/non-local Supabase URLs. Inside one locked
+transaction it verifies that the booking is currently `checked_in`, temporarily
+disables only the operational-transition trigger, clears the local check-in
+timestamp and exception fields, restores `confirmed`, and re-enables the trigger
+before commit. Any error rolls back the trigger change and booking update.
+
 ## Manual tenant-isolation check
 
 1. Log in as `admin-a@berthio.test` and confirm the dashboard shows `Marina A

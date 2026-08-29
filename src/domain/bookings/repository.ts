@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   Booking,
   BookingInput,
+  BookingPriceAdjustment,
   BookingStatus,
 } from "@/domain/bookings/types";
 import type { Database } from "@/types/database";
@@ -66,6 +67,26 @@ export async function getBooking(
 
   if (error) {
     throw new BookingRepositoryError("Unable to load booking.", error.code, {
+      cause: error,
+    });
+  }
+  return data;
+}
+
+export async function listBookingPriceAdjustments(
+  supabase: SupabaseClient<Database>,
+  marinaId: string,
+  bookingId: string,
+): Promise<BookingPriceAdjustment[]> {
+  const { data, error } = await supabase
+    .from("booking_price_adjustments")
+    .select("*")
+    .eq("marina_id", marinaId)
+    .eq("booking_id", bookingId)
+    .order("changed_at", { ascending: false });
+
+  if (error) {
+    throw new BookingRepositoryError("Unable to load booking price history.", error.code, {
       cause: error,
     });
   }
