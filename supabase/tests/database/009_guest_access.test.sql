@@ -57,7 +57,18 @@ select is((select eta::text from public.bookings where booking_payment_id=(selec
 select is((select etd::text from public.bookings where booking_payment_id=(select payment_id from guest_payment_one)),'08:45:00','ETD update is stored');
 select is((select customer_email from public.bookings where booking_payment_id=(select payment_id from guest_payment_one)),'guest-one@example.test','guest update does not alter customer data');
 
-update public.bookings set status='checked_in' where booking_payment_id=(select payment_id from guest_payment_one);
+insert into auth.users (
+  instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,
+  raw_app_meta_data,raw_user_meta_data,created_at,updated_at
+) values (
+  '00000000-0000-0000-0000-000000000000','89000000-0000-4000-8000-000000000001',
+  'authenticated','authenticated','guest-transition-actor@example.test','',now(),'{}','{}',now(),now()
+);
+update public.bookings
+set status='checked_in', actual_check_in_at=statement_timestamp(),
+    check_in_without_assignment=true,
+    check_in_assignment_exception_by='89000000-0000-4000-8000-000000000001'
+where booking_payment_id=(select payment_id from guest_payment_one);
 select ok(not public.update_guest_booking_times((select grant_id from guest_grant_one),'17:00','09:00'),'checked-in booking is read-only to guests');
 
 create temporary table rotated_grant as select * from public.rotate_guest_booking_access(

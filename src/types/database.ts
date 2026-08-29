@@ -60,6 +60,8 @@ export type Database = {
       bookings: {
         Row: {
           arrival_date: string;
+          actual_check_in_at: string | null;
+          actual_check_out_at: string | null;
           booking_hold_id: string | null;
           booking_payment_id: string | null;
           created_at: string;
@@ -67,6 +69,8 @@ export type Database = {
           customer_name: string;
           customer_phone: string;
           customer_snapshot: Json | null;
+          check_in_assignment_exception_by: string | null;
+          check_in_without_assignment: boolean;
           departure_date: string;
           eta: string;
           etd: string;
@@ -87,6 +91,8 @@ export type Database = {
         };
         Insert: {
           arrival_date: string;
+          actual_check_in_at?: string | null;
+          actual_check_out_at?: string | null;
           booking_hold_id?: string | null;
           booking_payment_id?: string | null;
           created_at?: string;
@@ -94,6 +100,8 @@ export type Database = {
           customer_name: string;
           customer_phone: string;
           customer_snapshot?: Json | null;
+          check_in_assignment_exception_by?: string | null;
+          check_in_without_assignment?: boolean;
           departure_date: string;
           eta: string;
           etd: string;
@@ -113,7 +121,11 @@ export type Database = {
           vessel_snapshot?: Json | null;
         };
         Update: {
+          actual_check_in_at?: string | null;
+          actual_check_out_at?: string | null;
           arrival_date?: string;
+          check_in_assignment_exception_by?: string | null;
+          check_in_without_assignment?: boolean;
           customer_email?: string;
           customer_name?: string;
           customer_phone?: string;
@@ -445,6 +457,19 @@ export type Database = {
       assign_booking_berth: {
         Args: { target_booking_id: string; target_berth_id: string };
         Returns: { outcome: string; assignment_id: string | null; berth_code: string | null }[];
+      };
+      transition_booking_stay: {
+        Args: {
+          target_booking_id: string;
+          target_status: Database["public"]["Enums"]["booking_status"];
+          allow_unassigned_check_in?: boolean;
+        };
+        Returns: {
+          outcome: string;
+          actual_at: string | null;
+          berth_code: string | null;
+          used_assignment_exception: boolean;
+        }[];
       };
       ensure_guest_booking_access: {
         Args: { target_booking_id: string; requested_ttl?: string };

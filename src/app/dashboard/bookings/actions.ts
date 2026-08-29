@@ -30,6 +30,11 @@ export type BerthAssignmentActionState = {
   message?: string;
 };
 
+export type OperationalTransitionActionState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+};
+
 function formValues(formData: FormData) {
   return {
     arrivalDate: formData.get("arrivalDate"),
@@ -126,7 +131,7 @@ export async function updateBookingStatusAction(
     return { status: "error", message: "The booking reference is invalid." };
   }
   const status = formData.get("status");
-  if (!isBookingStatus(status)) {
+  if (!isBookingStatus(status) || !["confirmed", "cancelled"].includes(status)) {
     return { status: "error", message: "Choose a valid booking status." };
   }
 
@@ -149,6 +154,58 @@ export async function updateBookingStatusAction(
   revalidatePath("/dashboard/bookings");
   revalidatePath(`/dashboard/bookings/${bookingId}`);
   redirect(`/dashboard/bookings/${bookingId}`);
+}
+
+export async function transitionBookingStayAction(
+  bookingId: string,
+  _state: OperationalTransitionActionState,
+  formData: FormData,
+): Promise<OperationalTransitionActionState> {
+  const targetStatus = formData.get("targetStatus");
+  if (!isUuid(bookingId) || (targetStatus !== "checked_in" && targetStatus !== "checked_out")) {
+    return { status: "error", message: "The requested operational transition is invalid." };
+  }
+
+  const context = await getAuthorizationContext();
+  if (!context) return { status: "error", message: "Marina access is required." };
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("transition_booking_stay", {
+      target_booking_id: bookingId,
+      target_status: targetStatus,
+      allow_unassigned_check_in: formData.get("allowUnassignedCheckIn") === "true",
+    });
+    if (error) throw error;
+    const result = data?.[0];
+    if (!result) throw new Error("Operational transition returned no result.");
+
+    const messages: Record<string, string> = {
+      checked_in: result.berth_code
+        ? `Checked in at berth ${result.berth_code}. The berth is now occupied.`
+        : "Checked in with the unassigned-berth exception recorded.",
+      checked_out: result.berth_code
+        ? `Checked out from berth ${result.berth_code}. The berth is no longer occupied.`
+        : "Checked out. The actual departure time was recorded.",
+      assignment_required: "Assign a berth before check-in, or explicitly acknowledge the unassigned check-in exception.",
+      invalid_transition: "The booking changed or is not in the required prior state. Refresh and try again.",
+      invalid_target: "Only check-in and check-out are available here.",
+      not_found: "Booking not found for this marina.",
+      unauthorized: "Marina access is required.",
+    };
+    if (result.outcome !== "checked_in" && result.outcome !== "checked_out") {
+      return { status: "error", message: messages[result.outcome] ?? "The transition could not be completed." };
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/bookings");
+    revalidatePath(`/dashboard/bookings/${bookingId}`);
+    revalidatePath("/dashboard/marina-map");
+    return { status: "success", message: messages[result.outcome] };
+  } catch (error) {
+    captureServerError(error, { operation: "booking_operational_transition", bookingId, marinaId: context.marinaId });
+    return { status: "error", message: "Check-in or check-out could not be saved. Refresh and try again." };
+  }
 }
 
 export async function assignBookingBerthAction(

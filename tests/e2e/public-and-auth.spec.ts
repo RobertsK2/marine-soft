@@ -542,7 +542,25 @@ test.describe("local Supabase marina auth", () => {
     await page.goto("/dashboard/marina-map");
     await expect(page.getByRole("button", { name: "Berth A-03, Reserved" })).toBeVisible();
     await page.getByRole("button", { name: "Berth A-03, Reserved" }).click();
-    await expect(page.getByRole("link", { name: new RegExp(bookingReference!) })).toBeVisible();
+    const bookingLink = page.getByRole("link", { name: new RegExp(bookingReference!) });
+    await expect(bookingLink).toBeVisible();
+    await bookingLink.click();
+
+    await page.getByRole("button", { name: "Confirm check-in" }).click();
+    await expect(page.getByText("Checked in", { exact: true })).toBeVisible();
+    await expect(page.getByText(/checked in at berth A-03/i)).toBeVisible();
+
+    await page.goto("/dashboard/marina-map");
+    await expect(page.getByRole("button", { name: "Berth A-03, Occupied" })).toBeVisible();
+    await page.getByRole("button", { name: "Berth A-03, Occupied" }).click();
+    await page.getByRole("link", { name: new RegExp(bookingReference!) }).click();
+
+    await page.getByRole("button", { name: "Confirm check-out" }).click();
+    await expect(page.getByText("Checked out", { exact: true })).toBeVisible();
+    await expect(page.getByText(/checked out from berth A-03/i)).toBeVisible();
+
+    await page.goto("/dashboard/marina-map");
+    await expect(page.getByRole("button", { name: "Berth A-03, Available" })).toBeVisible();
   });
 
   test("marina user can create and manage a manual booking", async ({ page }, testInfo) => {
@@ -591,8 +609,8 @@ test.describe("local Supabase marina auth", () => {
     await expect(page.locator(".overview-activity-panel")).toContainText(guestName);
     await page.goto(bookingUrl);
 
-    await page.getByLabel("Booking status").selectOption("checked_in");
-    await page.getByRole("button", { name: "Update status" }).click();
+    await page.getByLabel(/exceptional check-in without an assigned berth/i).check();
+    await page.getByRole("button", { name: "Confirm check-in" }).click();
     await expect(page.getByText("Checked in", { exact: true })).toBeVisible();
 
     await page.getByRole("link", { name: "Back to bookings" }).click();

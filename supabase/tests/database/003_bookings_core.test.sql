@@ -141,23 +141,23 @@ select throws_ok(
   '23514', null,
   'negative vessel dimensions are rejected'
 );
-select results_eq(
+select throws_ok(
   $$update public.bookings set status = 'checked_in'
-    where id = '4a200000-0000-4000-8000-000000000001' returning status::text$$,
-  array['checked_in'::text],
-  'checked-in status persists'
+    where id = '4a200000-0000-4000-8000-000000000001'$$,
+  '23514', null,
+  'status-only writes cannot forge check-in'
 );
-select results_eq(
+select throws_ok(
   $$update public.bookings set status = 'checked_out'
-    where id = '4a200000-0000-4000-8000-000000000001' returning status::text$$,
-  array['checked_out'::text],
-  'checked-out status persists'
+    where id = '4a200000-0000-4000-8000-000000000001'$$,
+  '23514', null,
+  'confirmed bookings cannot jump directly to checked out'
 );
 select results_eq(
   $$update public.bookings set status = 'cancelled'
     where id = '4a200000-0000-4000-8000-000000000001' returning status::text$$,
   array['cancelled'::text],
-  'cancelled status persists'
+  'the pre-existing confirmed cancellation remains available'
 );
 
 select set_config('request.jwt.claims', '{"sub":"41000000-0000-4000-8000-000000000002","role":"authenticated"}', true);

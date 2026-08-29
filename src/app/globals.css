@@ -444,6 +444,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .booking-status-form > label { color: var(--salt); font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .booking-status-form > div { display: flex; gap: .5rem; }
 .booking-status-form select { min-height: 2.75rem; flex: 1; border: 1px solid var(--salt); border-radius: 2px; padding: .55rem .7rem; background: var(--cream); color: var(--navy); text-transform: capitalize; }
+.booking-operational-form { display: grid; gap: .8rem; margin-top: 1.25rem; border-top: 1px solid var(--navy); padding-top: 1.25rem; }
+.operational-transition-heading { display: grid; gap: .2rem; }
+.operational-transition-heading strong { font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; }
+.operational-transition-heading span { color: var(--salt); font-size: .78rem; }
+.operational-exception { display: grid; grid-template-columns: auto 1fr; gap: .65rem; border-left: 4px solid var(--orange); padding: .8rem; background: var(--cream); color: var(--navy); font-size: .8rem; line-height: 1.45; }
+.operational-exception input { width: 1rem; height: 1rem; margin-top: .15rem; accent-color: var(--navy); }
 
 .marina-map-card { margin-top: 3rem; border: 1px solid var(--navy); background: var(--white); box-shadow: 8px 8px 0 rgba(10, 25, 47, .08); }
 .marina-map-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 2rem; border-bottom: 1px solid var(--navy); padding: 1.25rem 1.5rem; }

@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import type { BookingActionState } from "@/app/dashboard/bookings/actions";
-import { BOOKING_STATUSES, type BookingStatus } from "@/domain/bookings/types";
+import type { BookingStatus } from "@/domain/bookings/types";
 
 const initialState: BookingActionState = { status: "idle" };
 
@@ -24,12 +24,13 @@ export function BookingStatusForm({
   status: BookingStatus;
 }) {
   const [state, formAction] = useActionState(action, initialState);
+  if (status !== "confirmed") return null;
   return (
     <form action={formAction} className="booking-status-form">
       <label htmlFor="status">Booking status</label>
       <div>
         <select defaultValue={status} id="status" name="status">
-          {BOOKING_STATUSES.map((value) => (
+          {(["confirmed", "cancelled"] as const).map((value) => (
             <option key={value} value={value}>{value.replaceAll("_", " ")}</option>
           ))}
         </select>
