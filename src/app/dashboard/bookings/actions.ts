@@ -20,6 +20,7 @@ import { validateBookingInput } from "@/domain/bookings/validation";
 import { bookingNights } from "@/domain/bookings/formatting";
 import { extensionNights, parseExtensionBerthOptions } from "@/domain/booking-extensions/model";
 import type { BookingExtensionPreview } from "@/domain/booking-extensions/types";
+import type { CancellationPreview } from "@/domain/booking-cancellations/types";
 import { calculatePriceSnapshot } from "@/domain/pricing/model";
 import { loadPricingCatalog } from "@/domain/pricing/repository";
 import { getAuthorizationContext } from "@/lib/auth/session";
@@ -28,9 +29,10 @@ import { createPrivilegedClient } from "@/lib/supabase/privileged";
 import { createClient } from "@/lib/supabase/server";
 
 export type BookingActionState = {
-  status: "idle" | "error";
+  status: "idle" | "confirmation" | "success" | "error";
   message?: string;
   fieldErrors?: BookingFieldErrors;
+  cancellation?: CancellationPreview;
 };
 
 export type BookingChangeActionState = {
@@ -479,19 +481,99 @@ export async function updateBookingDetailsAction(
 
 export async function updateBookingStatusAction(
   bookingId: string,
+  expectedUpdatedAt: string,
   _state: BookingActionState,
   formData: FormData,
 ): Promise<BookingActionState> {
-  if (!isUuid(bookingId)) {
+  if (!isUuid(bookingId) || Number.isNaN(Date.parse(expectedUpdatedAt))) {
     return { status: "error", message: "The booking reference is invalid." };
   }
-  const status = formData.get("status");
+  const status = formData.get("confirmCancellation") === "true" ? "cancelled" : formData.get("status");
   if (!isBookingStatus(status) || !["confirmed", "cancelled"].includes(status)) {
     return { status: "error", message: "Choose a valid booking status." };
   }
 
   const context = await getAuthorizationContext();
   if (!context) return { status: "error", message: "Marina access is required." };
+
+  if (status === "cancelled" && formData.get("confirmCancellation") !== "true") {
+    try {
+      const privileged = createPrivilegedClient();
+      const { data, error } = await privileged.rpc("preview_booking_cancellation", {
+        target_marina_id: context.marinaId,
+        target_booking_id: bookingId,
+        target_actor_id: context.userId,
+        expected_updated_at: expectedUpdatedAt,
+      });
+      if (error) throw error;
+      const result = data?.[0];
+      if (!result) throw new Error("Cancellation preview returned no result.");
+      const messages: Record<string, string> = {
+        unauthorized: "Marina access is required.",
+        not_found: "Booking not found for this marina.",
+        stale: "This booking changed after the form loaded. Refresh before cancelling.",
+        already_cancelled: "This booking is already cancelled.",
+        not_cancellable: "Only confirmed bookings can be cancelled in this workflow.",
+      };
+      if (messages[result.outcome]) return { status: "error", message: messages[result.outcome] };
+      if (result.outcome !== "ready") throw new Error(`Unexpected cancellation preview: ${result.outcome}`);
+      const refund = result.refund_recommendation_minor === null || !result.currency
+        ? "No refund recommendation is available for this booking."
+        : `${formatMoney(result.refund_recommendation_minor, result.currency)} refund recommended (${result.refund_percent}%).`;
+      return {
+        status: "confirmation",
+        message: `${refund} This is a recommendation only; no refund will be issued automatically. Confirm cancellation to release future capacity.`,
+        cancellation: {
+          policyCode: result.policy_code ?? "unknown",
+          refundPercent: result.refund_percent ?? 0,
+          refundRecommendationMinor: result.refund_recommendation_minor,
+          paidTotalMinor: result.paid_total_minor,
+          currency: result.currency,
+          assignmentCount: result.assignment_count,
+        },
+      };
+    } catch (error) {
+      captureServerError(error, { operation: "booking_cancellation_preview", bookingId, marinaId: context.marinaId });
+      return { status: "error", message: "Cancellation could not be previewed. No changes were saved." };
+    }
+  }
+
+  if (status === "cancelled" && formData.get("confirmCancellation") === "true") {
+    try {
+      const privileged = createPrivilegedClient();
+      const { data, error } = await privileged.rpc("confirm_booking_cancellation", {
+        target_marina_id: context.marinaId,
+        target_booking_id: bookingId,
+        target_actor_id: context.userId,
+        expected_updated_at: expectedUpdatedAt,
+        cancellation_reason: String(formData.get("cancellationReason") ?? ""),
+      });
+      if (error) throw error;
+      const result = data?.[0];
+      if (!result) throw new Error("Cancellation confirmation returned no result.");
+      const messages: Record<string, string> = {
+        unauthorized: "Marina access is required.",
+        not_found: "Booking not found for this marina.",
+        stale: "The booking changed after preview. Refresh and preview cancellation again.",
+        already_cancelled: "This booking is already cancelled.",
+        not_cancellable: "Only confirmed bookings can be cancelled in this workflow.",
+        invalid_reason: "Add a cancellation reason of 500 characters or fewer.",
+      };
+      if (messages[result.outcome]) return { status: "error", message: messages[result.outcome] };
+      if (result.outcome !== "cancelled") throw new Error(`Unexpected cancellation confirmation: ${result.outcome}`);
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/bookings");
+      revalidatePath(`/dashboard/bookings/${bookingId}`);
+      revalidatePath("/dashboard/marina-map");
+      const refund = result.refund_recommendation_minor !== null && result.currency
+        ? ` Refund recommendation: ${formatMoney(result.refund_recommendation_minor, result.currency)} (${result.refund_percent}%). No refund was issued.`
+        : " No refund was issued.";
+      return { status: "success", message: `Booking cancelled. ${result.released_assignment_count} future berth assignment(s) released.${refund}` };
+    } catch (error) {
+      captureServerError(error, { operation: "booking_cancellation_confirm", bookingId, marinaId: context.marinaId });
+      return { status: "error", message: "Cancellation could not be saved. No changes were saved." };
+    }
+  }
 
   try {
     const supabase = await createClient();

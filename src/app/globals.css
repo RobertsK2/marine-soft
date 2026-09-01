@@ -423,6 +423,14 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .booking-status { display: inline-flex; align-items: center; border: 1px solid var(--navy); border-radius: 2px; padding: .3rem .5rem; white-space: nowrap; font-family: "JetBrains Mono", monospace; font-size: .64rem; font-weight: 500; text-transform: uppercase; }
 .booking-status-confirmed { border-color: var(--brass); color: var(--brass); }
 .booking-status-cancelled { border-color: var(--orange); color: var(--orange); }
+.booking-cancellation-confirmation { display: grid; gap: .6rem; margin-top: .8rem; padding: .85rem; border: 1px solid var(--orange); background: #fff4ed; }
+.booking-cancellation-confirmation strong { color: var(--navy); font-family: DIN, "Helvetica Neue", sans-serif; text-transform: uppercase; }
+.booking-cancellation-confirmation p { margin: 0; color: var(--navy); font-size: .8rem; line-height: 1.5; }
+.booking-cancellation-confirmation dl { display: grid; gap: .35rem; margin: 0; }
+.booking-cancellation-confirmation dl div { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--salt); padding-top: .35rem; font-family: "JetBrains Mono", monospace; font-size: .68rem; }
+.booking-cancellation-confirmation dt { color: var(--salt); text-transform: uppercase; }
+.booking-cancellation-confirmation dd { margin: 0; color: var(--navy); text-align: right; }
+.booking-cancellation-confirmation textarea { min-height: 4rem; border: 1px solid var(--salt); border-radius: 2px; background: var(--cream); padding: .55rem; color: var(--navy); font: inherit; }
 .booking-status-checked_in { background: var(--navy); color: var(--cream); }
 .booking-status-checked_out { border-color: var(--salt); color: var(--salt); }
 .booking-table { min-width: 1080px; }

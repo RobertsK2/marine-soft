@@ -568,6 +568,41 @@ export type Database = {
           affected_bookings: Json;
         }[];
       };
+      preview_booking_cancellation: {
+        Args: {
+          target_marina_id: string;
+          target_booking_id: string;
+          target_actor_id: string;
+          expected_updated_at: string;
+        };
+        Returns: {
+          outcome: string;
+          booking_status: Database["public"]["Enums"]["booking_status"] | null;
+          policy_code: string | null;
+          refund_percent: number | null;
+          refund_recommendation_minor: number | null;
+          paid_total_minor: number | null;
+          currency: string | null;
+          assignment_count: number;
+        }[];
+      };
+      confirm_booking_cancellation: {
+        Args: {
+          target_marina_id: string;
+          target_booking_id: string;
+          target_actor_id: string;
+          expected_updated_at: string;
+          cancellation_reason: string;
+        };
+        Returns: {
+          outcome: string;
+          policy_code: string | null;
+          refund_percent: number | null;
+          refund_recommendation_minor: number | null;
+          currency: string | null;
+          released_assignment_count: number;
+        }[];
+      };
       transition_booking_stay: {
         Args: {
           target_booking_id: string;

@@ -495,6 +495,44 @@ test.describe("local Supabase marina auth", () => {
     await expect(page.getByRole("button", { name: "Berth A-01, Available" })).toBeVisible();
   });
 
+  test("marina staff previews and confirms a cancellation without an automatic refund", async ({ page }) => {
+    test.slow();
+    const email = process.env.E2E_MARINA_STAFF_EMAIL ?? process.env.E2E_MARINA_EMAIL;
+    const password = process.env.E2E_MARINA_PASSWORD;
+    test.skip(!email || !password, "Requires invited marina credentials.");
+    const arrival = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+    const departure = new Date(Date.now() + 13 * 24 * 60 * 60 * 1000);
+    const isoDate = (value: Date) => value.toISOString().slice(0, 10);
+
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(email!);
+    await page.getByLabel("Password").fill(password!);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await page.goto("/dashboard/bookings/new");
+    await page.getByLabel("Arrival date").fill(isoDate(arrival));
+    await page.getByLabel("Departure date").fill(isoDate(departure));
+    await page.getByLabel("ETA").fill("14:00");
+    await page.getByLabel("ETD").fill("10:00");
+    await page.getByLabel("Customer name").fill(`Cancellation E2E ${Date.now()}`);
+    await page.getByLabel("Email").fill(`cancellation-${Date.now()}@example.test`);
+    await page.getByLabel("Phone").fill("+371 20000999");
+    await page.getByLabel("Vessel name").fill("Cancellation Test Vessel");
+    await page.getByLabel("Length (m)").fill("8");
+    await page.getByLabel("Beam (m)").fill("2.8");
+    await page.getByLabel("Draft (m)").fill("1.4");
+    await page.getByRole("button", { name: "Create booking" }).click();
+    await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/, { timeout: 30_000 });
+
+    await page.getByLabel("Booking status").selectOption("cancelled");
+    await page.getByRole("button", { name: "Update status" }).click();
+    await expect(page.getByText("Cancellation review", { exact: true })).toBeVisible();
+    await expect(page.getByText(/refund recommendation|refund recommended/i)).toBeVisible();
+    await page.getByLabel("Cancellation reason").fill("Customer requested cancellation.");
+    await page.getByRole("button", { name: "Confirm cancellation" }).click();
+    await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
+  });
+
   test("marina staff can assign and reassign a suitable real berth", async ({ page }, testInfo) => {
     test.slow();
     const email = process.env.E2E_MARINA_STAFF_EMAIL ?? process.env.E2E_MARINA_EMAIL;

@@ -29,7 +29,7 @@ export default async function BookingDetailPage({
     getBookingBerthAssignmentState(supabase, context.marinaId, booking),
     listBookingPriceAdjustments(supabase, context.marinaId, booking.id),
   ]);
-  const statusAction = updateBookingStatusAction.bind(null, booking.id);
+  const statusAction = updateBookingStatusAction.bind(null, booking.id, booking.updated_at);
   const changeAction = updateBookingDetailsAction.bind(null, booking.id, booking.updated_at);
   const assignmentAction = assignBookingBerthAction.bind(null, booking.id);
   const operationalAction = transitionBookingStayAction.bind(null, booking.id);
