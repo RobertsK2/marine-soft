@@ -14,19 +14,24 @@ import {
   type BerthStatus,
 } from "@/domain/berths/types";
 import { validateBerthInput } from "@/domain/berths/validation";
+import { parseBerthImpactBookings } from "@/domain/berth-impact/model";
+import type { BerthImpactPreview } from "@/domain/berth-impact/types";
 import { getAuthorizationContext } from "@/lib/auth/session";
 import { captureServerError } from "@/lib/monitoring/server";
+import { createPrivilegedClient } from "@/lib/supabase/privileged";
 import { createClient } from "@/lib/supabase/server";
 
 export type BerthActionState = {
-  status: "idle" | "error";
+  status: "idle" | "impact" | "error";
   message?: string;
   fieldErrors?: BerthFieldErrors;
+  impact?: BerthImpactPreview;
 };
 
 export type BerthStatusActionState = {
-  status: "idle" | "success" | "error";
+  status: "idle" | "impact" | "success" | "error";
   message?: string;
+  impact?: BerthImpactPreview;
 };
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -47,6 +52,37 @@ function formValues(formData: FormData) {
 async function marinaAdminContext() {
   const context = await getAuthorizationContext();
   return context?.role === "marina_admin" ? context : null;
+}
+
+async function previewBlockedBerthImpact(
+  marinaId: string,
+  berthId: string,
+  actorId: string,
+  requestedStatus: BerthStatus,
+): Promise<BerthImpactPreview | null> {
+  if (requestedStatus === "available") return null;
+  const { data, error } = await createPrivilegedClient()
+    .rpc("preview_berth_block_impact", {
+      target_marina_id: marinaId,
+      target_berth_id: berthId,
+      target_actor_id: actorId,
+      target_status: requestedStatus,
+    });
+  if (error) throw error;
+  const result = data?.[0];
+  if (!result || result.outcome === "not_found") return null;
+  if (result.outcome === "unauthorized") throw new Error("Unauthorized berth impact preview.");
+  return {
+    berthCode: result.berth_code ?? "Unknown berth",
+    requestedStatus,
+    affectedCount: result.affected_count,
+    unresolvedCount: result.unresolved_count,
+    affectedBookings: parseBerthImpactBookings(result.affected_bookings),
+  };
+}
+
+function impactMessage(impact: BerthImpactPreview) {
+  return `${impact.affectedCount} active or upcoming booking${impact.affectedCount === 1 ? " is" : "s are"} assigned to this berth. Review alternatives before confirming the outage; no booking will be reassigned or notified automatically.`;
 }
 
 function repositoryFailure(error: unknown): BerthActionState {
@@ -108,6 +144,17 @@ export async function updateBerthAction(
     return { status: "error", message: "Marina admin access is required." };
   }
 
+  const requestedStatus = validation.data.status;
+  if (requestedStatus !== "available" && formData.get("confirmImpact") !== "true") {
+    try {
+      const impact = await previewBlockedBerthImpact(context.marinaId, berthId, context.userId, requestedStatus);
+      if (impact && impact.affectedCount > 0) return { status: "impact", message: impactMessage(impact), impact };
+    } catch (error) {
+      captureServerError(error, { operation: "berth_impact_preview", berthId });
+      return { status: "error", message: "The berth impact could not be checked. Status was not changed." };
+    }
+  }
+
   try {
     const supabase = await createClient();
     const updated = await updateBerth(
@@ -148,6 +195,16 @@ export async function updateBerthStatusAction(
   const context = await marinaAdminContext();
   if (!context) {
     return { status: "error", message: "Marina admin access is required." };
+  }
+
+  if (status !== "available" && formData.get("confirmImpact") !== "true") {
+    try {
+      const impact = await previewBlockedBerthImpact(context.marinaId, berthId, context.userId, status as BerthStatus);
+      if (impact && impact.affectedCount > 0) return { status: "impact", message: impactMessage(impact), impact };
+    } catch (error) {
+      captureServerError(error, { operation: "berth_impact_preview", berthId });
+      return { status: "error", message: "The berth impact could not be checked. Status was not changed." };
+    }
   }
 
   try {

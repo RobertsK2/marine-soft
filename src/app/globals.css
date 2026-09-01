@@ -370,6 +370,14 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .berth-status > span { width: 8px; height: 8px; border: 1px solid var(--navy); background: var(--brass); }
 .berth-status-blocked > span { background: var(--orange); }
 .berth-status-out_of_service > span { background: var(--salt); }
+.berth-impact-warning { display: grid; gap: .55rem; margin-top: .9rem; padding: .85rem; border: 1px solid var(--orange); background: #fff4ed; color: var(--navy); }
+.berth-impact-warning strong { font-family: "Arial Narrow", "Helvetica Neue", sans-serif; text-transform: uppercase; letter-spacing: .04em; }
+.berth-impact-warning p { margin: 0; color: var(--navy); font-size: .78rem; line-height: 1.5; }
+.berth-impact-warning ul { display: grid; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.berth-impact-warning li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .15rem .6rem; border-top: 1px solid var(--salt); padding-top: .4rem; font-family: "JetBrains Mono", monospace; font-size: .68rem; }
+.berth-impact-warning li a { color: var(--navy); font-weight: 700; text-decoration: underline; }
+.berth-impact-warning li span, .berth-impact-warning li small { color: var(--salt); }
+.berth-impact-warning li small { grid-column: 1 / -1; }
 
 .berth-form, .booking-form { display: grid; gap: 1.5rem; margin-top: 3rem; }
 .form-section { border: 1px solid var(--navy); padding: 1.5rem; background: var(--white); }

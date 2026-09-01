@@ -182,6 +182,23 @@ export function BerthForm({
       </section>
 
       {state.message ? <p className="form-message form-error" role="alert">{state.message}</p> : null}
+      {state.status === "impact" && state.impact ? (
+        <div className="berth-impact-warning" role="alert">
+          <strong>Operational conflict — {state.impact.affectedCount} booking{state.impact.affectedCount === 1 ? "" : "s"}</strong>
+          <p>{state.message}</p>
+          <ul>
+            {state.impact.affectedBookings.map((booking) => (
+              <li key={booking.bookingId}>
+                <Link href={`/dashboard/bookings/${booking.bookingId}`}>{booking.reference}</Link>
+                <span>{booking.arrivalDate} → {booking.departureDate}</span>
+                <small>{booking.berthOptions.length > 0 ? `${booking.berthOptions.length} valid alternative${booking.berthOptions.length === 1 ? "" : "s"}` : "No valid alternative"}</small>
+              </li>
+            ))}
+          </ul>
+          <input name="confirmImpact" type="hidden" value="true" />
+          <button className="button button-secondary" type="submit">Confirm outage, leave bookings unresolved</button>
+        </div>
+      ) : null}
 
       <div className="form-actions">
         <SubmitButton label={berth ? "Save berth" : "Create berth"} />

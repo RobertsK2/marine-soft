@@ -552,6 +552,22 @@ export type Database = {
           price_currency: string | null;
         }[];
       };
+      preview_berth_block_impact: {
+        Args: {
+          target_marina_id: string;
+          target_berth_id: string;
+          target_actor_id: string;
+          target_status: string;
+        };
+        Returns: {
+          outcome: string;
+          berth_code: string | null;
+          requested_status: string;
+          affected_count: number;
+          unresolved_count: number;
+          affected_bookings: Json;
+        }[];
+      };
       transition_booking_stay: {
         Args: {
           target_booking_id: string;
