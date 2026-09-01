@@ -22,9 +22,18 @@ export function buildBookingBerthAssignmentState(
       arrivalDate: assignment.arrival_date,
       departureDate: assignment.departure_date,
       assignedAt: assignment.assigned_at,
+      assignmentKind: assignment.assignment_kind,
       endedAt: assignment.ended_at,
+      endedReason: assignment.ended_reason,
     }))
-    .sort((left, right) => right.assignedAt.localeCompare(left.assignedAt));
+    .sort((left, right) =>
+      Number(left.endedAt !== null) - Number(right.endedAt !== null)
+      || left.arrivalDate.localeCompare(right.arrivalDate)
+      || right.assignedAt.localeCompare(left.assignedAt));
+
+  const activeSegments = history
+    .filter((item) => item.endedAt === null)
+    .sort((left, right) => left.arrivalDate.localeCompare(right.arrivalDate));
 
   const options = berths
     .filter((berth) => berth.marina_id === booking.marina_id)
@@ -63,5 +72,11 @@ export function buildBookingBerthAssignmentState(
       || left.maxLengthM - right.maxLengthM
       || left.code.localeCompare(right.code));
 
-  return { current: history.find((item) => item.endedAt === null) ?? null, history, options };
+  return {
+    current: activeSegments[0] ?? null,
+    activeSegments,
+    plannedMoves: activeSegments.filter((item) => item.assignmentKind === "planned_move"),
+    history,
+    options,
+  };
 }

@@ -45,9 +45,11 @@ describe("Phase 6 marina map model", () => {
     const reserved: MapBookingAssignment = {
       bookingId: "booking-1", reference: "BK-RESERVED01", status: "confirmed",
       arrivalDate: "2028-06-01", departureDate: "2028-06-03",
+      assignmentKind: "stay",
     };
     expect(deriveMapDisplayStatus(berth(), [reserved])).toBe("reserved");
     expect(deriveMapDisplayStatus(berth(), [{ ...reserved, status: "checked_in" }])).toBe("occupied");
+    expect(deriveMapDisplayStatus(berth(), [{ ...reserved, status: "checked_in", assignmentKind: "planned_move" }])).toBe("reserved");
     expect(deriveMapDisplayStatus(berth({ status: "blocked" }), [reserved])).toBe("unavailable");
   });
 

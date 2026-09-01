@@ -15,10 +15,12 @@ export function BerthAssignmentForm({
   action,
   assignment,
   assignable,
+  lockReason,
 }: {
   action: AssignmentAction;
   assignment: BookingBerthAssignmentState;
   assignable: boolean;
+  lockReason?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, INITIAL_STATE);
   const openOptions = assignment.options.filter((option) => !option.conflict);
@@ -48,7 +50,7 @@ export function BerthAssignmentForm({
         </form>
       ) : (
         <p className="assignment-warning">
-          {assignable ? "No operational berth safely fits this vessel." : "Only confirmed bookings can be assigned in this phase."}
+          {assignable ? "No operational berth safely fits this vessel." : lockReason ?? "Only confirmed bookings can be assigned in this phase."}
         </p>
       )}
 
@@ -63,7 +65,9 @@ export function BerthAssignmentForm({
               <li key={item.id}>
                 <strong>{item.berthCode}</strong>
                 <span>{item.arrivalDate} → {item.departureDate}</span>
-                <small>{item.endedAt ? "Reassigned" : "Current"}</small>
+                <small>{item.endedAt
+                  ? item.endedReason === "booking_extended" ? "Extension history" : "Reassigned"
+                  : item.assignmentKind === "planned_move" ? "Planned move" : "Current stay"}</small>
               </li>
             ))}
           </ol>

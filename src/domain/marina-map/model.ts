@@ -11,8 +11,12 @@ export function deriveMapDisplayStatus(
   assignments: MapBookingAssignment[] = [],
 ): MapDisplayStatus {
   if (berth.status !== "available") return "unavailable";
-  if (assignments.some((assignment) => assignment.status === "checked_in")) return "occupied";
-  if (assignments.some((assignment) => assignment.status === "confirmed")) return "reserved";
+  if (assignments.some((assignment) =>
+    assignment.status === "checked_in" && assignment.assignmentKind === "stay"
+  )) return "occupied";
+  if (assignments.some((assignment) =>
+    assignment.status === "confirmed" || assignment.assignmentKind === "planned_move"
+  )) return "reserved";
   return "available";
 }
 

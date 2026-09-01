@@ -1,13 +1,14 @@
-import { Anchor, ArrowLeft, CalendarRange, Contact, CreditCard, PencilRuler, Ruler } from "lucide-react";
+import { Anchor, ArrowLeft, CalendarPlus, CalendarRange, Contact, CreditCard, PencilRuler, Ruler } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { assignBookingBerthAction, transitionBookingStayAction, updateBookingDetailsAction, updateBookingStatusAction } from "@/app/dashboard/bookings/actions";
+import { assignBookingBerthAction, confirmBookingExtensionAction, previewBookingExtensionAction, transitionBookingStayAction, updateBookingDetailsAction, updateBookingStatusAction } from "@/app/dashboard/bookings/actions";
 import { AppShell } from "@/components/app-shell";
 import { BookingStatusBadge } from "@/components/bookings/booking-status";
 import { BookingStatusForm } from "@/components/bookings/booking-status-form";
 import { BookingOperationalTransition } from "@/components/bookings/booking-operational-transition";
 import { BerthAssignmentForm } from "@/components/bookings/berth-assignment-form";
 import { BookingChangeForm } from "@/components/bookings/booking-change-form";
+import { BookingExtensionForm } from "@/components/bookings/booking-extension-form";
 import { getBookingBerthAssignmentState } from "@/domain/berth-assignments/repository";
 import { bookingNights, formatBookingDate, formatBookingTime, formatVesselName } from "@/domain/bookings/formatting";
 import { getBooking, listBookingPriceAdjustments } from "@/domain/bookings/repository";
@@ -32,6 +33,9 @@ export default async function BookingDetailPage({
   const changeAction = updateBookingDetailsAction.bind(null, booking.id, booking.updated_at);
   const assignmentAction = assignBookingBerthAction.bind(null, booking.id);
   const operationalAction = transitionBookingStayAction.bind(null, booking.id);
+  const extensionPreviewAction = previewBookingExtensionAction.bind(null, booking.id, booking.updated_at);
+  const extensionConfirmAction = confirmBookingExtensionAction.bind(null, booking.id, booking.updated_at);
+  const hasPlannedMove = assignment.plannedMoves.length > 0;
   const paidTotal = booking.price_currency && booking.price_total_minor !== null
     ? new Intl.NumberFormat("en-GB", { style: "currency", currency: booking.price_currency }).format(booking.price_total_minor / 100)
     : null;
@@ -55,11 +59,25 @@ export default async function BookingDetailPage({
       <div className="booking-detail-grid">
         <section className="booking-detail-panel booking-change-panel">
           <div className="panel-heading"><PencilRuler size={18} aria-hidden="true" /><h2>Edit booking details</h2></div>
-          {booking.status === "confirmed" ? (
+          {booking.status === "confirmed" && !hasPlannedMove ? (
             <BookingChangeForm action={changeAction} booking={booking} />
           ) : (
-            <p className="assignment-intro">Only confirmed bookings can be edited in this phase. Operational and closed stays remain unchanged.</p>
+            <p className="assignment-intro">{hasPlannedMove
+              ? "General date and vessel editing is locked while a confirmed move schedule exists. Use the extension control for further added nights."
+              : "Only confirmed bookings can be edited in this phase. Operational and closed stays remain unchanged."}</p>
           )}
+        </section>
+
+        <section className="booking-detail-panel booking-extension-panel">
+          <div className="panel-heading"><CalendarPlus size={18} aria-hidden="true" /><h2>Extend stay</h2></div>
+          <p className="assignment-intro">Preview first. Berthio reruns capacity, current-berth fit, assignment conflicts, and server pricing before confirmation.</p>
+          {["confirmed", "checked_in"].includes(booking.status) ? (
+            <BookingExtensionForm
+              confirmAction={extensionConfirmAction}
+              currentDeparture={booking.departure_date}
+              previewAction={extensionPreviewAction}
+            />
+          ) : <p className="assignment-warning">Cancelled and checked-out bookings cannot be extended.</p>}
         </section>
 
         <section className="booking-detail-panel booking-assignment-panel">
@@ -67,8 +85,9 @@ export default async function BookingDetailPage({
           <p className="assignment-intro">Manual confirmation only. Berthio checks operational state, vessel fit, tenant ownership, and overlapping assignments before saving.</p>
           <BerthAssignmentForm
             action={assignmentAction}
-            assignable={booking.status === "confirmed"}
+            assignable={booking.status === "confirmed" && !hasPlannedMove}
             assignment={assignment}
+            lockReason={hasPlannedMove ? "Direct reassignment is locked while a planned extension move exists." : undefined}
           />
         </section>
 

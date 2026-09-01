@@ -8,6 +8,7 @@ import {
   BookingRepositoryError,
   createBooking,
   getBooking,
+  listBookingPriceAdjustments,
   updateBookingStatus,
 } from "@/domain/bookings/repository";
 import {
@@ -17,6 +18,8 @@ import {
 } from "@/domain/bookings/types";
 import { validateBookingInput } from "@/domain/bookings/validation";
 import { bookingNights } from "@/domain/bookings/formatting";
+import { extensionNights, parseExtensionBerthOptions } from "@/domain/booking-extensions/model";
+import type { BookingExtensionPreview } from "@/domain/booking-extensions/types";
 import { calculatePriceSnapshot } from "@/domain/pricing/model";
 import { loadPricingCatalog } from "@/domain/pricing/repository";
 import { getAuthorizationContext } from "@/lib/auth/session";
@@ -44,6 +47,12 @@ export type BerthAssignmentActionState = {
 export type OperationalTransitionActionState = {
   status: "idle" | "success" | "error";
   message?: string;
+};
+
+export type BookingExtensionActionState = {
+  status: "idle" | "preview" | "success" | "error";
+  message?: string;
+  preview?: BookingExtensionPreview;
 };
 
 function formValues(formData: FormData) {
@@ -137,6 +146,205 @@ function formatMoney(amountMinor: number, currency: string) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(amountMinor / 100);
 }
 
+async function calculateExtensionPrice(
+  marinaId: string,
+  timezone: string,
+  booking: Awaited<ReturnType<typeof getBooking>>,
+  requestedDeparture: string,
+) {
+  if (!booking?.price_snapshot) return null;
+  const privileged = createPrivilegedClient();
+  const catalog = await loadPricingCatalog(privileged, marinaId);
+  if (!catalog) throw new Error("Pricing is not configured for this extension.");
+  return calculatePriceSnapshot({
+    arrivalDate: booking.arrival_date,
+    departureDate: requestedDeparture,
+    eta: booking.eta,
+    etd: booking.etd,
+    marinaTimezone: timezone,
+    stayNights: bookingNights(booking.arrival_date, requestedDeparture),
+    vesselName: booking.vessel_name,
+    vesselLengthM: booking.vessel_length_m,
+    vesselBeamM: booking.vessel_beam_m,
+    vesselDraftM: booking.vessel_draft_m,
+  }, catalog);
+}
+
+export async function previewBookingExtensionAction(
+  bookingId: string,
+  expectedUpdatedAt: string,
+  _state: BookingExtensionActionState,
+  formData: FormData,
+): Promise<BookingExtensionActionState> {
+  const requestedDeparture = String(formData.get("requestedDeparture") ?? "");
+  if (!isUuid(bookingId) || Number.isNaN(Date.parse(expectedUpdatedAt))) {
+    return { status: "error", message: "The booking version is invalid. Refresh and try again." };
+  }
+
+  const context = await getAuthorizationContext();
+  if (!context) return { status: "error", message: "Marina access is required." };
+
+  try {
+    const privileged = createPrivilegedClient();
+    const booking = await getBooking(privileged, context.marinaId, bookingId);
+    if (!booking) return { status: "error", message: "Booking not found for this marina." };
+    const addedNights = extensionNights(booking.departure_date, requestedDeparture);
+    if (addedNights === null) {
+      return { status: "error", message: "Choose a departure date after the current departure." };
+    }
+
+    const calculatedPriceSnapshot = await calculateExtensionPrice(
+      context.marinaId, context.timezone, booking, requestedDeparture,
+    );
+    const [previewResult, adjustments] = await Promise.all([
+      privileged.rpc("preview_booking_extension", {
+        target_marina_id: context.marinaId,
+        target_booking_id: bookingId,
+        target_actor_id: context.userId,
+        expected_updated_at: expectedUpdatedAt,
+        requested_departure: requestedDeparture,
+      }),
+      listBookingPriceAdjustments(privileged, context.marinaId, bookingId),
+    ]);
+    if (previewResult.error) throw previewResult.error;
+    const result = previewResult.data?.[0];
+    if (!result) throw new Error("Extension preview returned no result.");
+
+    const errors: Record<string, string> = {
+      unauthorized: "Marina access is required.",
+      not_found: "Booking not found for this marina.",
+      not_extendable: "Only confirmed or checked-in bookings can be extended.",
+      stale: "This booking changed after the page loaded. Refresh before continuing.",
+      invalid_departure: "Choose a departure date after the current departure.",
+      impossible: "The extension is not possible: no capacity-safe berth plan covers the added nights.",
+    };
+    if (errors[result.outcome]) return { status: "error", message: errors[result.outcome] };
+    if (!["same_berth", "move_required", "unassigned_available"].includes(result.outcome)) {
+      throw new Error(`Unexpected extension preview outcome: ${result.outcome}`);
+    }
+
+    const latestAdjustment = adjustments[0] ?? null;
+    const previousTotalMinor = latestAdjustment?.revised_price_total_minor
+      ?? booking.price_total_minor;
+    const revisedTotalMinor = calculatedPriceSnapshot?.totalMinor ?? null;
+    const differenceFromPaidMinor = revisedTotalMinor !== null && booking.price_total_minor !== null
+      ? revisedTotalMinor - booking.price_total_minor
+      : null;
+    const berthOptions = parseExtensionBerthOptions(result.berth_options);
+    if (result.outcome === "move_required" && berthOptions.length === 0) {
+      throw new Error("A required berth move had no valid alternatives.");
+    }
+
+    return {
+      status: "preview",
+      message: result.outcome === "same_berth"
+        ? `Extension validated on berth ${result.current_berth_code}. Confirm to save it.`
+        : result.outcome === "move_required"
+          ? `Berth ${result.current_berth_code} cannot serve the added nights. Choose and confirm a planned move.`
+          : "Capacity is available. This unassigned booking can be extended without creating a berth assignment.",
+      preview: {
+        expectedUpdatedAt,
+        originalDeparture: booking.departure_date,
+        requestedDeparture,
+        addedNights,
+        currentBerthCode: result.current_berth_code,
+        moveRequired: result.move_required,
+        berthOptions,
+        currency: booking.price_currency,
+        previousTotalMinor,
+        revisedTotalMinor,
+        differenceFromPaidMinor,
+      },
+    };
+  } catch (error) {
+    captureServerError(error, { operation: "booking_extension_preview", bookingId, marinaId: context.marinaId });
+    return { status: "error", message: "The extension could not be previewed. No changes were saved." };
+  }
+}
+
+export async function confirmBookingExtensionAction(
+  bookingId: string,
+  expectedUpdatedAt: string,
+  _state: BookingExtensionActionState,
+  formData: FormData,
+): Promise<BookingExtensionActionState> {
+  const requestedDeparture = String(formData.get("requestedDeparture") ?? "");
+  const moveBerthValue = String(formData.get("moveBerthId") ?? "");
+  const moveBerthId = moveBerthValue || null;
+  if (
+    !isUuid(bookingId)
+    || Number.isNaN(Date.parse(expectedUpdatedAt))
+    || (moveBerthId !== null && !isUuid(moveBerthId))
+  ) {
+    return { status: "error", message: "The extension confirmation is invalid. Preview it again." };
+  }
+
+  const context = await getAuthorizationContext();
+  if (!context) return { status: "error", message: "Marina access is required." };
+
+  try {
+    const privileged = createPrivilegedClient();
+    const booking = await getBooking(privileged, context.marinaId, bookingId);
+    if (!booking) return { status: "error", message: "Booking not found for this marina." };
+    if (extensionNights(booking.departure_date, requestedDeparture) === null) {
+      return { status: "error", message: "The booking changed. Preview the extension again." };
+    }
+    const calculatedPriceSnapshot = await calculateExtensionPrice(
+      context.marinaId, context.timezone, booking, requestedDeparture,
+    );
+    const { data, error } = await privileged.rpc("confirm_booking_extension", {
+      target_marina_id: context.marinaId,
+      target_booking_id: bookingId,
+      target_actor_id: context.userId,
+      expected_updated_at: expectedUpdatedAt,
+      requested_departure: requestedDeparture,
+      requested_move_berth_id: moveBerthId,
+      calculated_price_snapshot: calculatedPriceSnapshot,
+    });
+    if (error) throw error;
+    const result = data?.[0];
+    if (!result) throw new Error("Extension confirmation returned no result.");
+
+    const errors: Record<string, string> = {
+      unauthorized: "Marina access is required.",
+      not_found: "Booking not found for this marina.",
+      not_extendable: "Only confirmed or checked-in bookings can be extended.",
+      stale: "The booking changed after preview. Refresh and preview the extension again.",
+      invalid_departure: "The requested departure is no longer a valid extension.",
+      impossible: "Capacity changed after preview. The extension was not saved.",
+      move_invalid: "The selected move berth is no longer available. Preview the extension again.",
+      move_not_required: "The selected berth move is not required. Preview the extension again.",
+      invalid_price: "The server price changed or is invalid. The extension was not saved.",
+    };
+    if (errors[result.outcome]) return { status: "error", message: errors[result.outcome] };
+    if (!["extended_same_berth", "extended_with_move", "extended_unassigned"].includes(result.outcome)) {
+      throw new Error(`Unexpected extension confirmation outcome: ${result.outcome}`);
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/bookings");
+    revalidatePath(`/dashboard/bookings/${bookingId}`);
+    revalidatePath("/dashboard/marina-map");
+
+    const priceNote = result.price_difference_minor !== null && result.price_currency
+      ? result.price_difference_minor > 0
+        ? ` ${formatMoney(result.price_difference_minor, result.price_currency)} remains due; no payment was taken.`
+        : result.price_difference_minor < 0
+          ? ` ${formatMoney(Math.abs(result.price_difference_minor), result.price_currency)} is refundable; no refund was issued.`
+          : " The total remains settled against the original payment."
+      : "";
+    const message = result.outcome === "extended_same_berth"
+      ? `Stay extended on berth ${result.current_berth_code}.${priceNote}`
+      : result.outcome === "extended_with_move"
+        ? `Stay extended. Planned move from berth ${result.current_berth_code} to ${result.move_berth_code} confirmed for ${booking.departure_date}.${priceNote}`
+        : `Unassigned stay extended. No berth assignment was created.${priceNote}`;
+    return { status: "success", message };
+  } catch (error) {
+    captureServerError(error, { operation: "booking_extension_confirm", bookingId, marinaId: context.marinaId });
+    return { status: "error", message: "The extension could not be confirmed. No changes were saved." };
+  }
+}
+
 export async function updateBookingDetailsAction(
   bookingId: string,
   expectedUpdatedAt: string,
@@ -159,6 +367,19 @@ export async function updateBookingDetailsAction(
     const privileged = createPrivilegedClient();
     const current = await getBooking(privileged, context.marinaId, bookingId);
     if (!current) return { status: "error", message: "Booking not found for this marina." };
+    const { count: activeSegmentCount, error: segmentError } = await privileged
+      .from("booking_berth_assignments")
+      .select("id", { count: "exact", head: true })
+      .eq("marina_id", context.marinaId)
+      .eq("booking_id", bookingId)
+      .is("ended_at", null);
+    if (segmentError) throw segmentError;
+    if ((activeSegmentCount ?? 0) > 1) {
+      return {
+        status: "error",
+        message: "General booking edits are locked while a planned berth-move schedule exists. Use the extension control for added nights.",
+      };
+    }
 
     const priceAffecting = current.arrival_date !== validation.data.arrivalDate
       || current.departure_date !== validation.data.departureDate
@@ -357,6 +578,15 @@ export async function assignBookingBerthAction(
 
   try {
     const supabase = await createClient();
+    const { count: activeSegmentCount, error: segmentError } = await supabase
+      .from("booking_berth_assignments")
+      .select("id", { count: "exact", head: true })
+      .eq("booking_id", bookingId)
+      .is("ended_at", null);
+    if (segmentError) throw segmentError;
+    if ((activeSegmentCount ?? 0) > 1) {
+      return { status: "error", message: "Direct reassignment is locked while a planned extension move exists." };
+    }
     const { data, error } = await supabase.rpc("assign_booking_berth", {
       target_booking_id: bookingId,
       target_berth_id: berthId,

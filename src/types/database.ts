@@ -49,6 +49,7 @@ export type Database = {
           departure_date: string;
           assigned_at: string;
           assigned_by: string | null;
+          assignment_kind: "stay" | "planned_move";
           ended_at: string | null;
           ended_by: string | null;
           ended_reason: string | null;
@@ -62,6 +63,7 @@ export type Database = {
           departure_date: string;
           assigned_at?: string;
           assigned_by?: string | null;
+          assignment_kind?: "stay" | "planned_move";
           ended_at?: string | null;
           ended_by?: string | null;
           ended_reason?: string | null;
@@ -514,6 +516,41 @@ export type Database = {
       assign_booking_berth: {
         Args: { target_booking_id: string; target_berth_id: string };
         Returns: { outcome: string; assignment_id: string | null; berth_code: string | null }[];
+      };
+      preview_booking_extension: {
+        Args: {
+          target_marina_id: string;
+          target_booking_id: string;
+          target_actor_id: string;
+          expected_updated_at: string;
+          requested_departure: string;
+        };
+        Returns: {
+          outcome: string;
+          current_berth_id: string | null;
+          current_berth_code: string | null;
+          move_required: boolean;
+          berth_options: Json;
+        }[];
+      };
+      confirm_booking_extension: {
+        Args: {
+          target_marina_id: string;
+          target_booking_id: string;
+          target_actor_id: string;
+          expected_updated_at: string;
+          requested_departure: string;
+          requested_move_berth_id: string | null;
+          calculated_price_snapshot: Json | null;
+        };
+        Returns: {
+          outcome: string;
+          current_berth_code: string | null;
+          move_berth_code: string | null;
+          price_difference_minor: number | null;
+          revised_total_minor: number | null;
+          price_currency: string | null;
+        }[];
       };
       transition_booking_stay: {
         Args: {

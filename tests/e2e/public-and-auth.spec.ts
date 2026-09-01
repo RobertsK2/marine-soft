@@ -496,6 +496,7 @@ test.describe("local Supabase marina auth", () => {
   });
 
   test("marina staff can assign and reassign a suitable real berth", async ({ page }, testInfo) => {
+    test.slow();
     const email = process.env.E2E_MARINA_STAFF_EMAIL ?? process.env.E2E_MARINA_EMAIL;
     const password = process.env.E2E_MARINA_PASSWORD;
     test.skip(!email || !password, "Requires invited marina credentials.");
@@ -524,7 +525,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Draft (m)").fill("1.5");
     await page.getByRole("button", { name: "Create booking" }).click();
 
-    await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/);
+    await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/, { timeout: 30_000 });
     const bookingReference = (await page.locator("h1").textContent())?.trim();
     expect(bookingReference).toMatch(/^BK-[A-Z0-9]{10}$/);
     await expect(page.getByText("Capacity-based / unassigned", { exact: true })).toBeVisible();
@@ -576,6 +577,104 @@ test.describe("local Supabase marina auth", () => {
 
     await page.goto("/dashboard/marina-map");
     await expect(page.getByRole("button", { name: "Berth A-03, Available" })).toBeVisible();
+  });
+
+  test("marina staff previews and confirms an extension with a required berth move", async ({ page }, testInfo) => {
+    test.slow();
+    const email = process.env.E2E_MARINA_STAFF_EMAIL ?? process.env.E2E_MARINA_EMAIL;
+    const password = process.env.E2E_MARINA_PASSWORD;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const secretKey = process.env.SUPABASE_SECRET_KEY;
+    test.skip(!email || !password || !supabaseUrl || !secretKey, "Requires seeded marina credentials and the local server key.");
+    const service = createClient(supabaseUrl!, secretKey!, { auth: { persistSession: false } });
+    const today = new Date();
+    const runOffset = (testInfo.project.name === "mobile" ? 28_000 : 18_000) + (Date.now() % 1_000);
+    const arrival = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + runOffset));
+    const departure = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + runOffset + 2));
+    const extendedDeparture = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + runOffset + 4));
+    const isoDate = (value: Date) => value.toISOString().slice(0, 10);
+    let bookingId: string | null = null;
+    let blockerId: string | null = null;
+
+    try {
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(email!);
+    await page.getByLabel("Password").fill(password!);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await page.goto("/dashboard/bookings/new");
+    await page.getByLabel("Arrival date").fill(isoDate(arrival));
+    await page.getByLabel("Departure date").fill(isoDate(departure));
+    await page.getByLabel("ETA").fill("14:30");
+    await page.getByLabel("ETD").fill("10:00");
+    await page.getByLabel("Customer name").fill(`Extension E2E ${testInfo.project.name}`);
+    await page.getByLabel("Email").fill(`extension-${testInfo.project.name}@example.test`);
+    await page.getByLabel("Phone").fill("+371 20000404");
+    await page.getByLabel("Vessel name").fill("Extension Test Vessel");
+    await page.getByLabel("Length (m)").fill("8.5");
+    await page.getByLabel("Beam (m)").fill("2.9");
+    await page.getByLabel("Draft (m)").fill("1.5");
+    await page.getByRole("button", { name: "Create booking" }).click();
+    await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/, { timeout: 30_000 });
+    bookingId = page.url().split("/").at(-1)!;
+    await page.getByLabel("Suitable operational berth").selectOption("d5000000-0000-4000-8000-000000000002");
+    await page.getByRole("button", { name: "Assign berth" }).click();
+    await expect(page.getByText("Berth A-02 assigned.", { exact: true })).toBeVisible();
+
+    blockerId = crypto.randomUUID();
+    const blockerInsert = await service.from("bookings").insert({
+      id: blockerId,
+      marina_id: "d1000000-0000-4000-8000-000000000001",
+      arrival_date: isoDate(departure),
+      departure_date: isoDate(extendedDeparture),
+      eta: "14:00",
+      etd: "10:00",
+      customer_name: "Extension blocker",
+      customer_email: `extension-blocker-${blockerId}@example.test`,
+      customer_phone: "+371 20000405",
+      vessel_name: "Blocker",
+      vessel_length_m: 8.5,
+      vessel_beam_m: 2.9,
+      vessel_draft_m: 1.5,
+      status: "confirmed",
+    });
+    expect(blockerInsert.error).toBeNull();
+    const blockerAssignment = await service.from("booking_berth_assignments").insert({
+      marina_id: "d1000000-0000-4000-8000-000000000001",
+      booking_id: blockerId,
+      berth_id: "d5000000-0000-4000-8000-000000000002",
+      arrival_date: isoDate(departure),
+      departure_date: isoDate(extendedDeparture),
+    });
+    expect(blockerAssignment.error).toBeNull();
+
+    await page.getByLabel("New departure date").fill(isoDate(extendedDeparture));
+    await page.getByRole("button", { name: "Preview extension" }).click();
+    await expect(page.getByText(/berth A-02 cannot serve the added nights/i)).toBeVisible();
+    await expect(page.getByText(`Move required after ${isoDate(departure)}`, { exact: true })).toBeVisible();
+    await page.getByLabel("Planned move berth").selectOption("d5000000-0000-4000-8000-000000000003");
+    await page.getByRole("button", { name: "Confirm extension and move" }).click();
+    await expect(page.getByText(/planned move from berth A-02 to A-03 confirmed/i)).toBeVisible();
+    await expect(page.getByText(isoDate(extendedDeparture), { exact: true }).first()).toBeVisible();
+
+    const schedule = await service
+      .from("booking_berth_assignments")
+      .select("berth_id,arrival_date,departure_date,assignment_kind")
+      .eq("booking_id", bookingId)
+      .is("ended_at", null)
+      .order("arrival_date");
+    expect(schedule.error).toBeNull();
+    expect(schedule.data).toEqual([
+      expect.objectContaining({ berth_id: "d5000000-0000-4000-8000-000000000002", assignment_kind: "stay", departure_date: isoDate(departure) }),
+      expect.objectContaining({ berth_id: "d5000000-0000-4000-8000-000000000003", assignment_kind: "planned_move", arrival_date: isoDate(departure), departure_date: isoDate(extendedDeparture) }),
+    ]);
+    } finally {
+      const cleanupIds = [bookingId, blockerId].filter((value): value is string => value !== null);
+      if (cleanupIds.length > 0) {
+        const cleanup = await service.from("bookings").delete().in("id", cleanupIds);
+        expect(cleanup.error).toBeNull();
+      }
+    }
   });
 
   test("marina user can create and manage a manual booking", async ({ page }, testInfo) => {

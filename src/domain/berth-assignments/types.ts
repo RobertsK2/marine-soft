@@ -19,11 +19,15 @@ export type BerthAssignmentHistoryItem = {
   arrivalDate: string;
   departureDate: string;
   assignedAt: string;
+  assignmentKind: "stay" | "planned_move";
   endedAt: string | null;
+  endedReason: string | null;
 };
 
 export type BookingBerthAssignmentState = {
   current: BerthAssignmentHistoryItem | null;
+  activeSegments: BerthAssignmentHistoryItem[];
+  plannedMoves: BerthAssignmentHistoryItem[];
   history: BerthAssignmentHistoryItem[];
   options: BerthAssignmentOption[];
 };
@@ -34,4 +38,5 @@ export type MapBookingAssignment = {
   status: Database["public"]["Enums"]["booking_status"];
   arrivalDate: string;
   departureDate: string;
+  assignmentKind: "stay" | "planned_move";
 };

@@ -32,6 +32,7 @@ export default async function MarinaMapPage() {
       status: booking.status,
       arrivalDate: assignment.arrival_date,
       departureDate: assignment.departure_date,
+      assignmentKind: assignment.assignment_kind,
     });
     assignmentsByBerth.set(assignment.berth_id, existing);
   }

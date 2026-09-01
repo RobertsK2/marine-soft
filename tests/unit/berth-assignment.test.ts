@@ -22,7 +22,7 @@ function assignment(overrides: Partial<BerthAssignment>): BerthAssignment {
   return {
     id: "assignment-1", marina_id: "marina-1", booking_id: "booking-1", berth_id: "berth-1",
     arrival_date: "2028-06-01", departure_date: "2028-06-05", assigned_at: "2028-05-01T00:00:00Z",
-    assigned_by: "user-1", ended_at: null, ended_by: null, ended_reason: null,
+    assigned_by: "user-1", assignment_kind: "stay", ended_at: null, ended_by: null, ended_reason: null,
     ...overrides,
   };
 }
@@ -49,5 +49,21 @@ describe("Milestone 3 Phase 1 berth assignment model", () => {
 
     expect(state.current?.berthCode).toBe("A-02");
     expect(state.history.map((item) => item.berthCode)).toEqual(["A-02", "A-01"]);
+  });
+
+  it("keeps a confirmed extension move as a separate future segment", () => {
+    const state = buildBookingBerthAssignmentState(booking, [
+      berth("berth-1", "A-01"), berth("berth-2", "A-02"),
+    ], [
+      assignment({ departure_date: "2028-06-03" }),
+      assignment({
+        id: "planned", berth_id: "berth-2", arrival_date: "2028-06-03",
+        assignment_kind: "planned_move",
+      }),
+    ]);
+
+    expect(state.current?.berthCode).toBe("A-01");
+    expect(state.activeSegments.map((item) => item.berthCode)).toEqual(["A-01", "A-02"]);
+    expect(state.plannedMoves).toEqual([expect.objectContaining({ berthCode: "A-02" })]);
   });
 });
