@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run test:db && npm run build",
     "test:watch": "vitest",
     "test:db": "supabase test db",
     "test:hold-concurrency": "node --env-file=.env.local scripts/test-booking-hold-concurrency.mjs",

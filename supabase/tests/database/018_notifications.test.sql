@@ -78,6 +78,14 @@ insert into public.booking_cancellation_events(
 );
 select is((select count(*)::integer from public.notification_outbox where booking_id = 'a9200000-0000-4000-8000-000000000001' and event_type = 'cancellation_confirmation'), 1, 'cancellation confirmation is queued');
 
+reset role;
+update public.notification_outbox
+set next_attempt_at = '2000-01-01 00:00:00+00'::timestamptz
+where booking_id = 'a9200000-0000-4000-8000-000000000001'
+  and event_type = 'booking_confirmation';
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+
 create temporary table claimed_notifications as
 select * from public.claim_notification_deliveries(1, 120);
 select is((select count(*)::integer from claimed_notifications), 1, 'worker atomically claims one notification');
@@ -89,7 +97,7 @@ select is((select status::text from public.notification_outbox where id = (selec
 select is((select status::text from public.bookings where id = 'a9200000-0000-4000-8000-000000000001'), 'cancelled', 'email failure does not roll back or alter committed booking state');
 
 reset role;
-update public.notification_outbox set next_attempt_at = statement_timestamp() - interval '1 second'
+update public.notification_outbox set next_attempt_at = '1999-01-01 00:00:00+00'::timestamptz
 where id = (select id from claimed_notifications);
 set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
