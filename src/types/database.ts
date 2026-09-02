@@ -31,6 +31,47 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      notification_outbox: {
+        Row: {
+          id: string;
+          marina_id: string;
+          booking_id: string | null;
+          event_type: Database["public"]["Enums"]["notification_event_type"];
+          dedupe_key: string;
+          recipient_email: string;
+          recipient_name: string | null;
+          subject: string;
+          text_body: string;
+          status: Database["public"]["Enums"]["notification_delivery_status"];
+          attempt_count: number;
+          next_attempt_at: string;
+          lease_token: string | null;
+          lease_expires_at: string | null;
+          sent_at: string | null;
+          provider_message_id: string | null;
+          last_error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      notification_delivery_attempts: {
+        Row: {
+          id: number;
+          notification_id: string;
+          marina_id: string;
+          attempt_number: number;
+          outcome: "sent" | "failed";
+          provider_message_id: string | null;
+          error_message: string | null;
+          completed_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       booking_price_adjustments: {
         Row: {
           id: string;
@@ -789,6 +830,24 @@ export type Database = {
         Args: { target_event_id: string; target_event_type: string; target_stripe_account_id: string; target_session_id: string; target_payment_intent_id: string | null; target_payment_status: string; target_amount_total_minor: number; target_currency: string; target_hold_token: string; target_customer_name?: string | null; target_customer_email?: string | null; target_customer_phone?: string | null };
         Returns: string;
       };
+      queue_upcoming_arrival_reminders: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
+      claim_notification_deliveries: {
+        Args: { requested_limit?: number; requested_lease_seconds?: number };
+        Returns: Database["public"]["Tables"]["notification_outbox"]["Row"][];
+      };
+      complete_notification_delivery: {
+        Args: {
+          target_notification_id: string;
+          target_lease_token: string;
+          delivery_succeeded: boolean;
+          target_provider_message_id?: string | null;
+          target_error_message?: string | null;
+        };
+        Returns: string;
+      };
       set_booking_payment_state: {
         Args: {
           target_marina_id: string;
@@ -829,6 +888,8 @@ export type Database = {
         | "per_vessel"
         | "percentage";
       membership_status: "active" | "suspended";
+      notification_event_type: "booking_confirmation" | "arrival_reminder" | "berth_move_confirmation" | "cancellation_confirmation" | "payment_balance_reminder";
+      notification_delivery_status: "pending" | "processing" | "failed" | "sent";
       organization_role: "marina_admin" | "marina_staff";
       pricing_model: "length_interval" | "per_meter";
       tax_behavior: "exclusive" | "inclusive";
