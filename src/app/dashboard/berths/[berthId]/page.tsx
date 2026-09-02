@@ -2,8 +2,10 @@ import { ArrowLeft, Pencil, Ruler } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { AuditHistory } from "@/components/audit-log/audit-history";
 import { BerthStatusBadge } from "@/components/berths/berth-status";
 import { formatBerthTimestamp, formatMetres } from "@/domain/berths/formatting";
+import { listBerthAuditEvents } from "@/domain/audit-log/repository";
 import { getBerth } from "@/domain/berths/repository";
 import { requireMarinaMembership } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -18,6 +20,7 @@ export default async function BerthDetailsPage({
   const supabase = await createClient();
   const berth = await getBerth(supabase, context.marinaId, berthId);
   if (!berth) notFound();
+  const auditEvents = await listBerthAuditEvents(supabase, context.marinaId, berth.id);
 
   return (
     <AppShell
@@ -70,6 +73,8 @@ export default async function BerthDetailsPage({
             <div><dt>Berth ID</dt><dd>{berth.id}</dd></div>
           </dl>
         </section>
+
+        <AuditHistory events={auditEvents} timezone={context.timezone} />
       </div>
     </AppShell>
   );

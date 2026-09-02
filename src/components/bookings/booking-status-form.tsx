@@ -28,7 +28,7 @@ export function BookingStatusForm({
   return (
     <form action={formAction} className="booking-status-form">
       <label htmlFor="status">Booking status</label>
-      <div>
+      <div className="booking-status-control">
         <select defaultValue={status} id="status" name="status">
           {(["confirmed", "cancelled"] as const).map((value) => (
             <option key={value} value={value}>{value.replaceAll("_", " ")}</option>

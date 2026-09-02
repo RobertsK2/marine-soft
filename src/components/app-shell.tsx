@@ -1,4 +1,4 @@
-import { Anchor, CalendarDays, LayoutDashboard, LogOut, Map, Rows3 } from "lucide-react";
+import { Anchor, CalendarDays, ClipboardClock, LayoutDashboard, LogOut, Map, Rows3 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { logoutAction } from "@/app/auth/actions";
@@ -43,6 +43,12 @@ export function AppShell({
             <Map size={15} aria-hidden="true" />
             Marina map
           </Link>
+          {context.role === "marina_admin" ? (
+            <Link href="/dashboard/audit">
+              <ClipboardClock size={15} aria-hidden="true" />
+              Audit log
+            </Link>
+          ) : null}
         </nav>
         <div className="app-user">
           <span>{context.email ?? "Marina user"}</span>

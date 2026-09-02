@@ -355,7 +355,7 @@ export async function confirmBookingExtensionAction(
     const calculatedPriceSnapshot = await calculateExtensionPrice(
       context.marinaId, context.timezone, booking, requestedDeparture,
     );
-    const { data, error } = await privileged.rpc("confirm_booking_extension", {
+    const { data, error } = await privileged.rpc("audited_confirm_booking_extension", {
       target_marina_id: context.marinaId,
       target_booking_id: bookingId,
       target_actor_id: context.userId,
@@ -471,7 +471,7 @@ export async function updateBookingDetailsAction(
       }, catalog);
     }
 
-    const { data, error } = await privileged.rpc("update_booking_details", {
+    const { data, error } = await privileged.rpc("audited_update_booking_details", {
       target_marina_id: context.marinaId,
       target_booking_id: bookingId,
       target_actor_id: context.userId,
@@ -602,7 +602,7 @@ export async function updateBookingStatusAction(
   if (status === "cancelled" && formData.get("confirmCancellation") === "true") {
     try {
       const privileged = createPrivilegedClient();
-      const { data, error } = await privileged.rpc("confirm_booking_cancellation", {
+      const { data, error } = await privileged.rpc("audited_confirm_booking_cancellation", {
         target_marina_id: context.marinaId,
         target_booking_id: bookingId,
         target_actor_id: context.userId,

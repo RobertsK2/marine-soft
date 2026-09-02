@@ -9,6 +9,28 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      audit_events: {
+        Row: {
+          id: number;
+          marina_id: string;
+          event_type: string;
+          entity_type: "booking" | "berth" | "payment" | "assignment";
+          entity_id: string;
+          booking_id: string | null;
+          berth_id: string | null;
+          actor_id: string | null;
+          actor_email: string | null;
+          actor_type: "member" | "guest" | "system";
+          summary: string;
+          before_data: Json | null;
+          after_data: Json | null;
+          metadata: Json;
+          occurred_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       booking_price_adjustments: {
         Row: {
           id: string;
@@ -514,6 +536,69 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      audited_update_booking_details: {
+        Args: {
+          target_marina_id: string;
+          target_booking_id: string;
+          target_actor_id: string;
+          expected_updated_at: string;
+          requested_arrival: string;
+          requested_departure: string;
+          requested_eta: string;
+          requested_etd: string;
+          requested_customer_name: string;
+          requested_customer_email: string;
+          requested_customer_phone: string;
+          requested_vessel_name: string | null;
+          requested_length_m: number;
+          requested_beam_m: number;
+          requested_draft_m: number;
+          calculated_price_snapshot: Json | null;
+        };
+        Returns: {
+          outcome: string;
+          price_difference_minor: number | null;
+          revised_total_minor: number | null;
+          price_currency: string | null;
+          assignment_preserved: boolean;
+        }[];
+      };
+      audited_confirm_booking_extension: {
+        Args: {
+          target_marina_id: string;
+          target_booking_id: string;
+          target_actor_id: string;
+          expected_updated_at: string;
+          requested_departure: string;
+          requested_move_berth_id: string | null;
+          calculated_price_snapshot: Json | null;
+        };
+        Returns: {
+          outcome: string;
+          current_berth_code: string | null;
+          move_berth_code: string | null;
+          price_difference_minor: number | null;
+          revised_total_minor: number | null;
+          price_currency: string | null;
+        }[];
+      };
+      audited_confirm_booking_cancellation: {
+        Args: {
+          target_marina_id: string;
+          target_booking_id: string;
+          target_actor_id: string;
+          expected_updated_at: string;
+          cancellation_reason: string;
+        };
+        Returns: {
+          outcome: string;
+          policy_code: string | null;
+          refund_percent: number | null;
+          refund_recommendation_minor: number | null;
+          currency: string | null;
+          released_assignment_count: number;
+        }[];
+      };
       update_booking_details: {
         Args: {
           target_marina_id: string;

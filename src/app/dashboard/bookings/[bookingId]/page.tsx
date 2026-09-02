@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { assignBookingBerthAction, confirmBookingExtensionAction, previewBookingExtensionAction, transitionBookingStayAction, updateBookingDetailsAction, updateBookingPaymentStateAction, updateBookingStatusAction } from "@/app/dashboard/bookings/actions";
 import { AppShell } from "@/components/app-shell";
+import { AuditHistory } from "@/components/audit-log/audit-history";
 import { BookingStatusBadge } from "@/components/bookings/booking-status";
 import { BookingStatusForm } from "@/components/bookings/booking-status-form";
 import { BookingOperationalTransition } from "@/components/bookings/booking-operational-transition";
@@ -11,6 +12,7 @@ import { BookingChangeForm } from "@/components/bookings/booking-change-form";
 import { BookingExtensionForm } from "@/components/bookings/booking-extension-form";
 import { BookingPaymentBalanceForm } from "@/components/bookings/booking-payment-balance-form";
 import { getBookingBerthAssignmentState } from "@/domain/berth-assignments/repository";
+import { listBookingAuditEvents } from "@/domain/audit-log/repository";
 import { bookingNights, formatBookingDate, formatBookingTime, formatVesselName } from "@/domain/bookings/formatting";
 import { getBooking, getBookingPaymentBalance, listBookingPriceAdjustments } from "@/domain/bookings/repository";
 import { requireMarinaMembership } from "@/lib/auth/session";
@@ -26,10 +28,11 @@ export default async function BookingDetailPage({
   const supabase = await createClient();
   const booking = await getBooking(supabase, context.marinaId, bookingId);
   if (!booking) notFound();
-  const [assignment, priceAdjustments, paymentBalance] = await Promise.all([
+  const [assignment, priceAdjustments, paymentBalance, auditEvents] = await Promise.all([
     getBookingBerthAssignmentState(supabase, context.marinaId, booking),
     listBookingPriceAdjustments(supabase, context.marinaId, booking.id),
     getBookingPaymentBalance(supabase, context.marinaId, booking),
+    listBookingAuditEvents(supabase, context.marinaId, booking.id),
   ]);
   const statusAction = updateBookingStatusAction.bind(null, booking.id, booking.updated_at);
   const paymentAction = updateBookingPaymentStateAction.bind(null, booking.id);
@@ -170,6 +173,8 @@ export default async function BookingDetailPage({
             ) : <p className="map-readonly-note">No repricing history. The original payment snapshot is unchanged.</p>}
           </section>
         ) : null}
+
+        <AuditHistory events={auditEvents} timezone={context.timezone} />
       </div>
     </AppShell>
   );

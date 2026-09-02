@@ -492,7 +492,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .booking-stay-panel dd { font-family: "JetBrains Mono", monospace; font-size: .75rem; }
 .booking-status-form { display: grid; gap: .55rem; margin-top: 1.25rem; border-top: 1px solid var(--navy); padding-top: 1.25rem; }
 .booking-status-form > label { color: var(--salt); font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-.booking-status-form > div { display: flex; gap: .5rem; }
+.booking-status-control { display: flex; gap: .5rem; }
 .booking-status-form select { min-height: 2.75rem; flex: 1; border: 1px solid var(--salt); border-radius: 2px; padding: .55rem .7rem; background: var(--cream); color: var(--navy); text-transform: capitalize; }
 .booking-operational-form { display: grid; gap: .8rem; margin-top: 1.25rem; border-top: 1px solid var(--navy); padding-top: 1.25rem; }
 .operational-transition-heading { display: grid; gap: .2rem; }
@@ -800,6 +800,20 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .public-price-note { margin: 0; border-top: 1px solid var(--navy); padding: .8rem 1rem; color: var(--salt); font-family: "JetBrains Mono", monospace; font-size: .62rem; }
 .public-marina-footer { display: flex; justify-content: space-between; gap: 1rem; padding: 1.25rem clamp(1rem, 4vw, 4rem); font-family: "JetBrains Mono", monospace; font-size: .62rem; text-transform: uppercase; }
 
+.audit-history { grid-column: 1 / -1; border: 1px solid var(--navy); background: var(--white); padding: 1.1rem; }
+.audit-event-list { display: grid; gap: 0; margin: 1rem 0 0; padding: 0; list-style: none; }
+.audit-event-list li { display: grid; grid-template-columns: minmax(190px, .75fr) minmax(240px, 1.5fr) minmax(150px, .75fr); gap: .4rem 1rem; border-top: 1px solid var(--salt); padding: .85rem 0; }
+.audit-event-code { display: grid; align-content: start; gap: .25rem; font-family: "JetBrains Mono", monospace; font-size: .62rem; text-transform: uppercase; }
+.audit-event-code span { color: var(--brass); font-weight: 700; }
+.audit-event-code time { color: var(--salt); }
+.audit-event-list strong { color: var(--navy); font-family: DIN, "Helvetica Now Display", sans-serif; font-size: .8rem; text-transform: uppercase; }
+.audit-event-list p { margin: 0; color: var(--navy); font-size: .76rem; }
+.audit-event-list small { grid-column: 2 / -1; color: var(--salt); font-family: "JetBrains Mono", monospace; font-size: .62rem; }
+.audit-log-summary { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: .25rem 1rem; margin: 1.5rem 0 1rem; border-left: 5px solid var(--brass); padding: 1rem; background: var(--white); }
+.audit-log-summary span, .audit-log-summary p { color: var(--salt); font-family: "JetBrains Mono", monospace; font-size: .65rem; text-transform: uppercase; }
+.audit-log-summary strong { grid-row: 1 / 3; grid-column: 2; color: var(--navy); font-family: DIN, "Helvetica Now Display", sans-serif; font-size: 2rem; }
+.audit-log-summary p { margin: 0; }
+
 @media (max-width: 1000px) {
   .desktop-nav { display: none; }
   .hero { grid-template-columns: 1fr; min-height: auto; }
@@ -854,6 +868,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .auth-brand .brand-mark { border: 0; }
   .auth-card { width: min(100% - 2rem, 470px); margin: 0 auto; }
   .app-bar { align-items: flex-start; gap: 1rem; padding-block: 1rem; }
+  .app-nav { flex-wrap: wrap; justify-content: flex-start; gap: .25rem 1rem; padding-top: .5rem; }
+  .app-nav a { min-height: 2.25rem; }
   .app-user { align-items: flex-end; flex-direction: column; text-align: right; }
   .app-placeholder, .legal-page { width: min(100% - 2rem, 900px); padding: 5rem 1rem; }
   .app-status { gap: 1rem; margin-bottom: 4rem; }
@@ -884,6 +900,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .guest-booking-shell { width: min(100% - 2rem, 1080px); padding-block: 4rem; }
   .guest-booking-grid, .guest-booking-editor, .guest-times-fields { grid-template-columns: 1fr; }
   .guest-booking-footer { flex-direction: column; }
+  .audit-event-list li { grid-template-columns: 1fr; }
+  .audit-event-list small { grid-column: auto; }
   .public-marina-footer { flex-direction: column; }
 }
 

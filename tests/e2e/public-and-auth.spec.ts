@@ -332,6 +332,55 @@ test.describe("local Supabase marina auth", () => {
     await expect(page.getByRole("heading", { name: "Create manual booking" })).toBeVisible();
   });
 
+  test("audit history gives admins a marina log and staff entity-level access", async ({ page }, testInfo) => {
+    const adminEmail = process.env.E2E_MARINA_EMAIL;
+    const staffEmail = process.env.E2E_MARINA_STAFF_EMAIL;
+    const password = process.env.E2E_MARINA_PASSWORD;
+    test.skip(!adminEmail || !staffEmail || !password, "Requires invited admin and staff credentials.");
+
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(adminEmail!);
+    await page.getByLabel("Password").fill(password!);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(page.getByRole("link", { name: "Audit log" })).toBeVisible();
+    await page.getByRole("link", { name: "Audit log" }).click();
+    await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Full marina history" })).toBeVisible();
+    await expect(page.locator(".audit-event-list li").first()).toBeVisible();
+    await page.getByRole("button", { name: "Log out" }).click();
+
+    await page.getByLabel("Email").fill(staffEmail!);
+    await page.getByLabel("Password").fill(password!);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByRole("link", { name: "Audit log" })).toHaveCount(0);
+    await page.goto("/dashboard/audit");
+    await expect(page.getByRole("heading", { name: "This page could not be found." })).toBeVisible();
+
+    const today = new Date();
+    const offset = (testInfo.project.name === "mobile" ? 21_000 : 20_000) + (Date.now() % 500);
+    const arrival = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + offset));
+    const departure = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + offset + 2));
+    const isoDate = (value: Date) => value.toISOString().slice(0, 10);
+    await page.goto("/dashboard/bookings/new");
+    await page.getByLabel("Arrival date").fill(isoDate(arrival));
+    await page.getByLabel("Departure date").fill(isoDate(departure));
+    await page.getByLabel("ETA").fill("14:00");
+    await page.getByLabel("ETD").fill("10:00");
+    await page.getByLabel("Customer name").fill(`Audit E2E ${Date.now()}`);
+    await page.getByLabel("Email").fill(`audit-${Date.now()}@example.test`);
+    await page.getByLabel("Phone").fill("+371 20000808");
+    await page.getByLabel("Vessel name").fill("Audit Logbook");
+    await page.getByLabel("Length (m)").fill("8");
+    await page.getByLabel("Beam (m)").fill("2.8");
+    await page.getByLabel("Draft (m)").fill("1.4");
+    await page.getByRole("button", { name: "Create booking" }).click();
+    await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/, { timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: "Operational history" })).toBeVisible();
+    await expect(page.getByText("booking / created", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Operational history").getByText(staffEmail!, { exact: true })).toBeVisible();
+  });
+
   test("Marina A cannot open a Marina B berth by manipulated id", async ({ page }) => {
     const email = process.env.E2E_MARINA_EMAIL;
     const password = process.env.E2E_MARINA_PASSWORD;
