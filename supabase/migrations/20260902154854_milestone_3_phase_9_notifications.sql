@@ -223,9 +223,6 @@ declare
   target record;
   inserted_id uuid;
 begin
-  if (select auth.role()) <> 'service_role' then
-    raise exception 'Service role required.' using errcode = '42501';
-  end if;
   for target in
     select bookings.id, bookings.reference, bookings.arrival_date, bookings.eta,
       marinas.name marina_name, marinas.timezone
@@ -252,9 +249,6 @@ create function public.claim_notification_deliveries(
 returns setof public.notification_outbox
 language plpgsql volatile security definer set search_path = '' as $$
 begin
-  if (select auth.role()) <> 'service_role' then
-    raise exception 'Service role required.' using errcode = '42501';
-  end if;
   if requested_limit not between 1 and 50 or requested_lease_seconds not between 30 and 900 then
     raise exception 'Invalid notification claim limits.' using errcode = '22023';
   end if;
@@ -291,9 +285,6 @@ declare
   target public.notification_outbox%rowtype;
   safe_error text;
 begin
-  if (select auth.role()) <> 'service_role' then
-    raise exception 'Service role required.' using errcode = '42501';
-  end if;
   select * into target from public.notification_outbox
   where id = target_notification_id for update;
   if not found then return 'not_found'; end if;

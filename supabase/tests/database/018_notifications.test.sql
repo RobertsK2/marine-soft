@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(33);
+select plan(36);
 
 select has_table('public', 'notification_outbox', 'notification outbox exists');
 select has_table('public', 'notification_delivery_attempts', 'notification attempt log exists');
@@ -10,6 +10,9 @@ select ok((select relrowsecurity from pg_class where oid = 'public.notification_
 select ok(not has_table_privilege('authenticated', 'public.notification_outbox', 'insert'), 'members cannot enqueue directly');
 select ok(not has_table_privilege('authenticated', 'public.notification_outbox', 'update'), 'members cannot forge delivery state');
 select ok(not has_table_privilege('authenticated', 'public.notification_delivery_attempts', 'insert'), 'members cannot forge attempts');
+select ok(not has_function_privilege('authenticated', 'public.queue_upcoming_arrival_reminders()', 'execute'), 'members cannot queue arrival emails');
+select ok(not has_function_privilege('authenticated', 'public.claim_notification_deliveries(integer,integer)', 'execute'), 'members cannot claim notification jobs');
+select ok(not has_function_privilege('authenticated', 'public.complete_notification_delivery(uuid,uuid,boolean,text,text)', 'execute'), 'members cannot forge notification outcomes');
 
 insert into auth.users(instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at) values
   ('00000000-0000-0000-0000-000000000000', 'a9100000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'notify-staff@example.test', '', now(), '{}', '{}', now(), now()),
