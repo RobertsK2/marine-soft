@@ -1,7 +1,7 @@
 import { Anchor, ArrowLeft, CalendarPlus, CalendarRange, Contact, CreditCard, PencilRuler, Ruler } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { assignBookingBerthAction, confirmBookingExtensionAction, previewBookingExtensionAction, transitionBookingStayAction, updateBookingDetailsAction, updateBookingStatusAction } from "@/app/dashboard/bookings/actions";
+import { assignBookingBerthAction, confirmBookingExtensionAction, previewBookingExtensionAction, transitionBookingStayAction, updateBookingDetailsAction, updateBookingPaymentStateAction, updateBookingStatusAction } from "@/app/dashboard/bookings/actions";
 import { AppShell } from "@/components/app-shell";
 import { BookingStatusBadge } from "@/components/bookings/booking-status";
 import { BookingStatusForm } from "@/components/bookings/booking-status-form";
@@ -9,9 +9,10 @@ import { BookingOperationalTransition } from "@/components/bookings/booking-oper
 import { BerthAssignmentForm } from "@/components/bookings/berth-assignment-form";
 import { BookingChangeForm } from "@/components/bookings/booking-change-form";
 import { BookingExtensionForm } from "@/components/bookings/booking-extension-form";
+import { BookingPaymentBalanceForm } from "@/components/bookings/booking-payment-balance-form";
 import { getBookingBerthAssignmentState } from "@/domain/berth-assignments/repository";
 import { bookingNights, formatBookingDate, formatBookingTime, formatVesselName } from "@/domain/bookings/formatting";
-import { getBooking, listBookingPriceAdjustments } from "@/domain/bookings/repository";
+import { getBooking, getBookingPaymentBalance, listBookingPriceAdjustments } from "@/domain/bookings/repository";
 import { requireMarinaMembership } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,11 +26,13 @@ export default async function BookingDetailPage({
   const supabase = await createClient();
   const booking = await getBooking(supabase, context.marinaId, bookingId);
   if (!booking) notFound();
-  const [assignment, priceAdjustments] = await Promise.all([
+  const [assignment, priceAdjustments, paymentBalance] = await Promise.all([
     getBookingBerthAssignmentState(supabase, context.marinaId, booking),
     listBookingPriceAdjustments(supabase, context.marinaId, booking.id),
+    getBookingPaymentBalance(supabase, context.marinaId, booking),
   ]);
   const statusAction = updateBookingStatusAction.bind(null, booking.id, booking.updated_at);
+  const paymentAction = updateBookingPaymentStateAction.bind(null, booking.id);
   const changeAction = updateBookingDetailsAction.bind(null, booking.id, booking.updated_at);
   const assignmentAction = assignBookingBerthAction.bind(null, booking.id);
   const operationalAction = transitionBookingStayAction.bind(null, booking.id);
@@ -98,6 +101,12 @@ export default async function BookingDetailPage({
             <div><dt>Departure / ETD</dt><dd>{formatBookingDate(booking.departure_date)} / {formatBookingTime(booking.etd)}</dd></div>
             <div><dt>Occupied nights</dt><dd>{bookingNights(booking.arrival_date, booking.departure_date)}</dd></div>
           </dl>
+        </section>
+
+        <section className="booking-detail-panel booking-payment-panel">
+          <div className="panel-heading"><CreditCard size={18} aria-hidden="true" /><h2>Payment balance</h2></div>
+          <p className="assignment-intro">Track the next collection action. Overdue balances are warnings only and never cancel a booking automatically.</p>
+          <BookingPaymentBalanceForm action={paymentAction} balance={paymentBalance} />
         </section>
 
         <section className="booking-detail-panel">

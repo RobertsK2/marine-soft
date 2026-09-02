@@ -6,6 +6,8 @@ import type {
   BookingStatus,
 } from "@/domain/bookings/types";
 import type { Database } from "@/types/database";
+import { deriveBookingPaymentBalance, isPaymentOverdue } from "@/domain/booking-payments/model";
+import type { BookingPaymentBalance } from "@/domain/booking-payments/types";
 
 export class BookingRepositoryError extends Error {
   constructor(
@@ -91,6 +93,22 @@ export async function listBookingPriceAdjustments(
     });
   }
   return data;
+}
+
+export async function getBookingPaymentBalance(
+  supabase: SupabaseClient<Database>,
+  marinaId: string,
+  booking: Booking,
+): Promise<BookingPaymentBalance> {
+  const { data, error } = await supabase
+    .from("booking_payment_balances")
+    .select("*")
+    .eq("marina_id", marinaId)
+    .eq("booking_id", booking.id)
+    .maybeSingle();
+  if (error) throw new BookingRepositoryError("Unable to load booking payment balance.", error.code, { cause: error });
+  const balance = data ?? deriveBookingPaymentBalance(booking);
+  return { ...balance, overdue: isPaymentOverdue(balance.balance_due_minor, balance.due_at) };
 }
 
 export async function createBooking(

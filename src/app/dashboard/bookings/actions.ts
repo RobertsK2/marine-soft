@@ -57,6 +57,11 @@ export type BookingExtensionActionState = {
   preview?: BookingExtensionPreview;
 };
 
+export type BookingPaymentActionState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+};
+
 function formValues(formData: FormData) {
   return {
     arrivalDate: formData.get("arrivalDate"),
@@ -146,6 +151,62 @@ export async function createBookingAction(
 
 function formatMoney(amountMinor: number, currency: string) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(amountMinor / 100);
+}
+
+export async function updateBookingPaymentStateAction(
+  bookingId: string,
+  _state: BookingPaymentActionState,
+  formData: FormData,
+): Promise<BookingPaymentActionState> {
+  if (!isUuid(bookingId)) return { status: "error", message: "The booking reference is invalid." };
+  const context = await getAuthorizationContext();
+  if (!context) return { status: "error", message: "Marina access is required." };
+  const state = String(formData.get("paymentState") ?? "");
+  const method = String(formData.get("collectionMethod") ?? "");
+  const validStates = ["paid_in_full", "deposit_paid", "balance_due", "paid_outside_berthio", "payment_link_required"];
+  const validMethods = ["berthio", "outside_berthio", "payment_link", "on_site"];
+  if (!validStates.includes(state) || !validMethods.includes(method)) {
+    return { status: "error", message: "Choose a valid payment state and collection method." };
+  }
+  const total = String(formData.get("totalDueMinor") ?? "");
+  const paid = String(formData.get("paidMinor") ?? "0");
+  const totalMinor = total === "" ? null : Number(total);
+  const paidMinor = Number(paid);
+  if ((totalMinor !== null && (!Number.isSafeInteger(totalMinor) || totalMinor < 0)) || !Number.isSafeInteger(paidMinor) || paidMinor < 0) {
+    return { status: "error", message: "Amounts must be non-negative whole minor units." };
+  }
+  try {
+    const privileged = createPrivilegedClient();
+    const { data, error } = await privileged.rpc("set_booking_payment_state", {
+      target_marina_id: context.marinaId,
+      target_booking_id: bookingId,
+      target_actor_id: context.userId,
+      requested_state: state as never,
+      requested_method: method as never,
+      requested_currency: String(formData.get("currency") ?? "") || null,
+      requested_total_minor: totalMinor,
+      requested_paid_minor: paidMinor,
+      requested_due_at: String(formData.get("dueAt") ?? "") || null,
+      requested_payment_link_url: String(formData.get("paymentLinkUrl") ?? "") || null,
+      requested_note: String(formData.get("paymentNote") ?? "") || null,
+    });
+    if (error) throw error;
+    const result = data?.[0];
+    if (!result) throw new Error("Payment state update returned no result.");
+    const errors: Record<string, string> = {
+      unauthorized: "Marina access is required.", not_found: "Booking not found for this marina.",
+      invalid_amounts: "Paid amount must not exceed the total due.", invalid_state: "The amounts and collection method do not match that payment state.",
+    };
+    if (errors[result.outcome]) return { status: "error", message: errors[result.outcome] };
+    if (result.outcome !== "updated") throw new Error(`Unexpected payment state outcome: ${result.outcome}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/bookings");
+    revalidatePath(`/dashboard/bookings/${bookingId}`);
+    return { status: "success", message: result.overdue ? "Payment state saved. Balance is overdue; booking was not cancelled." : "Payment state saved." };
+  } catch (error) {
+    captureServerError(error, { operation: "booking_payment_state", bookingId, marinaId: context.marinaId });
+    return { status: "error", message: "Payment state could not be saved." };
+  }
 }
 
 async function calculateExtensionPrice(

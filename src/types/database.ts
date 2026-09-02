@@ -205,6 +205,34 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["booking_payments"]["Insert"]>;
         Relationships: [];
       };
+      booking_payment_balances: {
+        Row: {
+          id: string;
+          marina_id: string;
+          booking_id: string;
+          state: Database["public"]["Enums"]["booking_payment_state"];
+          collection_method: Database["public"]["Enums"]["booking_collection_method"];
+          currency: string | null;
+          total_due_minor: number | null;
+          paid_minor: number;
+          balance_due_minor: number;
+          due_at: string | null;
+          payment_link_url: string | null;
+          note: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string; marina_id: string; booking_id: string;
+          state: Database["public"]["Enums"]["booking_payment_state"];
+          collection_method: Database["public"]["Enums"]["booking_collection_method"];
+          currency?: string | null; total_due_minor?: number | null; paid_minor?: number;
+          balance_due_minor?: number; due_at?: string | null; payment_link_url?: string | null;
+          note?: string | null; updated_at?: string; updated_by?: string | null;
+        };
+        Update: never;
+        Relationships: [];
+      };
       stripe_webhook_events: {
         Row: { stripe_event_id: string; event_type: string; stripe_account_id: string; stripe_checkout_session_id: string | null; outcome: string; processed_at: string; booking_id: string | null; error_detail: string | null };
         Insert: { stripe_event_id: string; event_type: string; stripe_account_id: string; stripe_checkout_session_id?: string | null; outcome: string; processed_at?: string; booking_id?: string | null; error_detail?: string | null };
@@ -676,11 +704,38 @@ export type Database = {
         Args: { target_event_id: string; target_event_type: string; target_stripe_account_id: string; target_session_id: string; target_payment_intent_id: string | null; target_payment_status: string; target_amount_total_minor: number; target_currency: string; target_hold_token: string; target_customer_name?: string | null; target_customer_email?: string | null; target_customer_phone?: string | null };
         Returns: string;
       };
+      set_booking_payment_state: {
+        Args: {
+          target_marina_id: string;
+          target_booking_id: string;
+          target_actor_id: string;
+          requested_state: Database["public"]["Enums"]["booking_payment_state"];
+          requested_method: Database["public"]["Enums"]["booking_collection_method"];
+          requested_currency: string | null;
+          requested_total_minor: number | null;
+          requested_paid_minor: number;
+          requested_due_at: string | null;
+          requested_payment_link_url: string | null;
+          requested_note: string | null;
+        };
+        Returns: {
+          outcome: string;
+          state: Database["public"]["Enums"]["booking_payment_state"] | null;
+          collection_method: Database["public"]["Enums"]["booking_collection_method"] | null;
+          total_due_minor: number | null;
+          paid_minor: number | null;
+          balance_due_minor: number | null;
+          due_at: string | null;
+          overdue: boolean;
+        }[];
+      };
     };
     Enums: {
       berth_status: "available" | "blocked" | "out_of_service";
       booking_hold_status: "active" | "released" | "expired" | "consumed";
       booking_payment_status: "pending" | "paid" | "failed" | "expired";
+      booking_payment_state: "paid_in_full" | "deposit_paid" | "balance_due" | "paid_outside_berthio" | "payment_link_required";
+      booking_collection_method: "berthio" | "outside_berthio" | "payment_link" | "on_site";
       booking_source: "manual" | "online";
       booking_status: "confirmed" | "cancelled" | "checked_in" | "checked_out";
       mandatory_fee_type:

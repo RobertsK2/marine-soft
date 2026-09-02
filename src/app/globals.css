@@ -431,6 +431,16 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .booking-cancellation-confirmation dt { color: var(--salt); text-transform: uppercase; }
 .booking-cancellation-confirmation dd { margin: 0; color: var(--navy); text-align: right; }
 .booking-cancellation-confirmation textarea { min-height: 4rem; border: 1px solid var(--salt); border-radius: 2px; background: var(--cream); padding: .55rem; color: var(--navy); font: inherit; }
+.booking-payment-panel { grid-column: 1 / -1; }
+.booking-payment-form { display: grid; gap: .75rem; margin-top: 1rem; }
+.payment-balance-summary { display: flex; align-items: baseline; flex-wrap: wrap; gap: .65rem 1rem; border-bottom: 1px solid var(--navy); padding-bottom: .65rem; font-family: "JetBrains Mono", monospace; font-size: .72rem; text-transform: uppercase; }
+.payment-balance-summary span { color: var(--salt); }
+.payment-balance-summary strong { color: var(--navy); }
+.payment-balance-summary em { color: var(--orange); font-style: normal; font-weight: 700; }
+.booking-payment-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.booking-payment-form label { display: grid; gap: .3rem; color: var(--salt); font-family: DIN, "Helvetica Neue", sans-serif; font-size: .68rem; text-transform: uppercase; }
+.booking-payment-form input, .booking-payment-form select, .booking-payment-form textarea { min-width: 0; border: 1px solid var(--salt); border-radius: 2px; background: var(--cream); padding: .55rem; color: var(--navy); font: inherit; text-transform: none; }
+.booking-payment-form textarea { min-height: 3.5rem; }
 .booking-status-checked_in { background: var(--navy); color: var(--cream); }
 .booking-status-checked_out { border-color: var(--salt); color: var(--salt); }
 .booking-table { min-width: 1080px; }
@@ -853,6 +863,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .berth-assignment-form, .booking-extension-preview-form, .extension-route { grid-template-columns: 1fr; }
   .berth-assignment-form label { grid-column: auto; }
   .assignment-history li, .booking-price-history li { grid-template-columns: 1fr; }
+  .booking-payment-grid { grid-template-columns: 1fr; }
   .overview-insights-grid { grid-template-columns: 1fr; }
   .overview-insight-card { min-height: 165px; }
   .form-section { padding: 1rem; }
