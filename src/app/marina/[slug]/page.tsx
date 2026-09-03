@@ -2,7 +2,7 @@
 import type { CSSProperties } from "react";
 import { randomUUID } from "node:crypto";
 import type { Metadata } from "next";
-import { Anchor, ArrowDown, Clock3, Compass } from "lucide-react";
+import { Anchor, ArrowDown, Clock3, Compass, ExternalLink, Mail, Phone } from "lucide-react";
 import { notFound } from "next/navigation";
 import { BookingSearchForm } from "@/components/public-booking/booking-search-form";
 import {
@@ -85,6 +85,9 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
   }
   const brandStyle: BrandedStyle = { "--marina-brand": marina.primaryColor };
   const localTimeZone = timezoneLabel(marina.timezone);
+  const hasPublicContact = Boolean(
+    marina.contactEmail || marina.contactPhone || marina.websiteUrl,
+  );
 
   return (
     <main className="public-marina" style={brandStyle}>
@@ -138,13 +141,35 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
         </div>
       </section>
 
-      {marina.localText ? (
-        <section className="public-marina-details" aria-label="Marina information">
-          <article className="public-marina-local-note">
-            <p className="public-marina-section-code">Local harbour note</p>
-            <h2>{marina.localLanguage ?? "Local information"}</h2>
-            <p lang={marina.localLanguage ? undefined : "en"}>{marina.localText}</p>
-          </article>
+      {marina.localText || hasPublicContact ? (
+        <section
+          className={`public-marina-details${marina.localText && hasPublicContact ? " has-two-columns" : ""}`}
+          aria-label="Marina information"
+        >
+          {marina.localText ? (
+            <article className="public-marina-local-note">
+              <p className="public-marina-section-code">Local harbour note</p>
+              <h2>{marina.localLanguage ?? "Local information"}</h2>
+              <p lang={marina.localLanguage ? undefined : "en"}>{marina.localText}</p>
+            </article>
+          ) : null}
+          {hasPublicContact ? (
+            <address className="public-marina-contact">
+              <p className="public-marina-section-code">Marina contact</p>
+              <h2>Contact</h2>
+              <ul>
+                {marina.contactEmail ? (
+                  <li><Mail size={16} aria-hidden="true" /><a href={`mailto:${marina.contactEmail}`}>{marina.contactEmail}</a></li>
+                ) : null}
+                {marina.contactPhone ? (
+                  <li><Phone size={16} aria-hidden="true" /><a href={`tel:${marina.contactPhone}`}>{marina.contactPhone}</a></li>
+                ) : null}
+                {marina.websiteUrl ? (
+                  <li><ExternalLink size={16} aria-hidden="true" /><a href={marina.websiteUrl}>Marina website</a></li>
+                ) : null}
+              </ul>
+            </address>
+          ) : null}
         </section>
       ) : null}
 

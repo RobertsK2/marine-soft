@@ -316,6 +316,71 @@ test.describe("local Supabase marina auth", () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 
+  test("marina admin can update profile contacts and IANA timezone", async ({ page }, testInfo) => {
+    test.slow();
+    const email = process.env.E2E_MARINA_EMAIL;
+    const password = process.env.E2E_MARINA_PASSWORD;
+    test.skip(!email || !password, "Requires admin credentials.");
+
+    const suffix = `${testInfo.project.name}-${Date.now()}`;
+    const contactEmail = `harbour-${suffix}@example.test`;
+    let original: { contactEmail: string; contactPhone: string; timezone: string; websiteUrl: string } | null = null;
+
+    try {
+      await page.goto("/login");
+      await page.getByLabel("Email").fill(email!);
+      await page.getByLabel("Password").fill(password!);
+      await page.getByRole("button", { name: "Log in" }).click();
+      await expect(page).toHaveURL(/\/dashboard$/);
+      await page.getByRole("link", { name: "Settings" }).click();
+      await expect(page.getByRole("heading", { name: "Marina settings" })).toBeVisible();
+
+      original = {
+        contactEmail: await page.getByLabel("Contact email").inputValue(),
+        contactPhone: await page.getByLabel("Contact phone").inputValue(),
+        timezone: await page.getByLabel("IANA timezone").inputValue(),
+        websiteUrl: await page.getByLabel("Website").inputValue(),
+      };
+      const stalePage = await page.context().newPage();
+      await stalePage.goto("/dashboard/settings");
+      await expect(stalePage.getByRole("heading", { name: "Marina settings" })).toBeVisible();
+
+      await page.getByLabel("Contact email").fill(contactEmail);
+      await page.getByLabel("Contact phone").fill("+371 20 123 456");
+      await page.getByLabel("Website").fill("https://marina.example/visitor");
+      await page.getByLabel("IANA timezone").fill("Europe/London");
+      await page.getByRole("button", { name: "Save marina profile" }).click();
+
+      await expect(page.getByRole("status")).toHaveText("Marina profile updated.");
+      await expect(page.locator(".app-status")).toContainText("Europe/London");
+
+      await page.goto("/marina/marina-a");
+      await expect(page.getByRole("link", { name: contactEmail })).toBeVisible();
+      await expect(page.getByRole("link", { name: "+371 20 123 456" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Marina website" })).toHaveAttribute(
+        "href",
+        "https://marina.example/visitor",
+      );
+
+      await stalePage.getByLabel("Contact phone").fill("+371 20 999 999");
+      await stalePage.getByRole("button", { name: "Save marina profile" }).click();
+      await expect(stalePage.locator(".form-message[role='alert']")).toContainText(
+        "This profile changed after the page was opened",
+      );
+      await stalePage.close();
+    } finally {
+      if (original) {
+        await page.goto("/dashboard/settings");
+        await page.getByLabel("Contact email").fill(original.contactEmail);
+        await page.getByLabel("Contact phone").fill(original.contactPhone);
+        await page.getByLabel("Website").fill(original.websiteUrl);
+        await page.getByLabel("IANA timezone").fill(original.timezone);
+        await page.getByRole("button", { name: "Save marina profile" }).click();
+        await expect(page.getByRole("status")).toHaveText("Marina profile updated.");
+      }
+    }
+  });
+
   test("marina staff can log in and open tenant-scoped operations", async ({ page }) => {
     const email = process.env.E2E_MARINA_STAFF_EMAIL;
     const password = process.env.E2E_MARINA_PASSWORD;
@@ -328,6 +393,9 @@ test.describe("local Supabase marina auth", () => {
 
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByText("MARINA STAFF", { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Settings" })).toHaveCount(0);
+    await page.goto("/dashboard/settings");
+    await expect(page.locator("body")).toContainText("404");
     await page.goto("/dashboard/bookings/new");
     await expect(page.getByRole("heading", { name: "Create manual booking" })).toBeVisible();
   });

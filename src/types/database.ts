@@ -14,7 +14,7 @@ export type Database = {
           id: number;
           marina_id: string;
           event_type: string;
-          entity_type: "booking" | "berth" | "payment" | "assignment";
+          entity_type: "booking" | "berth" | "payment" | "assignment" | "marina";
           entity_id: string;
           booking_id: string | null;
           berth_id: string | null;
@@ -421,6 +421,8 @@ export type Database = {
       };
       marinas: {
         Row: {
+          contact_email: string | null;
+          contact_phone: string | null;
           cover_image_url: string | null;
           created_at: string;
           id: string;
@@ -437,8 +439,11 @@ export type Database = {
           timezone: string;
           stripe_account_id: string | null;
           updated_at: string;
+          website_url: string | null;
         };
         Insert: {
+          contact_email?: string | null;
+          contact_phone?: string | null;
           cover_image_url?: string | null;
           created_at?: string;
           id?: string;
@@ -455,8 +460,11 @@ export type Database = {
           timezone?: string;
           stripe_account_id?: string | null;
           updated_at?: string;
+          website_url?: string | null;
         };
         Update: {
+          contact_email?: string | null;
+          contact_phone?: string | null;
           cover_image_url?: string | null;
           is_public?: boolean;
           local_language?: string | null;
@@ -469,6 +477,7 @@ export type Database = {
           slug?: string;
           timezone?: string;
           stripe_account_id?: string | null;
+          website_url?: string | null;
         };
         Relationships: [];
       };

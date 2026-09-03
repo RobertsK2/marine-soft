@@ -379,7 +379,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .berth-impact-warning li span, .berth-impact-warning li small { color: var(--salt); }
 .berth-impact-warning li small { grid-column: 1 / -1; }
 
-.berth-form, .booking-form { display: grid; gap: 1.5rem; margin-top: 3rem; }
+.berth-form, .booking-form, .marina-profile-form { display: grid; gap: 1.5rem; margin-top: 3rem; }
 .form-section { border: 1px solid var(--navy); padding: 1.5rem; background: var(--white); }
 .form-section-heading { display: flex; gap: 1rem; align-items: flex-start; border-bottom: 1px solid var(--salt); padding-bottom: 1rem; }
 .form-section-heading > span { display: inline-flex; min-width: 2rem; min-height: 2rem; align-items: center; justify-content: center; border: 1px solid var(--brass); color: var(--brass); font-family: "JetBrains Mono", monospace; font-size: .68rem; }
@@ -392,6 +392,16 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .booking-form-grid-three { grid-template-columns: repeat(3, 1fr); }
 .booking-form-grid-four { grid-template-columns: repeat(4, 1fr); }
 .berth-form .form-field input, .berth-form .form-field select, .booking-form .form-field input, .booking-form .form-field select { width: 100%; min-height: 3rem; border: 1px solid var(--salt); border-radius: 2px; padding: .65rem .8rem; background: var(--cream); color: var(--navy); }
+.marina-profile-form .form-field input,
+.marina-profile-form .form-field textarea { width: 100%; min-height: 3rem; border: 1px solid var(--salt); border-radius: 2px; padding: .65rem .8rem; background: var(--cream); color: var(--navy); }
+.marina-profile-form .form-field textarea { min-height: 7.5rem; resize: vertical; }
+.marina-profile-form .form-field input:focus,
+.marina-profile-form .form-field textarea:focus { border-color: var(--navy); outline: 2px solid var(--orange); outline-offset: 2px; }
+.marina-profile-form .form-field input[aria-invalid="true"],
+.marina-profile-form .form-field textarea[aria-invalid="true"] { border-color: var(--orange); }
+.marina-profile-form .form-field input:disabled { background: var(--white); color: var(--salt); cursor: not-allowed; }
+.marina-profile-stack { display: grid; gap: 1rem; margin-top: 1.25rem; }
+.marina-profile-wide-field { grid-column: 1 / -1; }
 .berth-form .form-field select { text-transform: capitalize; }
 .berth-form .form-field select:focus { border-color: var(--navy); outline: 2px solid var(--orange); outline-offset: 2px; }
 .field-help { margin: 0; color: var(--salt); font-family: "JetBrains Mono", monospace; font-size: .64rem; }
@@ -682,8 +692,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
   border: 1px solid var(--navy);
   background: var(--white);
 }
+.public-marina-details.has-two-columns { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); }
 .public-marina-local-note { padding: clamp(1.5rem, 4vw, 3.5rem); }
 .public-marina-local-note h2,
+.public-marina-contact h2,
 .public-marina-booking h2 {
   margin: 0;
   font-family: DIN, "Helvetica Now Display", sans-serif;
@@ -694,6 +706,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
   text-transform: uppercase;
 }
 .public-marina-local-note > p:last-child { max-width: 60ch; margin: 1.5rem 0 0; }
+.public-marina-contact { border-left: 1px solid var(--navy); padding: clamp(1.5rem, 4vw, 3.5rem); font-style: normal; }
+.public-marina-contact ul { display: grid; gap: 0; margin: 1.5rem 0 0; padding: 0; list-style: none; }
+.public-marina-contact li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .65rem; border-top: 1px solid var(--salt); padding: .85rem 0; font-family: "JetBrains Mono", monospace; font-size: .72rem; }
+.public-marina-contact a { overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: 3px; }
 .public-marina-booking {
   display: grid;
   grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
@@ -892,6 +908,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .public-marina-hero-grid { width: min(100% - 2rem, 1240px); min-height: 620px; padding-block: 5rem 3rem; }
   .public-marina-hero-copy h1 { font-size: clamp(3.6rem, 18vw, 5.8rem); }
   .public-marina-details { width: min(100% - 2rem, 1240px); margin-block: 2rem; }
+  .public-marina-details.has-two-columns { grid-template-columns: 1fr; }
+  .public-marina-contact { border-top: 1px solid var(--navy); border-left: 0; }
   .public-marina-booking { grid-template-columns: 1fr; padding-inline: 1rem; }
   .public-booking-grid-four { grid-template-columns: 1fr; }
   .public-price-quote > header { align-items: flex-start; flex-direction: column; }
