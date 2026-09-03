@@ -344,6 +344,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 .inventory-toolbar, .detail-toolbar, .form-actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 3rem; }
 .inventory-toolbar p { display: inline-flex; align-items: center; gap: .5rem; margin: 0; color: var(--navy); }
+.inventory-actions { display: flex; align-items: center; gap: .65rem; }
 .inventory-stats { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 1.5rem; border-top: 1px solid var(--navy); border-left: 1px solid var(--navy); }
 .inventory-stats article { display: grid; min-height: 118px; align-content: space-between; border-right: 1px solid var(--navy); border-bottom: 1px solid var(--navy); padding: 1rem; background: var(--white); }
 .inventory-stats strong { font-family: DIN, "Helvetica Now Display", sans-serif; font-size: 2.35rem; line-height: 1; }
@@ -365,6 +366,23 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .inventory-empty { margin-top: 2rem; border: 1px solid var(--salt); padding: 3rem; text-align: center; }
 .inventory-empty h2 { margin: 1rem 0 .3rem; font-family: DIN, "Helvetica Now Display", sans-serif; text-transform: uppercase; }
 .inventory-empty p { margin: 0; color: var(--salt); }
+.berth-import-flow { display: grid; gap: 1.5rem; margin-top: 3rem; }
+.berth-import-upload { display: grid; gap: 1.25rem; }
+.berth-import-upload .form-field { display: grid; gap: .55rem; }
+.berth-import-upload input[type="file"] { width: 100%; border: 1px dashed var(--salt); padding: 1rem; background: var(--cream); }
+.berth-import-upload code { color: var(--navy); }
+.import-summary { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.25rem; }
+.import-summary span { border: 1px solid var(--salt); padding: .45rem .65rem; font-family: "JetBrains Mono", monospace; font-size: .65rem; text-transform: uppercase; }
+.berth-import-table { min-width: 1050px; }
+.berth-import-table .import-row-error { background: #fff4ed; }
+.import-errors { display: grid; gap: .3rem; margin: 0; padding-left: 1rem; color: var(--orange); font-size: .72rem; }
+.import-valid { display: inline-flex !important; align-items: center; gap: .35rem; color: var(--navy) !important; font-family: "JetBrains Mono", monospace; font-size: .65rem; text-transform: uppercase; }
+.import-apply-form { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.25rem; }
+.import-apply-form p { max-width: 68ch; margin: 0; color: var(--salt); font-size: .75rem; line-height: 1.5; }
+.import-success { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1rem; }
+.import-success h2, .import-success p { margin: 0; }
+.import-success h2 { font-family: DIN, "Helvetica Now Display", sans-serif; text-transform: uppercase; }
+.import-success p { margin-top: .25rem; color: var(--salt); }
 
 .berth-status { display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap; font-family: "JetBrains Mono", monospace; font-size: .65rem; font-weight: 500; text-transform: uppercase; }
 .berth-status > span { width: 8px; height: 8px; border: 1px solid var(--navy); background: var(--brass); }
@@ -890,6 +908,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .app-placeholder, .legal-page { width: min(100% - 2rem, 900px); padding: 5rem 1rem; }
   .app-status { gap: 1rem; margin-bottom: 4rem; }
   .inventory-toolbar, .detail-toolbar { align-items: flex-start; flex-direction: column; }
+  .inventory-actions { width: 100%; flex-wrap: wrap; }
+  .inventory-actions .button { flex: 1; }
   .inventory-stats { grid-template-columns: repeat(2, 1fr); }
   .dashboard-modules, .berth-form-grid-two, .berth-form-grid-three, .berth-detail-grid, .booking-form-grid-three, .booking-form-grid-four, .booking-detail-grid { grid-template-columns: 1fr; }
   .berth-assignment-form, .booking-extension-preview-form, .extension-route { grid-template-columns: 1fr; }
@@ -901,6 +921,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .form-section { padding: 1rem; }
   .form-actions { align-items: stretch; flex-direction: column; }
   .form-actions .button { width: 100%; }
+  .import-apply-form { align-items: stretch; flex-direction: column; }
+  .import-success { grid-template-columns: auto 1fr; }
+  .import-success .button { grid-column: 1 / -1; }
   .marina-map-toolbar, .marina-map-meta { align-items: flex-start; flex-direction: column; }
   .marina-map-card { box-shadow: 4px 4px 0 rgba(10, 25, 47, .08); }
   .public-marina-header { min-height: 4rem; }

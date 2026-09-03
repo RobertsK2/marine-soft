@@ -581,6 +581,96 @@ test.describe("local Supabase marina auth", () => {
     await expect(page.getByText("Out of service", { exact: true })).toBeVisible();
   });
 
+  test("marina admin previews row errors and atomically imports berth CSV", async ({ page }, testInfo) => {
+    const email = process.env.E2E_MARINA_EMAIL;
+    const password = process.env.E2E_MARINA_PASSWORD;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const secretKey = process.env.SUPABASE_SECRET_KEY;
+    test.skip(!email || !password || !supabaseUrl || !secretKey, "Requires admin credentials and the local server key.");
+    const service = createClient(supabaseUrl!, secretKey!, { auth: { persistSession: false } });
+    const suffix = `${testInfo.project.name.slice(0, 3).toUpperCase()}-${Date.now().toString().slice(-7)}`;
+    const codes = [`IMP-${suffix}-A`, `IMP-${suffix}-B`];
+    const header = "berth_code,zone,max_length_m,max_beam_m,max_draft_m,status,priority,allow_smaller_vessels";
+
+    try {
+      await page.goto("/login");
+      await page.getByLabel("Email").fill(email!);
+      await page.getByLabel("Password").fill(password!);
+      await page.getByRole("button", { name: "Log in" }).click();
+      await expect(page).toHaveURL(/\/dashboard$/);
+      await page.goto("/dashboard/berths");
+      await page.getByRole("link", { name: "Import CSV" }).click();
+      await expect(page.getByRole("heading", { name: "Import berths" })).toBeVisible();
+
+      await page.getByLabel("Berth inventory CSV").setInputFiles({
+        name: "invalid-berths.csv",
+        mimeType: "text/csv",
+        buffer: Buffer.from(`${header}\n${codes[0]},Test Pier,-1,4,2,reserved,10,true\n${codes[0]},Test Pier,12,4,2,available,11,true`),
+      });
+      const previewButton = page.getByRole("button", { name: "Preview import" });
+      if (testInfo.project.name === "mobile") {
+        await previewButton.evaluate((button) => {
+          if (!(button instanceof HTMLButtonElement) || !(button.form instanceof HTMLFormElement)) {
+            throw new Error("Preview submit button is not associated with a form.");
+          }
+          button.form.requestSubmit(button);
+        });
+      } else {
+        await previewButton.click();
+      }
+      await expect(page.getByText("2 rows have errors. Nothing can be imported until every row is valid.")).toBeVisible();
+      await expect(page.getByText(/duplicated in CSV rows 2, 3/).first()).toBeVisible();
+      await expect(page.getByText(/Maximum length must be/)).toBeVisible();
+      await expect(page.getByText(/Choose a valid operational status/)).toBeVisible();
+      await expect(page.getByRole("button", { name: /Import \d+ berths/ })).toHaveCount(0);
+
+      await page.getByLabel("Berth inventory CSV").setInputFiles([]);
+      await page.getByLabel("Berth inventory CSV").setInputFiles({
+        name: "valid-berths.csv",
+        mimeType: "text/csv",
+        buffer: Buffer.from(`${header}\n${codes[0]},Test Pier,12.5,4.2,2.1,available,310,true\n${codes[1]},Test Pier,14,4.8,2.4,out_of_service,311,false`),
+      });
+      if (testInfo.project.name === "mobile") {
+        await previewButton.evaluate((button) => {
+          if (!(button instanceof HTMLButtonElement) || !(button.form instanceof HTMLFormElement)) {
+            throw new Error("Preview submit button is not associated with a form.");
+          }
+          button.form.requestSubmit(button);
+        });
+      } else {
+        await previewButton.click();
+      }
+      await expect(page.getByText("2 berths are ready for atomic import.")).toBeVisible();
+      await expect(page.getByText(codes[0], { exact: true })).toBeVisible();
+      await expect(page.getByText(codes[1], { exact: true })).toBeVisible();
+      const importButton = page.getByRole("button", { name: "Import 2 berths" });
+      if (testInfo.project.name === "mobile") {
+        await importButton.evaluate((button) => {
+          if (!(button instanceof HTMLButtonElement) || !(button.form instanceof HTMLFormElement)) {
+            throw new Error("Import submit button is not associated with a form.");
+          }
+          button.form.requestSubmit(button);
+        });
+      } else {
+        await importButton.click();
+      }
+      await expect(page.getByRole("heading", { name: "Import complete" })).toBeVisible();
+      await expect(page.getByText("2 berths were imported atomically. Existing berths were unchanged.")).toBeVisible();
+
+      const imported = await service.from("berths").select("id,marina_id,code").in("code", codes).order("code");
+      expect(imported.error).toBeNull();
+      expect(imported.data).toHaveLength(2);
+      expect(imported.data?.every((berth) => berth.marina_id === "d1000000-0000-4000-8000-000000000001")).toBe(true);
+      const audit = await service.from("audit_events").select("actor_id,after_data").eq("event_type", "berth.created").in("berth_id", imported.data!.map((berth) => berth.id));
+      expect(audit.error).toBeNull();
+      expect(audit.data).toHaveLength(2);
+      expect(audit.data?.every((event) => event.actor_id !== null)).toBe(true);
+    } finally {
+      const cleanup = await service.from("berths").delete().in("code", codes);
+      expect(cleanup.error).toBeNull();
+    }
+  });
+
   test("marina admin can inspect and persist pilot map status", async ({ page }) => {
     const email = process.env.E2E_MARINA_EMAIL;
     const password = process.env.E2E_MARINA_PASSWORD;

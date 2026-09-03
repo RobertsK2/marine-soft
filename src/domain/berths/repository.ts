@@ -45,6 +45,44 @@ export async function listBerths(
   return data;
 }
 
+export async function listBerthCodes(
+  supabase: SupabaseClient<Database>,
+  marinaId: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("berths")
+    .select("code")
+    .eq("marina_id", marinaId);
+
+  if (error) {
+    throw new BerthRepositoryError("Unable to check existing berth codes.", error.code, {
+      cause: error,
+    });
+  }
+  return data.map((berth) => berth.code);
+}
+
+export async function importBerths(
+  supabase: SupabaseClient<Database>,
+  marinaId: string,
+  inputs: BerthInput[],
+) {
+  // PostgREST executes this array insert as one database statement. The existing
+  // berth audit triggers run in that same transaction, so any row failure rolls
+  // back both every berth and every corresponding audit event.
+  const { data, error } = await supabase
+    .from("berths")
+    .insert(inputs.map((input) => ({ marina_id: marinaId, ...berthRecord(input) })))
+    .select("id");
+
+  if (error) {
+    throw new BerthRepositoryError("Unable to import berth inventory.", error.code, {
+      cause: error,
+    });
+  }
+  return data.length;
+}
+
 export async function getBerth(
   supabase: SupabaseClient<Database>,
   marinaId: string,

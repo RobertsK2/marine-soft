@@ -1,0 +1,2 @@
+berth_code,zone,max_length_m,max_beam_m,max_draft_m,status,priority,allow_smaller_vessels
+A-01,North Pier,12.50,4.20,2.10,available,100,true

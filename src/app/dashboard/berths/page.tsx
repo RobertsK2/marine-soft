@@ -1,4 +1,4 @@
-import { Plus, Ruler, Rows3 } from "lucide-react";
+import { Plus, Ruler, Rows3, Upload } from "lucide-react";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { BerthStatusBadge } from "@/components/berths/berth-status";
@@ -32,10 +32,16 @@ export default async function BerthsPage() {
           {berths.length} physical berths
         </p>
         {context.role === "marina_admin" ? (
-          <Link className="button button-primary" href="/dashboard/berths/new">
-            <Plus size={17} aria-hidden="true" />
-            Add berth
-          </Link>
+          <div className="inventory-actions">
+            <Link className="button button-secondary" href="/dashboard/berths/import">
+              <Upload size={17} aria-hidden="true" />
+              Import CSV
+            </Link>
+            <Link className="button button-primary" href="/dashboard/berths/new">
+              <Plus size={17} aria-hidden="true" />
+              Add berth
+            </Link>
+          </div>
         ) : null}
       </div>
 
