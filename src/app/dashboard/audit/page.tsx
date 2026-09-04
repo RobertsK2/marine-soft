@@ -14,7 +14,7 @@ export default async function AuditPage() {
   return (
     <AppShell
       context={context}
-      description="Append-only marina profile, booking, berth, assignment, and payment activity."
+      description="Append-only marina profile, pricing, booking, berth, assignment, and payment activity."
       title="Audit log"
       wide
     >

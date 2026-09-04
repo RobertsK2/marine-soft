@@ -397,7 +397,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .berth-impact-warning li span, .berth-impact-warning li small { color: var(--salt); }
 .berth-impact-warning li small { grid-column: 1 / -1; }
 
-.berth-form, .booking-form, .marina-profile-form { display: grid; gap: 1.5rem; margin-top: 3rem; }
+.berth-form, .booking-form, .marina-profile-form, .pricing-config-form { display: grid; gap: 1.5rem; margin-top: 3rem; }
 .form-section { border: 1px solid var(--navy); padding: 1.5rem; background: var(--white); }
 .form-section-heading { display: flex; gap: 1rem; align-items: flex-start; border-bottom: 1px solid var(--salt); padding-bottom: 1rem; }
 .form-section-heading > span { display: inline-flex; min-width: 2rem; min-height: 2rem; align-items: center; justify-content: center; border: 1px solid var(--brass); color: var(--brass); font-family: "JetBrains Mono", monospace; font-size: .68rem; }
@@ -418,6 +418,18 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .marina-profile-form .form-field input[aria-invalid="true"],
 .marina-profile-form .form-field textarea[aria-invalid="true"] { border-color: var(--orange); }
 .marina-profile-form .form-field input:disabled { background: var(--white); color: var(--salt); cursor: not-allowed; }
+.pricing-config-form .form-field input, .pricing-config-form .form-field select { width: 100%; min-height: 3rem; border: 1px solid var(--salt); border-radius: 2px; padding: .65rem .8rem; background: var(--cream); color: var(--navy); }
+.pricing-config-form .form-field input:focus, .pricing-config-form .form-field select:focus { border-color: var(--navy); outline: 2px solid var(--orange); outline-offset: 2px; }
+.pricing-config-list { display: grid; gap: 1rem; margin-top: 1.25rem; }
+.pricing-config-card { display: grid; gap: 1rem; border: 1px solid var(--salt); padding: 1rem; }
+.pricing-config-card legend { padding: 0 .4rem; font-family: "JetBrains Mono", monospace; font-size: .68rem; text-transform: uppercase; }
+.pricing-rate-field { max-width: 28rem; }
+.pricing-length-rates { display: grid; gap: .75rem; }
+.pricing-length-row, .pricing-fee-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: .75rem; align-items: end; border-bottom: 1px solid var(--salt); padding-bottom: .75rem; }
+.pricing-remove { align-self: end; }
+.pricing-add { justify-self: start; margin-top: 1rem; }
+.pricing-config-error { margin-top: 1rem; }
+.pricing-snapshot-note { margin: 0; border-left: 4px solid var(--brass); padding: .8rem 1rem; background: var(--white); font-family: "JetBrains Mono", monospace; font-size: .68rem; }
 .marina-profile-stack { display: grid; gap: 1rem; margin-top: 1.25rem; }
 .marina-profile-wide-field { grid-column: 1 / -1; }
 .berth-form .form-field select { text-transform: capitalize; }
@@ -911,7 +923,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .inventory-actions { width: 100%; flex-wrap: wrap; }
   .inventory-actions .button { flex: 1; }
   .inventory-stats { grid-template-columns: repeat(2, 1fr); }
-  .dashboard-modules, .berth-form-grid-two, .berth-form-grid-three, .berth-detail-grid, .booking-form-grid-three, .booking-form-grid-four, .booking-detail-grid { grid-template-columns: 1fr; }
+  .dashboard-modules, .berth-form-grid-two, .berth-form-grid-three, .berth-detail-grid, .booking-form-grid-three, .booking-form-grid-four, .booking-detail-grid, .pricing-length-row, .pricing-fee-row { grid-template-columns: 1fr; }
   .berth-assignment-form, .booking-extension-preview-form, .extension-route { grid-template-columns: 1fr; }
   .berth-assignment-form label { grid-column: auto; }
   .assignment-history li, .booking-price-history li { grid-template-columns: 1fr; }

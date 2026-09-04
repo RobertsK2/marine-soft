@@ -586,6 +586,14 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      replace_marina_pricing_configuration: {
+        Args: {
+          target_marina_id: string;
+          expected_updated_at: string | null;
+          requested_configuration: Json;
+        };
+        Returns: { outcome: string; updated_at: string | null }[];
+      };
       audited_update_booking_details: {
         Args: {
           target_marina_id: string;

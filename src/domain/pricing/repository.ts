@@ -1,7 +1,12 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { PricingCatalog, PricingSeason } from "@/domain/pricing/types";
-import type { Database } from "@/types/database";
+import type {
+  PricingCatalog,
+  PricingConfiguration,
+  PricingConfigurationInput,
+  PricingSeason,
+} from "@/domain/pricing/types";
+import type { Database, Json } from "@/types/database";
 
 export class PricingRepositoryError extends Error {
   constructor(message: string, options?: ErrorOptions) {
@@ -10,15 +15,15 @@ export class PricingRepositoryError extends Error {
   }
 }
 
-export async function loadPricingCatalog(
+async function loadPricingRecord(
   supabase: SupabaseClient<Database>,
   marinaId: string,
-): Promise<PricingCatalog | null> {
+) {
   const [configResult, seasonsResult, lengthRatesResult, meterRatesResult, feesResult] =
     await Promise.all([
       supabase
         .from("marina_pricing_configs")
-        .select("currency, model, tax_behavior, tax_rate_bps")
+        .select("currency, model, tax_behavior, tax_rate_bps, updated_at")
         .eq("marina_id", marinaId)
         .maybeSingle(),
       supabase
@@ -83,16 +88,51 @@ export async function loadPricingCatalog(
   }
 
   return {
-    currency: configResult.data.currency,
-    model: configResult.data.model,
-    taxBehavior: configResult.data.tax_behavior,
-    taxRateBps: configResult.data.tax_rate_bps,
-    seasons: [...seasons.values()],
-    fees: (feesResult.data ?? []).map((fee) => ({
-      name: fee.name,
-      type: fee.fee_type,
-      amountMinor: fee.amount_minor,
-      percentageBps: fee.percentage_bps,
-    })),
+    catalog: {
+      currency: configResult.data.currency,
+      model: configResult.data.model,
+      taxBehavior: configResult.data.tax_behavior,
+      taxRateBps: configResult.data.tax_rate_bps,
+      seasons: [...seasons.values()],
+      fees: (feesResult.data ?? []).map((fee) => ({
+        name: fee.name,
+        type: fee.fee_type,
+        amountMinor: fee.amount_minor,
+        percentageBps: fee.percentage_bps,
+      })),
+    } satisfies PricingCatalog,
+    updatedAt: configResult.data.updated_at,
   };
+}
+
+export async function loadPricingCatalog(
+  supabase: SupabaseClient<Database>,
+  marinaId: string,
+): Promise<PricingCatalog | null> {
+  return (await loadPricingRecord(supabase, marinaId))?.catalog ?? null;
+}
+
+export async function loadPricingConfiguration(
+  supabase: SupabaseClient<Database>,
+  marinaId: string,
+): Promise<PricingConfiguration | null> {
+  const result = await loadPricingRecord(supabase, marinaId);
+  return result ? { ...result.catalog, updatedAt: result.updatedAt } : null;
+}
+
+export async function replacePricingConfiguration(
+  supabase: SupabaseClient<Database>,
+  marinaId: string,
+  expectedUpdatedAt: string | null,
+  configuration: PricingConfigurationInput,
+) {
+  const { data, error } = await supabase.rpc("replace_marina_pricing_configuration", {
+    target_marina_id: marinaId,
+    expected_updated_at: expectedUpdatedAt,
+    requested_configuration: configuration as unknown as Json,
+  });
+  if (error) {
+    throw new PricingRepositoryError("Unable to save marina pricing.", { cause: error });
+  }
+  return data[0] ?? { outcome: "conflict", updated_at: null };
 }

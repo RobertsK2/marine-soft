@@ -37,6 +37,27 @@ export type PricingCatalog = {
   fees: MandatoryFee[];
 };
 
+export type PricingConfiguration = PricingCatalog & {
+  updatedAt: string;
+};
+
+export type PricingConfigurationInput = Omit<PricingCatalog, "seasons"> & {
+  seasons: Array<Omit<PricingSeason, "id">>;
+};
+
+export type PricingConfigurationFieldErrors = Partial<Record<
+  "currency" | "model" | "taxBehavior" | "taxRateBps" | "seasons" | "fees" | "configuration",
+  string
+>>;
+
+export type PricingConfigurationActionState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+  fieldErrors?: PricingConfigurationFieldErrors;
+  configuration?: PricingConfigurationInput;
+  updatedAt?: string;
+};
+
 export type PriceNightSnapshot = {
   date: string;
   season: string;
