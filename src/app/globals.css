@@ -868,6 +868,15 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .integration-card > header, .integration-health > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--navy); padding: 1rem; }
 .integration-card > header p, .integration-health > header p { margin: 0 0 .3rem; color: var(--brass); font-family: "JetBrains Mono", monospace; font-size: .61rem; letter-spacing: .06em; text-transform: uppercase; }
 .integration-card h2, .integration-health h2 { margin: 0; font-family: DIN, "Helvetica Now Display", sans-serif; font-size: 1.15rem; text-transform: uppercase; }
+.publication-settings { display: grid; gap: 1rem; margin-top: 1.5rem; }
+.publication-state { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; border-left: 5px solid var(--salt); padding: 1rem; background: var(--mist); }
+.publication-state-published { border-left-color: var(--brass); }
+.publication-state strong { font-family: DIN, "Helvetica Now Display", sans-serif; text-transform: uppercase; }
+.publication-state p { margin: .25rem 0 0; }
+.publication-readiness-list { display: grid; gap: 0; margin: 1rem 0 0; padding: 0; list-style: none; }
+.publication-readiness-list li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .8rem; border-bottom: 1px solid var(--salt); padding: .8rem 0; }
+.publication-readiness-list p { margin: .2rem 0 0; color: var(--slate); font-size: .82rem; }
+.publication-readiness-list a { font-size: .78rem; font-weight: 700; text-transform: uppercase; }
 .integration-state { display: inline-flex; align-items: center; gap: .35rem; border: 1px solid var(--navy); border-radius: 2px; padding: .35rem .45rem; font-family: "JetBrains Mono", monospace; font-size: .58rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
 .integration-state-warning, .integration-state-not_ready { border-color: var(--orange); color: var(--navy); }
 .integration-check-list { margin: 0; padding: 0 1rem; list-style: none; }

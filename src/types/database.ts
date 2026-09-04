@@ -896,6 +896,20 @@ export type Database = {
         Args: { target_event_id: string; target_event_type: string; target_stripe_account_id: string; target_session_id: string; target_payment_intent_id: string | null; target_payment_status: string; target_amount_total_minor: number; target_currency: string; target_hold_token: string; target_customer_name?: string | null; target_customer_email?: string | null; target_customer_phone?: string | null };
         Returns: string;
       };
+      set_marina_publication_state: {
+        Args: {
+          target_marina_id: string;
+          target_actor_id: string;
+          expected_updated_at: string;
+          requested_public: boolean;
+          integrations_ready: boolean;
+        };
+        Returns: {
+          outcome: string;
+          updated_at: string;
+          blockers: string[];
+        }[];
+      };
       queue_upcoming_arrival_reminders: {
         Args: Record<PropertyKey, never>;
         Returns: number;

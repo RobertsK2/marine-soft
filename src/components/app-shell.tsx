@@ -1,4 +1,4 @@
-import { Anchor, Banknote, CalendarDays, ClipboardClock, LayoutDashboard, LogOut, Map, PlugZap, Rows3, Settings, ShieldCheck } from "lucide-react";
+import { Anchor, Banknote, CalendarDays, ClipboardClock, Globe2, LayoutDashboard, LogOut, Map, PlugZap, Rows3, Settings, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { logoutAction } from "@/app/auth/actions";
@@ -64,6 +64,10 @@ export function AppShell({
               <Link href="/dashboard/settings/integrations">
                 <PlugZap size={15} aria-hidden="true" />
                 Integrations
+              </Link>
+              <Link href="/dashboard/settings/publishing">
+                <Globe2 size={15} aria-hidden="true" />
+                Publishing
               </Link>
             </>
           ) : null}

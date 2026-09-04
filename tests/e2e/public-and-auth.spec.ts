@@ -381,6 +381,48 @@ test.describe("local Supabase marina auth", () => {
     }
   });
 
+  test("marina admin can unpublish the public page without changing its slug flow", async ({ page }) => {
+    const email = process.env.E2E_MARINA_EMAIL;
+    const password = process.env.E2E_MARINA_PASSWORD;
+    const secretKey = process.env.SUPABASE_SECRET_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    test.skip(!email || !password || !secretKey || !supabaseUrl, "Requires admin credentials and the local server key.");
+    const service = createClient(supabaseUrl!, secretKey!, { auth: { persistSession: false } });
+    const users = await service.auth.admin.listUsers();
+    const actor = users.data.users.find((user) => user.email === email);
+    expect(users.error).toBeNull();
+    expect(actor).toBeTruthy();
+
+    try {
+      await page.goto("/login");
+      await page.getByLabel("Email").fill(email!);
+      await page.getByLabel("Password").fill(password!);
+      await page.getByRole("button", { name: "Log in" }).click();
+      await expect(page).toHaveURL(/\/dashboard$/);
+      await page.goto("/dashboard/settings/publishing");
+      await expect(page.getByRole("heading", { name: "Public page publishing" })).toBeVisible();
+      await expect(page.getByText("Published", { exact: true })).toBeVisible();
+      await expect(page.getByText("/marina/marina-a", { exact: false })).toBeVisible();
+
+      await page.getByRole("button", { name: "Unpublish public page" }).click();
+      await expect(page.locator(".form-message[role='status']")).toContainText("Public booking page unpublished");
+      await page.goto("/marina/marina-a");
+      await expect(page.locator("body")).toContainText("404");
+    } finally {
+      const marina = await service.from("marinas").select("updated_at").eq("id", "d1000000-0000-4000-8000-000000000001").single();
+      expect(marina.error).toBeNull();
+      const restored = await service.rpc("set_marina_publication_state", {
+        target_marina_id: "d1000000-0000-4000-8000-000000000001",
+        target_actor_id: actor!.id,
+        expected_updated_at: marina.data!.updated_at,
+        requested_public: true,
+        integrations_ready: true,
+      });
+      expect(restored.error).toBeNull();
+      expect(["updated", "unchanged"]).toContain(restored.data?.[0].outcome);
+    }
+  });
+
   test("marina staff can log in and open tenant-scoped operations", async ({ page }) => {
     const email = process.env.E2E_MARINA_STAFF_EMAIL;
     const password = process.env.E2E_MARINA_PASSWORD;
@@ -395,6 +437,8 @@ test.describe("local Supabase marina auth", () => {
     await expect(page.getByText("MARINA STAFF", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Settings" })).toHaveCount(0);
     await page.goto("/dashboard/settings");
+    await expect(page.locator("body")).toContainText("404");
+    await page.goto("/dashboard/settings/publishing");
     await expect(page.locator("body")).toContainText("404");
     await page.goto("/dashboard/bookings/new");
     await expect(page.getByRole("heading", { name: "Create manual booking" })).toBeVisible();
