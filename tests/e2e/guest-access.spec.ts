@@ -32,6 +32,8 @@ test("signed guest link shows one safe booking, edits times, and stops after rev
     calculated_price_currency: "EUR",
     calculated_price_total_minor: 5000,
     calculated_price_snapshot: { version: 1, currency: "EUR", totalMinor: 5000, arrivalDate, departureDate, vesselLengthM: 12 },
+    request_session_hash: "1".repeat(64),
+    request_network_hash: "2".repeat(64),
   });
   expect(holdError).toBeNull();
   const holdToken = holdRows![0].hold_token!;

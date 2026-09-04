@@ -8,7 +8,7 @@ export type BookingHoldActionState = {
 };
 
 export type BookingHoldResult = {
-  outcome: "created" | "existing" | "unavailable" | "idempotency_conflict" | "closed" | "not_found";
+  outcome: "created" | "existing" | "unavailable" | "rate_limited" | "idempotency_conflict" | "closed" | "not_found";
   holdToken: string | null;
   expiresAt: string | null;
   totalMinor: number | null;

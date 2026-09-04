@@ -11,7 +11,7 @@ select ok(not has_function_privilege('authenticated','public.update_guest_bookin
 create temporary table guest_hold_one as select * from public.create_booking_hold(
   'd1000000-0000-4000-8000-000000000001','73000000-0000-4000-8000-000000000001',
   '2027-03-01','2027-03-04','14:00','10:00','Guest One',12,3.7,2.1,'EUR',12000,
-  '{"version":1,"currency":"EUR","totalMinor":12000,"arrivalDate":"2027-03-01","departureDate":"2027-03-04","vesselLengthM":12}'::jsonb
+  '{"version":1,"currency":"EUR","totalMinor":12000,"arrivalDate":"2027-03-01","departureDate":"2027-03-04","vesselLengthM":12}'::jsonb, repeat('1',64), repeat('2',64)
 );
 create temporary table guest_payment_one as select * from public.prepare_booking_checkout((select hold_token from guest_hold_one));
 select ok(public.attach_booking_checkout_session((select payment_id from guest_payment_one),'cs_test_guest_one'),'first guest checkout attaches');
@@ -23,7 +23,7 @@ select is(public.process_stripe_checkout_event(
 create temporary table guest_hold_two as select * from public.create_booking_hold(
   'd1000000-0000-4000-8000-000000000001','73000000-0000-4000-8000-000000000002',
   '2027-03-10','2027-03-12','15:00','09:00','Guest Two',11,3.5,2,'EUR',8000,
-  '{"version":1,"currency":"EUR","totalMinor":8000,"arrivalDate":"2027-03-10","departureDate":"2027-03-12","vesselLengthM":11}'::jsonb
+  '{"version":1,"currency":"EUR","totalMinor":8000,"arrivalDate":"2027-03-10","departureDate":"2027-03-12","vesselLengthM":11}'::jsonb, repeat('3',64), repeat('4',64)
 );
 create temporary table guest_payment_two as select * from public.prepare_booking_checkout((select hold_token from guest_hold_two));
 select ok(public.attach_booking_checkout_session((select payment_id from guest_payment_two),'cs_test_guest_two'),'second guest checkout attaches');

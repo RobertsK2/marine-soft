@@ -5,6 +5,7 @@ import { loadPricingCatalog } from "@/domain/pricing/repository";
 import type { BookingHoldResult } from "@/domain/booking-holds/types";
 import { createPrivilegedClient } from "@/lib/supabase/privileged";
 import type { Json } from "@/types/database";
+import type { BookingHoldRequester } from "@/domain/booking-holds/requester";
 
 export class BookingHoldServiceError extends Error {
   constructor(message: string, options?: ErrorOptions) {
@@ -17,6 +18,7 @@ export async function createPublicBookingHold(
   marinaSlug: string,
   idempotencyKey: string,
   request: PublicBookingSearch,
+  requester: BookingHoldRequester,
 ): Promise<BookingHoldResult> {
   const supabase = createPrivilegedClient();
   const { data: marina, error: marinaError } = await supabase
@@ -46,6 +48,8 @@ export async function createPublicBookingHold(
       calculated_price_currency: snapshot.currency,
       calculated_price_total_minor: snapshot.totalMinor,
       calculated_price_snapshot: snapshot as unknown as Json,
+      request_session_hash: requester.sessionHash,
+      request_network_hash: requester.networkHash,
     });
     if (error) throw error;
     const row = data?.[0];

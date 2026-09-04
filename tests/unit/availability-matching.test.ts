@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  AllocationWorkBudgetExceededError,
   checkAvailability,
   intervalsOverlap,
   REQUESTED_BOOKING_ID,
@@ -215,5 +216,18 @@ describe("deterministic physical berth matching", () => {
       [flexible, indirect],
     );
     expect(result.available).toBe(false);
+  });
+
+  it("fails safely when connected demand exceeds the deterministic budget", () => {
+    const bookings = Array.from({ length: 64 }, (_, index) => booking(`budget-${index}`, 8));
+    expect(() => checkAvailability(request(), [berth("only", 10)], bookings))
+      .toThrow(AllocationWorkBudgetExceededError);
+  });
+
+  it("fails safely when the recursive search exhausts its node budget", () => {
+    const berths = Array.from({ length: 11 }, (_, index) => berth(`budget-${index}`, 10));
+    const bookings = Array.from({ length: 11 }, (_, index) => booking(`budget-${index}`, 8));
+    expect(() => checkAvailability(request(), berths, bookings))
+      .toThrow(AllocationWorkBudgetExceededError);
   });
 });

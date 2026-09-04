@@ -4,6 +4,9 @@
 
 Audit Berthio as a controlled-pilot product and fix only verification-required issues. Do not add new product features.
 
+Deployment-side environment, provider-readback, observability, and backup/restore
+steps are defined in `PILOT_OPERATIONS_RUNBOOK.md`.
+
 ## Pilot Readiness Checklist
 
 ### Marina Configuration

@@ -54,7 +54,7 @@ select is((select latest_stripe_webhook_outcome from public.get_marina_integrati
 select is((select pending_payment_count from public.get_marina_integration_health('d1000000-0000-4000-8000-000000000001')), 1::bigint, 'tenant pending payment count is reported');
 select is((select failed_payment_count from public.get_marina_integration_health('d1000000-0000-4000-8000-000000000001')), 0::bigint, 'tenant failed payment count is reported');
 select is((select pending_notification_count from public.get_marina_integration_health('d1000000-0000-4000-8000-000000000001')), 1::bigint, 'tenant pending notification count is reported');
-select is((select sent_notification_count from public.get_marina_integration_health('d1000000-0000-4000-8000-000000000001')), 0::bigint, 'tenant sent notification count is reported');
+select is((select sent_notification_count from public.get_marina_integration_health('d1000000-0000-4000-8000-000000000001')), 7::bigint, 'tenant sent notification count includes deterministic pilot history');
 select is((select latest_notification_attempt_at from public.get_marina_integration_health('d1000000-0000-4000-8000-000000000001')), null::timestamptz, 'no notification attempt is reported when none exists');
 
 select set_config('request.jwt.claims', '{"sub":"c7100000-0000-4000-8000-000000000002","role":"authenticated"}', true);

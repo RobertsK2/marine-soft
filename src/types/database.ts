@@ -243,6 +243,7 @@ export type Database = {
       booking_holds: {
         Row: {
           id: string; public_token: string; marina_id: string; idempotency_key: string;
+          requester_session_hash: string; requester_network_hash: string;
           arrival_date: string; departure_date: string; eta: string; etd: string;
           vessel_name: string | null; vessel_length_m: number; vessel_beam_m: number;
           vessel_draft_m: number; status: Database["public"]["Enums"]["booking_hold_status"];
@@ -252,6 +253,7 @@ export type Database = {
         };
         Insert: {
           id?: string; public_token?: string; marina_id: string; idempotency_key: string;
+          requester_session_hash?: string; requester_network_hash?: string;
           arrival_date: string; departure_date: string; eta: string; etd: string;
           vessel_name?: string | null; vessel_length_m: number; vessel_beam_m: number;
           vessel_draft_m: number; status?: Database["public"]["Enums"]["booking_hold_status"];
@@ -879,6 +881,7 @@ export type Database = {
           requested_length_m: number; requested_beam_m: number; requested_draft_m: number;
           calculated_price_currency: string; calculated_price_total_minor: number;
           calculated_price_snapshot: Json;
+          request_session_hash: string; request_network_hash: string;
         };
         Returns: { outcome: string; hold_token: string | null; hold_expires_at: string | null; total_minor: number | null; currency: string | null }[];
       };

@@ -172,6 +172,7 @@ test.describe("public marina page", () => {
       requested_vessel_name: "Webhook Return", requested_length_m: 19, requested_beam_m: 5.8, requested_draft_m: 3.1,
       calculated_price_currency: "EUR", calculated_price_total_minor: 10000,
       calculated_price_snapshot: { version: 1, currency: "EUR", totalMinor: 10000, arrivalDate, departureDate, vesselLengthM: 19 },
+      request_session_hash: "3".repeat(64), request_network_hash: "4".repeat(64),
     });
     expect(holdError).toBeNull();
     expect(holdRows?.[0].outcome).toBe("created");

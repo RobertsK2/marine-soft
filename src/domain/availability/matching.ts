@@ -7,6 +7,17 @@ import type {
 } from "@/domain/availability/types";
 
 export const REQUESTED_BOOKING_ID = "requested-booking";
+export const MAX_ALLOCATION_DEMANDS = 64;
+export const MAX_ALLOCATION_BERTHS = 256;
+export const MAX_ALLOCATION_INPUT_ROWS = 4_096;
+export const MAX_ALLOCATION_SEARCH_NODES = 50_000;
+
+export class AllocationWorkBudgetExceededError extends Error {
+  constructor() {
+    super("Berth allocation search exceeded its safe work budget.");
+    this.name = "AllocationWorkBudgetExceededError";
+  }
+}
 
 type Demand = {
   id: string;
@@ -81,23 +92,27 @@ function connectedBookings(
   request: Demand,
   bookings: AvailabilityBooking[],
 ) {
-  const connected: AvailabilityBooking[] = [];
-  const intervals: Array<Pick<Demand, "arrivalDate" | "departureDate">> = [request];
-  const remaining = [...bookings];
+  const ordered = [request, ...bookings].sort((left, right) =>
+    left.arrivalDate.localeCompare(right.arrivalDate) ||
+    left.departureDate.localeCompare(right.departureDate) ||
+    left.id.localeCompare(right.id));
+  let group: Array<Demand | AvailabilityBooking> = [];
+  let groupDeparture = "";
 
-  let added = true;
-  while (added) {
-    added = false;
-    for (let index = remaining.length - 1; index >= 0; index -= 1) {
-      const booking = remaining[index];
-      if (!intervals.some((interval) => intervalsOverlap(interval, booking))) continue;
-      connected.push(booking);
-      intervals.push(booking);
-      remaining.splice(index, 1);
-      added = true;
+  for (const interval of ordered) {
+    if (group.length > 0 && interval.arrivalDate >= groupDeparture) {
+      if (group.some((candidate) => candidate.id === request.id)) {
+        return group.filter((candidate): candidate is AvailabilityBooking => candidate.id !== request.id);
+      }
+      group = [];
     }
+    group.push(interval);
+    if (interval.departureDate > groupDeparture) groupDeparture = interval.departureDate;
   }
-  return connected;
+  if (group.some((candidate) => candidate.id === request.id)) {
+    return group.filter((candidate): candidate is AvailabilityBooking => candidate.id !== request.id);
+  }
+  return [];
 }
 
 export function checkAvailability(
@@ -105,9 +120,16 @@ export function checkAvailability(
   berths: AvailabilityBerth[],
   existingBookings: AvailabilityBooking[],
 ): AvailabilityResult {
+  if (berths.length > MAX_ALLOCATION_INPUT_ROWS || existingBookings.length > MAX_ALLOCATION_INPUT_ROWS) {
+    throw new AllocationWorkBudgetExceededError();
+  }
   const marinaBerths = berths
     .filter((berth) => berth.marinaId === request.marinaId && berth.status === "available")
     .sort(compareBerths);
+
+  if (marinaBerths.length > MAX_ALLOCATION_BERTHS) {
+    throw new AllocationWorkBudgetExceededError();
+  }
 
   const requestDemand: Demand = {
     id: REQUESTED_BOOKING_ID,
@@ -136,6 +158,10 @@ export function checkAvailability(
       })),
   ];
 
+  if (demands.length > MAX_ALLOCATION_DEMANDS) {
+    throw new AllocationWorkBudgetExceededError();
+  }
+
   const withCandidates: DemandWithCandidates[] = demands
     .map((demand) => ({
       ...demand,
@@ -149,8 +175,13 @@ export function checkAvailability(
 
   const assignedToBerth = new Map<string, Demand[]>();
   const assignments = new Map<string, string>();
+  let visitedNodes = 0;
 
   function assign(index: number): boolean {
+    visitedNodes += 1;
+    if (visitedNodes > MAX_ALLOCATION_SEARCH_NODES) {
+      throw new AllocationWorkBudgetExceededError();
+    }
     if (index === withCandidates.length) return true;
     const demand = withCandidates[index];
 

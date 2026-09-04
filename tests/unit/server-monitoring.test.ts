@@ -1,7 +1,16 @@
-import { describe, expect, it } from "vitest";
-import { serializeServerError } from "@/lib/monitoring/server";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
+
+import * as Sentry from "@sentry/nextjs";
+import { captureServerError, serializeServerError } from "@/lib/monitoring/server";
 
 describe("server error monitoring", () => {
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_SENTRY_DSN;
+    vi.clearAllMocks();
+  });
+
   it("preserves an Error message and its original cause", () => {
     const original = new Error("SUPABASE_SECRET_KEY is not configured.");
     const wrapped = new Error("Public availability failed.", { cause: original });
@@ -31,6 +40,17 @@ describe("server error monitoring", () => {
       code: "PGRST000",
       details: "Connection unavailable.",
       hint: "Retry later.",
+    });
+  });
+
+  it("sends a controlled server exception and safe context to Sentry when configured", () => {
+    process.env.NEXT_PUBLIC_SENTRY_DSN = "https://public@example.ingest.sentry.io/1";
+    const error = new Error("Controlled pilot verification error");
+
+    captureServerError(error, { operation: "pilot_monitoring_verification" });
+
+    expect(Sentry.captureException).toHaveBeenCalledWith(error, {
+      extra: { operation: "pilot_monitoring_verification" },
     });
   });
 });

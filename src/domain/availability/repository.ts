@@ -5,11 +5,18 @@ import type {
   AvailabilityRequest,
 } from "@/domain/availability/types";
 import type { Database } from "@/types/database";
+import { AllocationWorkBudgetExceededError } from "@/domain/availability/matching";
 
 export class AvailabilityRepositoryError extends Error {
   constructor(message: string, readonly code?: string, options?: ErrorOptions) {
     super(message, options);
     this.name = "AvailabilityRepositoryError";
+  }
+}
+
+export function assertCompleteAvailabilityPage(count: number | null, loaded: number) {
+  if (count === null || count !== loaded) {
+    throw new AllocationWorkBudgetExceededError();
   }
 }
 
@@ -20,16 +27,16 @@ export async function loadAvailabilitySnapshot(
   const [berthResult, bookingResult, holdResult] = await Promise.all([
     supabase
       .from("berths")
-      .select("id, marina_id, code, priority, status, allow_smaller_vessels, max_length_m, max_beam_m, max_draft_m")
+      .select("id, marina_id, code, priority, status, allow_smaller_vessels, max_length_m, max_beam_m, max_draft_m", { count: "exact" })
       .eq("marina_id", request.marinaId),
     supabase
       .from("bookings")
-      .select("id, marina_id, arrival_date, departure_date, status, vessel_length_m, vessel_beam_m, vessel_draft_m")
+      .select("id, marina_id, arrival_date, departure_date, status, vessel_length_m, vessel_beam_m, vessel_draft_m", { count: "exact" })
       .eq("marina_id", request.marinaId)
       .in("status", ["confirmed", "checked_in"]),
     supabase
       .from("booking_holds")
-      .select("id, marina_id, arrival_date, departure_date, vessel_length_m, vessel_beam_m, vessel_draft_m")
+      .select("id, marina_id, arrival_date, departure_date, vessel_length_m, vessel_beam_m, vessel_draft_m", { count: "exact" })
       .eq("marina_id", request.marinaId)
       .eq("status", "active")
       .gt("expires_at", new Date().toISOString()),
@@ -43,6 +50,10 @@ export async function loadAvailabilitySnapshot(
       { cause: error },
     );
   }
+
+  assertCompleteAvailabilityPage(berthResult.count, berthResult.data?.length ?? 0);
+  assertCompleteAvailabilityPage(bookingResult.count, bookingResult.data?.length ?? 0);
+  assertCompleteAvailabilityPage(holdResult.count, holdResult.data?.length ?? 0);
 
   const berths: AvailabilityBerth[] = (berthResult.data ?? []).map((berth) => ({
     id: berth.id,

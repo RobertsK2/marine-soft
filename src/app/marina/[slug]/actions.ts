@@ -8,6 +8,7 @@ import { createPrivilegedClient } from "@/lib/supabase/privileged";
 import { redirect } from "next/navigation";
 import { createCheckoutForHold } from "@/domain/checkout/service";
 import type { CheckoutActionState } from "@/domain/checkout/types";
+import { getBookingHoldRequester } from "@/domain/booking-holds/requester";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -32,7 +33,8 @@ export async function createBookingHoldAction(
   if (!validation.success) return { status: "error", message: validation.formError ?? "Review the stay details and check availability again." };
 
   try {
-    const result = await createPublicBookingHold(marinaSlug, idempotencyKey, validation.data);
+    const requester = await getBookingHoldRequester();
+    const result = await createPublicBookingHold(marinaSlug, idempotencyKey, validation.data, requester);
     if ((result.outcome === "created" || result.outcome === "existing") && result.holdToken && result.expiresAt) {
       return {
         status: "held",
@@ -44,6 +46,7 @@ export async function createBookingHoldAction(
       };
     }
     if (result.outcome === "unavailable") return { status: "unavailable", message: "That capacity was just taken. Check availability again." };
+    if (result.outcome === "rate_limited") return { status: "error", message: "Too many capacity holds were requested. Try again later." };
     if (result.outcome === "idempotency_conflict") return { status: "error", message: "The stay details changed. Refresh the page and try again." };
     if (result.outcome === "closed") return { status: "error", message: "This hold request has expired. Refresh the page to start again." };
     return { status: "error", message: "This marina is unavailable." };

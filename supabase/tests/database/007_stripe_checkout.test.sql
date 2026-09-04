@@ -13,7 +13,7 @@ select is(enum_range(null::public.booking_payment_status)::text,'{pending,paid,f
 create temporary table phase6_hold as select * from public.create_booking_hold(
   'd1000000-0000-4000-8000-000000000001','71000000-0000-4000-8000-000000000001',
   '2026-12-20','2026-12-22','14:00','10:00','Stripe Test',19,5.8,3.1,'EUR',10000,
-  '{"version":1,"currency":"EUR","totalMinor":10000,"arrivalDate":"2026-12-20","departureDate":"2026-12-22","vesselLengthM":19}'::jsonb
+  '{"version":1,"currency":"EUR","totalMinor":10000,"arrivalDate":"2026-12-20","departureDate":"2026-12-22","vesselLengthM":19}'::jsonb, repeat('1',64), repeat('2',64)
 );
 create temporary table prepared as select * from public.prepare_booking_checkout((select hold_token from phase6_hold));
 select is((select outcome from prepared),'ready','valid active hold prepares checkout');
@@ -39,13 +39,13 @@ select is((select count(*)::integer from public.stripe_webhook_events where stri
 select is((select outcome from public.create_booking_hold(
   'd1000000-0000-4000-8000-000000000001','71000000-0000-4000-8000-000000000099',
   '2026-12-20','2026-12-22','12:00','10:00','Second Customer',19,5.8,3.1,'EUR',10000,
-  '{"version":1,"currency":"EUR","totalMinor":10000,"arrivalDate":"2026-12-20","departureDate":"2026-12-22","vesselLengthM":19}'::jsonb
+  '{"version":1,"currency":"EUR","totalMinor":10000,"arrivalDate":"2026-12-20","departureDate":"2026-12-22","vesselLengthM":19}'::jsonb, repeat('3',64), repeat('4',64)
 )),'unavailable','confirmed online booking affects public availability');
 
 create temporary table failed_hold as select * from public.create_booking_hold(
   'd1000000-0000-4000-8000-000000000001','71000000-0000-4000-8000-000000000002',
   '2026-12-24','2026-12-26','14:00','10:00','Failure Test',12,3.8,2.1,'EUR',5000,
-  '{"version":1,"currency":"EUR","totalMinor":5000,"arrivalDate":"2026-12-24","departureDate":"2026-12-26","vesselLengthM":12}'::jsonb
+  '{"version":1,"currency":"EUR","totalMinor":5000,"arrivalDate":"2026-12-24","departureDate":"2026-12-26","vesselLengthM":12}'::jsonb, repeat('5',64), repeat('6',64)
 );
 create temporary table failed_prepared as select * from public.prepare_booking_checkout((select hold_token from failed_hold));
 select ok(public.fail_booking_checkout_creation((select payment_id from failed_prepared)),'checkout creation failure is recorded');
@@ -54,7 +54,7 @@ select is((select status::text from public.booking_holds where public_token=(sel
 create temporary table abandoned_hold as select * from public.create_booking_hold(
   'd1000000-0000-4000-8000-000000000001','71000000-0000-4000-8000-000000000003',
   '2027-01-10','2027-01-12','14:00','10:00','Abandoned Test',12,3.8,2.1,'EUR',5000,
-  '{"version":1,"currency":"EUR","totalMinor":5000,"arrivalDate":"2027-01-10","departureDate":"2027-01-12","vesselLengthM":12}'::jsonb
+  '{"version":1,"currency":"EUR","totalMinor":5000,"arrivalDate":"2027-01-10","departureDate":"2027-01-12","vesselLengthM":12}'::jsonb, repeat('7',64), repeat('8',64)
 );
 create temporary table abandoned_prepared as select * from public.prepare_booking_checkout((select hold_token from abandoned_hold));
 select ok(public.attach_booking_checkout_session((select payment_id from abandoned_prepared),'cs_test_abandoned'),'abandoned Checkout Session attaches');

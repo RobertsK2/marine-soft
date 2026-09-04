@@ -7,14 +7,14 @@ select has_table('public', 'booking_holds', 'booking holds table exists');
 select ok((select relrowsecurity from pg_class where oid = 'public.booking_holds'::regclass), 'booking holds use RLS');
 select is(enum_range(null::public.booking_hold_status)::text, '{active,released,expired,consumed}', 'hold lifecycle includes Phase 7 consumption');
 select ok(not has_table_privilege('anon', 'public.booking_holds', 'select'), 'anonymous users cannot inspect holds');
-select ok(not has_function_privilege('anon', 'public.create_booking_hold(uuid,uuid,date,date,time without time zone,time without time zone,text,numeric,numeric,numeric,text,bigint,jsonb)', 'execute'), 'anonymous users cannot create holds');
+select ok(not has_function_privilege('anon', 'public.create_booking_hold(uuid,uuid,date,date,time without time zone,time without time zone,text,numeric,numeric,numeric,text,bigint,jsonb,text,text)', 'execute'), 'anonymous users cannot create holds');
 
 create temporary table first_hold as
 select * from public.create_booking_hold(
   'd1000000-0000-4000-8000-000000000001', '61000000-0000-4000-8000-000000000001',
   '2026-09-10', '2026-09-12', '14:00', '10:00', 'Last Fit', 19, 5.8, 3.1,
   'EUR', 10000,
-  '{"version":1,"currency":"EUR","totalMinor":10000,"arrivalDate":"2026-09-10","departureDate":"2026-09-12","vesselLengthM":19}'::jsonb
+  '{"version":1,"currency":"EUR","totalMinor":10000,"arrivalDate":"2026-09-10","departureDate":"2026-09-12","vesselLengthM":19}'::jsonb, repeat('a',64), repeat('b',64)
 );
 
 select is((select outcome from first_hold), 'created', 'first customer holds the last fitting berth');
@@ -27,14 +27,14 @@ select is(
   (select outcome from public.create_booking_hold(
     'd1000000-0000-4000-8000-000000000001', '61000000-0000-4000-8000-000000000001',
     '2026-09-10', '2026-09-12', '14:00', '10:00', 'Last Fit', 19, 5.8, 3.1,
-    'EUR', 10000, '{"version":1,"currency":"EUR","totalMinor":10000,"arrivalDate":"2026-09-10","departureDate":"2026-09-12","vesselLengthM":19}'::jsonb
+    'EUR', 10000, '{"version":1,"currency":"EUR","totalMinor":10000,"arrivalDate":"2026-09-10","departureDate":"2026-09-12","vesselLengthM":19}'::jsonb, repeat('a',64), repeat('b',64)
   )), 'existing', 'duplicate idempotency key returns the existing hold'
 );
 select is(
   (select outcome from public.create_booking_hold(
     'd1000000-0000-4000-8000-000000000001', '61000000-0000-4000-8000-000000000002',
     '2026-09-10', '2026-09-12', '14:00', '10:00', 'Racer', 19, 5.8, 3.1,
-    'EUR', 10000, '{"version":1,"currency":"EUR","totalMinor":10000,"arrivalDate":"2026-09-10","departureDate":"2026-09-12","vesselLengthM":19}'::jsonb
+    'EUR', 10000, '{"version":1,"currency":"EUR","totalMinor":10000,"arrivalDate":"2026-09-10","departureDate":"2026-09-12","vesselLengthM":19}'::jsonb, repeat('c',64), repeat('d',64)
   )), 'unavailable', 'a different customer cannot double-hold the last capacity'
 );
 select throws_ok(
@@ -54,7 +54,7 @@ select is(
   (select outcome from public.create_booking_hold(
     'd1000000-0000-4000-8000-000000000001', '61000000-0000-4000-8000-000000000003',
     '2026-09-10', '2026-09-12', '14:00', '10:00', 'After Release', 19, 5.8, 3.1,
-    'EUR', 10000, '{"version":1,"currency":"EUR","totalMinor":10000,"arrivalDate":"2026-09-10","departureDate":"2026-09-12","vesselLengthM":19}'::jsonb
+    'EUR', 10000, '{"version":1,"currency":"EUR","totalMinor":10000,"arrivalDate":"2026-09-10","departureDate":"2026-09-12","vesselLengthM":19}'::jsonb, repeat('e',64), repeat('f',64)
   )), 'created', 'released capacity can be held again'
 );
 

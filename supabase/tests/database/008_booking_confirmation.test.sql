@@ -12,7 +12,7 @@ select ok(not has_function_privilege('anon','public.process_stripe_checkout_even
 create temporary table phase7_hold as select * from public.create_booking_hold(
   'd1000000-0000-4000-8000-000000000001','72000000-0000-4000-8000-000000000001',
   '2027-02-01','2027-02-03','15:00','09:30','Snapshot Vessel',14.25,4.1,2.4,'EUR',12345,
-  '{"version":1,"currency":"EUR","totalMinor":12345,"arrivalDate":"2027-02-01","departureDate":"2027-02-03","vesselLengthM":14.25}'::jsonb
+  '{"version":1,"currency":"EUR","totalMinor":12345,"arrivalDate":"2027-02-01","departureDate":"2027-02-03","vesselLengthM":14.25}'::jsonb, repeat('1',64), repeat('2',64)
 );
 create temporary table phase7_payment as select * from public.prepare_booking_checkout((select hold_token from phase7_hold));
 select ok(public.attach_booking_checkout_session((select payment_id from phase7_payment),'cs_test_phase7'),'Phase 7 Checkout Session attaches');
@@ -43,7 +43,7 @@ select is((select count(*)::integer from public.bookings where booking_payment_i
 create temporary table critical_hold as select * from public.create_booking_hold(
   'd1000000-0000-4000-8000-000000000001','72000000-0000-4000-8000-000000000002',
   '2027-02-10','2027-02-12','15:00','09:30','Critical Vessel',10,3.2,1.8,'EUR',6000,
-  '{"version":1,"currency":"EUR","totalMinor":6000,"arrivalDate":"2027-02-10","departureDate":"2027-02-12","vesselLengthM":10}'::jsonb
+  '{"version":1,"currency":"EUR","totalMinor":6000,"arrivalDate":"2027-02-10","departureDate":"2027-02-12","vesselLengthM":10}'::jsonb, repeat('3',64), repeat('4',64)
 );
 create temporary table critical_payment as select * from public.prepare_booking_checkout((select hold_token from critical_hold));
 select ok(public.attach_booking_checkout_session((select payment_id from critical_payment),'cs_test_phase7_critical'),'critical-path Session attaches');
