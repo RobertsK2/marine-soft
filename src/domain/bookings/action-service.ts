@@ -573,6 +573,7 @@ export async function updateBookingStatusAction(
         stale: "This booking changed after the form loaded. Refresh before cancelling.",
         already_cancelled: "This booking is already cancelled.",
         not_cancellable: "Only confirmed bookings can be cancelled in this workflow.",
+        policy_unavailable: "The marina cancellation policy is unavailable. No changes were saved.",
       };
       if (messages[result.outcome]) return { status: "error", message: messages[result.outcome] };
       if (result.outcome !== "ready") throw new Error(`Unexpected cancellation preview: ${result.outcome}`);
@@ -617,6 +618,7 @@ export async function updateBookingStatusAction(
         already_cancelled: "This booking is already cancelled.",
         not_cancellable: "Only confirmed bookings can be cancelled in this workflow.",
         invalid_reason: "Add a cancellation reason of 500 characters or fewer.",
+        policy_unavailable: "The marina cancellation policy is unavailable. No changes were saved.",
       };
       if (messages[result.outcome]) return { status: "error", message: messages[result.outcome] };
       if (result.outcome !== "cancelled") throw new Error(`Unexpected cancellation confirmation: ${result.outcome}`);

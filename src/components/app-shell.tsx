@@ -1,4 +1,4 @@
-import { Anchor, Banknote, CalendarDays, ClipboardClock, LayoutDashboard, LogOut, Map, Rows3, Settings } from "lucide-react";
+import { Anchor, Banknote, CalendarDays, ClipboardClock, LayoutDashboard, LogOut, Map, Rows3, Settings, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { logoutAction } from "@/app/auth/actions";
@@ -56,6 +56,10 @@ export function AppShell({
               <Link href="/dashboard/settings/pricing">
                 <Banknote size={15} aria-hidden="true" />
                 Pricing
+              </Link>
+              <Link href="/dashboard/settings/cancellation-policy">
+                <ShieldCheck size={15} aria-hidden="true" />
+                Cancellation policy
               </Link>
             </>
           ) : null}

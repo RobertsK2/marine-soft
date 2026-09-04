@@ -14,7 +14,7 @@ export type Database = {
           id: number;
           marina_id: string;
           event_type: string;
-          entity_type: "booking" | "berth" | "payment" | "assignment" | "marina";
+          entity_type: "booking" | "berth" | "payment" | "assignment" | "marina" | "pricing" | "cancellation_policy";
           entity_id: string;
           booking_id: string | null;
           berth_id: string | null;
@@ -335,6 +335,31 @@ export type Database = {
         };
         Relationships: [];
       };
+      marina_cancellation_policies: {
+        Row: {
+          marina_id: string;
+          evaluation_rule: "active_at_evaluation";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      marina_cancellation_policy_tiers: {
+        Row: {
+          id: string;
+          marina_id: string;
+          policy_code: string;
+          min_days_before_arrival: number | null;
+          max_days_before_arrival: number | null;
+          refund_percent: number;
+          sort_order: number;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       marina_pricing_configs: {
         Row: {
           created_at: string;
@@ -586,6 +611,14 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      replace_marina_cancellation_policy: {
+        Args: {
+          target_marina_id: string;
+          expected_updated_at: string;
+          requested_policy: Json;
+        };
+        Returns: { outcome: string; updated_at: string | null }[];
+      };
       replace_marina_pricing_configuration: {
         Args: {
           target_marina_id: string;
