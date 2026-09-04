@@ -14,7 +14,7 @@ export type Database = {
           id: number;
           marina_id: string;
           event_type: string;
-          entity_type: "booking" | "berth" | "payment" | "assignment" | "marina" | "pricing" | "cancellation_policy";
+          entity_type: "booking" | "berth" | "payment" | "assignment" | "marina" | "pricing" | "cancellation_policy" | "integration";
           entity_id: string;
           booking_id: string | null;
           berth_id: string | null;
@@ -611,6 +611,22 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      get_marina_integration_health: {
+        Args: { target_marina_id: string };
+        Returns: {
+          stripe_webhook_event_count: number;
+          latest_stripe_webhook_at: string | null;
+          latest_stripe_webhook_outcome: string | null;
+          pending_payment_count: number;
+          failed_payment_count: number;
+          pending_notification_count: number;
+          processing_notification_count: number;
+          failed_notification_count: number;
+          sent_notification_count: number;
+          latest_notification_attempt_at: string | null;
+          latest_notification_attempt_outcome: string | null;
+        }[];
+      };
       replace_marina_cancellation_policy: {
         Args: {
           target_marina_id: string;
