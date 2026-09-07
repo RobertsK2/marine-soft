@@ -1,0 +1,46 @@
+.shell :global(.app-placeholder) { padding: 0 40px 56px; }
+.breadcrumb { display: flex; align-items: center; gap: 12px; min-height: 80px; margin: 0 -40px 0; padding: 0 40px; border-bottom: 1px solid #e0e7f0; background: white; color: var(--navy); font-size: 14px; }
+.breadcrumb a { color: #8395b0; }
+.breadcrumb span { color: #bbc7d7; }
+.heading { margin: 30px 0 26px; }
+.heading h1 { margin: 0; font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -.6px; text-transform: none; }
+.heading p { margin: 8px 0 0; color: #5f7392; font-size: 15px; }
+.back { display: inline-flex; margin-top: 24px; color: #0750ed; font-size: 13px; }
+.back:hover, .breadcrumb a:hover { text-decoration: underline; }
+.shell :global(.marina-profile-form) { display: grid; gap: 0; margin-top: 0; border: 1px solid #dfe6f0; border-radius: 14px; overflow: hidden; background: white; box-shadow: 0 2px 3px #0a192f08; }
+.shell :global(.marina-profile-form .form-section) { border: 0; border-bottom: 1px solid #edf1f6; padding: 28px 40px 32px; }
+.shell :global(.marina-profile-form .form-section-heading) { display: block; border-bottom: 1px solid #edf1f6; padding-bottom: 16px; }
+.shell :global(.marina-profile-form .form-section-heading > span) { display: none; }
+.shell :global(.marina-profile-form .form-section-heading h2) { margin: 0; font-family: inherit; font-size: 18px; font-weight: 650; letter-spacing: -.2px; text-transform: none; }
+.shell :global(.marina-profile-form .form-section-heading p) { margin: 5px 0 0; color: #607593; font-size: 13px; }
+.shell :global(.marina-profile-form .berth-form-grid) { gap: 24px; margin-top: 22px; }
+.shell :global(.marina-profile-form .form-field) { display: grid; gap: 7px; min-width: 0; }
+.shell :global(.marina-profile-form .form-field label) { color: #233852; font-size: 13px; font-weight: 500; }
+.shell :global(.marina-profile-form .form-field input), .shell :global(.marina-profile-form .form-field textarea) { min-height: 46px; border: 1px solid #cbd7e6; border-radius: 8px; padding: 10px 13px; background: white; color: var(--navy); font-family: inherit; font-size: 14px; }
+.shell :global(.marina-profile-form .form-field textarea) { min-height: 90px; }
+.shell :global(.marina-profile-form .form-field input:focus), .shell :global(.marina-profile-form .form-field textarea:focus) { border-color: #0750ed; outline: 2px solid #c6d7ff; outline-offset: 1px; }
+.shell :global(.marina-profile-form .field-help) { color: #8194af; font-family: inherit; font-size: 12px; }
+.shell :global(.marina-profile-form .form-section:nth-of-type(2)) { order: 3; background: #fbfcfe; }
+.shell :global(.marina-profile-form .form-section:nth-of-type(3)) { order: 2; }
+.shell :global(.marina-profile-form .form-section:nth-of-type(4)) { order: 4; }
+.shell :global(.marina-profile-form .form-section:nth-of-type(2) .form-section-heading h2) { font-size: 14px; color: #607593; }
+.shell :global(.marina-profile-form .form-section:nth-of-type(2) .form-section-heading p) { font-size: 12px; }
+.shell :global(.marina-profile-form .form-section:nth-of-type(2) .marina-profile-stack) { margin-top: 18px; }
+.shell :global(.marina-profile-form .form-section:nth-of-type(2) .form-field textarea) { min-height: 70px; }
+.shell :global(.marina-profile-form .form-message) { margin: 22px 40px 0; }
+.shell :global(.marina-profile-form .form-actions) { display: flex; justify-content: flex-end; gap: 12px; margin: 0; padding: 24px 40px; background: #f7f9fc; }
+.shell :global(.marina-profile-form .form-actions .button-secondary) { order: 0; min-height: 42px; padding: 10px 18px; border: 1px solid #dbe4ef; border-radius: 7px; background: white; color: #607593; font-size: 13px; }
+.shell :global(.marina-profile-form .form-actions .button-primary) { order: 1; min-height: 42px; padding: 10px 22px; border: 0; border-radius: 7px; background: #0750ed; color: white; font-size: 13px; font-weight: 600; }
+@media (max-width: 760px) {
+  .shell :global(.app-placeholder) { padding: 0 16px 30px; }
+  .breadcrumb { min-height: 62px; margin: 0 -16px; padding: 0 16px; }
+  .heading { margin: 24px 0 20px; }
+  .heading h1 { font-size: 26px; }
+  .heading p { font-size: 13px; }
+  .shell :global(.marina-profile-form .form-section) { padding: 22px 18px 24px; }
+  .shell :global(.marina-profile-form .berth-form-grid-two) { grid-template-columns: 1fr; }
+  .shell :global(.marina-profile-form .form-section:nth-of-type(2)) { order: 3; }
+  .shell :global(.marina-profile-form .form-section:nth-of-type(2) .berth-form-grid-two) { grid-template-columns: 1fr; }
+  .shell :global(.marina-profile-form .form-actions) { padding: 18px; }
+  .shell :global(.marina-profile-form .form-message) { margin-inline: 18px; }
+}

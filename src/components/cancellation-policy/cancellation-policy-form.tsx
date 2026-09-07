@@ -1,10 +1,21 @@
 "use client";
 
-import { LoaderCircle, Plus, Trash2 } from "lucide-react";
+import { Info, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useActionState, useMemo, useState, type SetStateAction } from "react";
 import { useFormStatus } from "react-dom";
 import type { CancellationPolicyActionState } from "@/app/dashboard/settings/cancellation-policy/actions";
 import type { CancellationPolicyInput } from "@/domain/cancellation-policy/types";
+import { validateCancellationPolicyInput } from "@/domain/cancellation-policy/validation";
+import { cancellationPolicy } from "@/domain/booking-cancellations/model";
+import styles from "./cancellation-policy.module.css";
+
+function windowLabel(min: number | null, max: number | null) {
+  if (min === null && max === null) return "All cancellation dates";
+  if (min === null) return `${max} ${max === 1 ? "day" : "days"} or fewer before arrival`;
+  if (max === null) return `${min}+ days before arrival`;
+  return `${min}–${max} days before arrival`;
+}
 
 const initialState: CancellationPolicyActionState = { status: "idle" };
 type PolicyAction = (state: CancellationPolicyActionState, formData: FormData) => Promise<CancellationPolicyActionState>;
@@ -14,7 +25,7 @@ function SubmitButton() {
   return (
     <button className="button button-primary" disabled={pending} type="submit">
       {pending ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : null}
-      {pending ? "Saving..." : "Save cancellation policy"}
+      {pending ? "Saving..." : "Save Changes"}
     </button>
   );
 }
@@ -40,8 +51,18 @@ export function CancellationPolicyForm({
     });
   };
   const serialized = useMemo(() => JSON.stringify(policy), [policy]);
+  const [editingTier, setEditingTier] = useState<number | null>(null);
+  const [arrivalDate, setArrivalDate] = useState("");
+  const [cancellationDate, setCancellationDate] = useState("");
+  const validation = validateCancellationPolicyInput(policy);
+  const daysBeforeArrival = arrivalDate && cancellationDate
+    ? Math.round((Date.parse(arrivalDate) - Date.parse(cancellationDate)) / 86400000)
+    : null;
+  const preview = validation.success && daysBeforeArrival !== null && Number.isFinite(daysBeforeArrival)
+    ? cancellationPolicy(daysBeforeArrival, policy.tiers) : null;
 
   function addTier() {
+    setEditingTier(policy.tiers.length);
     setPolicy((current) => {
       const finalTier = current.tiers.at(-1);
       const nextMinimum = finalTier?.minDaysBeforeArrival === null ? 0 : (finalTier?.minDaysBeforeArrival ?? -1) + 1;
@@ -64,14 +85,22 @@ export function CancellationPolicyForm({
         <div className="form-section-heading">
           <span>01</span>
           <div>
-            <h2 id="cancellation-rules-heading">Refund recommendation tiers</h2>
-            <p>Order tiers from the lowest day range to the highest. Blank outer limits cover all earlier or later dates.</p>
+            <h2 id="cancellation-rules-heading">Policy Tiers</h2>
+            <p>Ordered from the lowest to highest day range. Negative days are after arrival.</p>
           </div>
         </div>
         <div className="pricing-config-list">
           {policy.tiers.map((tier, index) => (
             <fieldset className="pricing-config-card" key={index}>
-              <legend>Tier {index + 1}</legend>
+              <legend className="sr-only">Tier {index + 1}</legend>
+              <div className={styles.tierRow}>
+                <span className={styles.tierNumber}>{index + 1}</span>
+                <div className={styles.tierDescription}><h3>{windowLabel(tier.minDaysBeforeArrival, tier.maxDaysBeforeArrival)}</h3><p>{tier.policyCode.replaceAll("_", " ")}</p></div>
+                <div className={styles.refund}><strong>{tier.refundPercent}%</strong><span>Refund recommendation</span></div>
+                <button className={styles.iconButton} type="button" aria-label={`Edit cancellation tier ${index + 1}`} aria-expanded={editingTier === index || !!state.fieldErrors?.tiers} aria-controls={`tier-editor-${index}`} onClick={() => setEditingTier(editingTier === index ? null : index)}><Pencil size={17} aria-hidden="true" /></button>
+                <button aria-label={`Remove cancellation tier ${index + 1}`} className={styles.iconButton} disabled={policy.tiers.length === 1} type="button" onClick={() => { setEditingTier(null); setPolicy((current) => ({ ...current, tiers: current.tiers.filter((_, itemIndex) => itemIndex !== index) })); }}><Trash2 size={17} aria-hidden="true" /></button>
+              </div>
+              <div id={`tier-editor-${index}`} hidden={editingTier !== index && !state.fieldErrors?.tiers}>
               <div className="berth-form-grid berth-form-grid-four">
                 <div className="form-field">
                   <label htmlFor={`policy-${index}-code`}>Policy code</label>
@@ -90,9 +119,7 @@ export function CancellationPolicyForm({
                   <input id={`policy-${index}-percent`} max={100} min={0} step={1} type="number" value={tier.refundPercent} onChange={(event) => setPolicy((current) => ({ ...current, tiers: current.tiers.map((item, itemIndex) => itemIndex === index ? { ...item, refundPercent: Number(event.target.value) } : item) }))} />
                 </div>
               </div>
-              <button aria-label={`Remove cancellation tier ${index + 1}`} className="button button-quiet pricing-remove" disabled={policy.tiers.length === 1} type="button" onClick={() => setPolicy((current) => ({ ...current, tiers: current.tiers.filter((_, itemIndex) => itemIndex !== index) }))}>
-                <Trash2 size={15} aria-hidden="true" /> Remove tier
-              </button>
+              </div>
             </fieldset>
           ))}
         </div>
@@ -102,20 +129,27 @@ export function CancellationPolicyForm({
         </button>
       </section>
 
-      <section className="form-section" aria-labelledby="cancellation-evaluation-heading">
-        <div className="form-section-heading">
-          <span>02</span>
-          <div>
-            <h2 id="cancellation-evaluation-heading">Evaluation and financial safety</h2>
-            <p>The active marina policy is evaluated during each preview and again when cancellation is confirmed.</p>
-          </div>
+      <section className="form-section" aria-labelledby="cancellation-coverage-heading">
+        <div className="form-section-heading"><h2 id="cancellation-coverage-heading">Policy Coverage</h2><p>Cover every cancellation day without gaps or overlaps.</p></div>
+        <div className={styles.coverage}>
+          <p aria-live="polite">{validation.success ? "Complete coverage · No gaps or overlaps" : validation.errors.tiers ?? validation.errors.configuration}</p>
+          <div className={`${styles.timeline} ${!validation.success ? styles.invalid : ""}`} aria-hidden="true">{policy.tiers.map((tier, index) => <span key={index}>{tier.refundPercent}%</span>)}</div>
+          <p className={styles.coverageHelp}>Lowest to highest days before arrival · Segments are not to scale.</p>
         </div>
-        <p className="map-readonly-note">This policy recommends an amount only. It never issues a Stripe refund, edits payment history, or changes an existing booking price snapshot. The applied tier is stored with confirmed cancellation history.</p>
+      </section>
+      <section className="form-section" aria-labelledby="cancellation-preview-heading">
+        <div className="form-section-heading"><h2 id="cancellation-preview-heading">Policy Preview</h2><p>Test the current tiers using whole calendar days before arrival.</p></div>
+        <div className={styles.preview}>
+          <div className="form-field"><label htmlFor="preview-arrival">Arrival date</label><input id="preview-arrival" type="date" value={arrivalDate} onChange={(event) => setArrivalDate(event.target.value)} /></div>
+          <div className="form-field"><label htmlFor="preview-cancellation">Cancellation date</label><input id="preview-cancellation" type="date" value={cancellationDate} onChange={(event) => setCancellationDate(event.target.value)} /></div>
+          <div className={styles.previewResult} aria-live="polite"><span>Applicable refund</span><strong>{preview ? `${preview.refundPercent}%` : "—"}</strong><p>{!validation.success ? "Resolve the policy errors to preview." : preview ? `${daysBeforeArrival} days before arrival · ${preview.policyCode.replaceAll("_", " ")}` : "Choose both dates to preview."}</p></div>
+        </div>
       </section>
 
       {state.fieldErrors?.configuration ? <p className="form-message form-error" role="alert">{state.fieldErrors.configuration}</p> : null}
       {state.message ? <p className={`form-message ${state.status === "success" ? "form-success" : "form-error"}`} role={state.status === "success" ? "status" : "alert"}>{state.message}</p> : null}
-      <div className="form-actions"><SubmitButton /></div>
+      <div className={styles.note}><Info size={18} aria-hidden="true" /><div><strong>Important Note</strong><p>Changes apply to future cancellation evaluations, including existing bookings. The active policy is checked again when cancellation is confirmed. Existing booking price snapshots and recorded cancellation history remain unchanged. This policy recommends refunds; it does not issue them.</p></div></div>
+      <div className="form-actions"><Link className="button button-quiet" href="/dashboard/settings">Cancel</Link><SubmitButton /></div>
     </form>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { LoaderCircle, Plus, Trash2 } from "lucide-react";
-import { useActionState, useMemo, useState, type SetStateAction } from "react";
+import { LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useActionState, useMemo, useState, type ReactNode, type SetStateAction } from "react";
 import { useFormStatus } from "react-dom";
 import type { PricingConfigurationActionState } from "@/app/dashboard/settings/pricing/actions";
 import type {
@@ -32,12 +33,17 @@ const newFee = (): MandatoryFee => ({
   percentageBps: null,
 });
 
+function PricingRow({ children, initiallyOpen }: { children: ReactNode; initiallyOpen: boolean }) {
+  const [open, setOpen] = useState(initiallyOpen);
+  return <details className="pricing-editor" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>{children}</details>;
+}
+
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <button className="button button-primary" disabled={pending} type="submit">
       {pending ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : null}
-      {pending ? "Saving..." : "Save pricing configuration"}
+      {pending ? "Saving..." : "Save Changes"}
     </button>
   );
 }
@@ -96,8 +102,8 @@ export function PricingConfigurationForm({
         <div className="form-section-heading">
           <span>01</span>
           <div>
-            <h2 id="pricing-base-heading">Base berth pricing</h2>
-            <p>Currency, rate model, and VAT/tax treatment used by the existing server quote engine.</p>
+            <h2 id="pricing-base-heading">Base Pricing</h2>
+            <p>Choose how berth rates are calculated. Set rates for each period below.</p>
           </div>
         </div>
         <div className="berth-form-grid berth-form-grid-two">
@@ -114,20 +120,6 @@ export function PricingConfigurationForm({
             </select>
             {state.fieldErrors?.model ? <p className="field-error">{state.fieldErrors.model}</p> : null}
           </div>
-          <div className="form-field">
-            <label htmlFor="pricing-tax-behavior">VAT / tax mode</label>
-            <select id="pricing-tax-behavior" value={configuration.taxBehavior} onChange={(event) => setConfiguration({ ...configuration, taxBehavior: event.target.value as PricingConfigurationInput["taxBehavior"] })}>
-              <option value="exclusive">Exclusive — added to configured prices</option>
-              <option value="inclusive">Inclusive — contained in configured prices</option>
-            </select>
-            {state.fieldErrors?.taxBehavior ? <p className="field-error">{state.fieldErrors.taxBehavior}</p> : null}
-          </div>
-          <div className="form-field">
-            <label htmlFor="pricing-tax-rate">VAT / tax basis points</label>
-            <input id="pricing-tax-rate" inputMode="numeric" min={0} max={10000} step={1} type="number" value={configuration.taxRateBps} onChange={(event) => setConfiguration({ ...configuration, taxRateBps: Number(event.target.value) })} />
-            <p className="field-help">2100 = 21.00%. Monetary prices are entered in minor units (for EUR, cents).</p>
-            {state.fieldErrors?.taxRateBps ? <p className="field-error">{state.fieldErrors.taxRateBps}</p> : null}
-          </div>
         </div>
       </section>
 
@@ -135,14 +127,20 @@ export function PricingConfigurationForm({
         <div className="form-section-heading">
           <span>02</span>
           <div>
-            <h2 id="pricing-seasons-heading">Seasonal nightly rates</h2>
-            <p>Date ranges use an inclusive start and exclusive end. Ranges may touch but cannot overlap.</p>
+            <h2 id="pricing-seasons-heading">Seasonal Pricing</h2>
+            <p>Configure rates by period. End dates are exclusive; periods cannot overlap.</p>
           </div>
         </div>
         <div className="pricing-config-list">
           {configuration.seasons.map((season, seasonIndex) => (
-            <fieldset className="pricing-config-card" key={seasonIndex}>
-              <legend>Season {seasonIndex + 1}</legend>
+            <PricingRow key={`${activeVersion}-${seasonIndex}-${state.status}`} initiallyOpen={!season.name || !!state.fieldErrors?.seasons}>
+              <summary className="pricing-row-summary">
+                <span><strong>{season.name || "New season"}</strong><small>{season.startsOn || "Start date"} – {season.endsOn || "End date"} (exclusive)</small></span>
+                <span className="pricing-row-rate">{configuration.model === "per_meter" ? `${configuration.currency} ${((season.meterRateMinor ?? 0) / 100).toFixed(2)} / metre / night` : `${season.lengthRates.length} length ${season.lengthRates.length === 1 ? "interval" : "intervals"}`}</span>
+                <span className="pricing-edit-label"><Pencil size={15} aria-hidden="true" /><span className="sr-only">Edit season {seasonIndex + 1}</span></span>
+              </summary>
+            <fieldset className="pricing-config-card">
+              <legend>Edit season {seasonIndex + 1}</legend>
               <div className="berth-form-grid berth-form-grid-three">
                 <div className="form-field"><label htmlFor={`season-${seasonIndex}-name`}>Name</label><input id={`season-${seasonIndex}-name`} maxLength={80} required value={season.name} onChange={(event) => setConfiguration((current) => ({ ...current, seasons: current.seasons.map((item, index) => index === seasonIndex ? { ...item, name: event.target.value } : item) }))} /></div>
                 <div className="form-field"><label htmlFor={`season-${seasonIndex}-starts`}>Starts on</label><input id={`season-${seasonIndex}-starts`} required type="date" value={season.startsOn} onChange={(event) => setConfiguration((current) => ({ ...current, seasons: current.seasons.map((item, index) => index === seasonIndex ? { ...item, startsOn: event.target.value } : item) }))} /></div>
@@ -165,6 +163,7 @@ export function PricingConfigurationForm({
               )}
               <button className="button button-quiet pricing-remove" disabled={configuration.seasons.length === 1} type="button" onClick={() => setConfiguration((current) => ({ ...current, seasons: current.seasons.filter((_, index) => index !== seasonIndex) }))}><Trash2 size={15} aria-hidden="true" /> Remove season</button>
             </fieldset>
+            </PricingRow>
           ))}
         </div>
         {state.fieldErrors?.seasons ? <p className="field-error pricing-config-error">{state.fieldErrors.seasons}</p> : null}
@@ -174,27 +173,41 @@ export function PricingConfigurationForm({
       <section className="form-section" aria-labelledby="pricing-fees-heading">
         <div className="form-section-heading">
           <span>03</span>
-          <div><h2 id="pricing-fees-heading">Mandatory fees</h2><p>All listed fees are included by the existing quote engine.</p></div>
+          <div><h2 id="pricing-fees-heading">Mandatory Fees</h2><p>All listed fees apply automatically to booking quotes.</p></div>
         </div>
         <div className="pricing-config-list">
           {configuration.fees.map((fee, feeIndex) => (
-            <div className="pricing-fee-row" key={feeIndex}>
+            <PricingRow key={`${activeVersion}-${feeIndex}-${state.status}`} initiallyOpen={!fee.name || !!state.fieldErrors?.fees}>
+              <summary className="pricing-row-summary">
+                <span><strong>{fee.name || "New fee"}</strong><small>{fee.type === "percentage" ? `${(fee.percentageBps ?? 0) / 100}% of accommodation` : `${configuration.currency} ${((fee.amountMinor ?? 0) / 100).toFixed(2)} / ${fee.type.replace("per_", "")}`}</small></span>
+                <span className="pricing-edit-label"><Pencil size={15} aria-hidden="true" /><span className="sr-only">Edit fee {feeIndex + 1}</span></span>
+              </summary>
+            <div className="pricing-fee-row">
               <div className="form-field"><label htmlFor={`fee-${feeIndex}-name`}>Fee name</label><input id={`fee-${feeIndex}-name`} maxLength={80} required value={fee.name} onChange={(event) => setConfiguration((current) => ({ ...current, fees: current.fees.map((item, index) => index === feeIndex ? { ...item, name: event.target.value } : item) }))} /></div>
               <div className="form-field"><label htmlFor={`fee-${feeIndex}-type`}>Fee type</label><select id={`fee-${feeIndex}-type`} value={fee.type} onChange={(event) => setConfiguration((current) => ({ ...current, fees: current.fees.map((item, index) => index === feeIndex ? { ...item, type: event.target.value as MandatoryFee["type"], amountMinor: event.target.value === "percentage" ? null : (item.amountMinor ?? 0), percentageBps: event.target.value === "percentage" ? (item.percentageBps ?? 1) : null } : item) }))}><option value="per_booking">Per booking</option><option value="per_night">Per night</option><option value="per_vessel">Per vessel</option><option value="percentage">Percentage of accommodation</option></select></div>
               <div className="form-field"><label htmlFor={`fee-${feeIndex}-value`}>{fee.type === "percentage" ? "Basis points" : "Amount / minor units"}</label><input id={`fee-${feeIndex}-value`} min={fee.type === "percentage" ? 1 : 0} max={fee.type === "percentage" ? 10000 : undefined} step={1} type="number" value={fee.type === "percentage" ? (fee.percentageBps ?? 1) : (fee.amountMinor ?? 0)} onChange={(event) => setConfiguration((current) => ({ ...current, fees: current.fees.map((item, index) => index === feeIndex ? item.type === "percentage" ? { ...item, percentageBps: Number(event.target.value) } : { ...item, amountMinor: Number(event.target.value) } : item) }))} /></div>
               <button aria-label={`Remove mandatory fee ${feeIndex + 1}`} className="button button-quiet pricing-remove" type="button" onClick={() => setConfiguration((current) => ({ ...current, fees: current.fees.filter((_, index) => index !== feeIndex) }))}><Trash2 size={15} aria-hidden="true" /> Remove</button>
             </div>
+            </PricingRow>
           ))}
           {configuration.fees.length === 0 ? <p className="map-readonly-note">No mandatory fees configured.</p> : null}
         </div>
         {state.fieldErrors?.fees ? <p className="field-error pricing-config-error">{state.fieldErrors.fees}</p> : null}
-        <button className="button button-secondary pricing-add" type="button" onClick={() => setConfiguration((current) => ({ ...current, fees: [...current.fees, newFee()] }))}><Plus size={15} aria-hidden="true" /> Add mandatory fee</button>
+        <button className="button button-secondary pricing-add" type="button" onClick={() => setConfiguration((current) => ({ ...current, fees: [...current.fees, newFee()] }))}><Plus size={15} aria-hidden="true" /> Add Fee</button>
+      </section>
+
+      <section className="form-section" aria-labelledby="pricing-tax-heading">
+        <div className="form-section-heading"><span>04</span><div><h2 id="pricing-tax-heading">VAT &amp; Tax</h2><p>Choose how VAT is included in booking prices.</p></div></div>
+        <div className="berth-form-grid berth-form-grid-two">
+          <div className="form-field"><label htmlFor="pricing-tax-behavior">VAT / tax mode</label><select id="pricing-tax-behavior" value={configuration.taxBehavior} onChange={(event) => setConfiguration({ ...configuration, taxBehavior: event.target.value as PricingConfigurationInput["taxBehavior"] })}><option value="exclusive">Exclusive — added to prices</option><option value="inclusive">Inclusive — included in prices</option></select>{state.fieldErrors?.taxBehavior ? <p className="field-error">{state.fieldErrors.taxBehavior}</p> : null}</div>
+          <div className="form-field"><label htmlFor="pricing-tax-rate">VAT percentage (%)</label><input id="pricing-tax-rate" inputMode="decimal" min={0} max={100} step="0.01" type="number" value={configuration.taxRateBps / 100} onChange={(event) => setConfiguration({ ...configuration, taxRateBps: Math.round(Number(event.target.value) * 100) })} /><p className="field-help">Use 0% when no VAT applies.</p>{state.fieldErrors?.taxRateBps ? <p className="field-error">{state.fieldErrors.taxRateBps}</p> : null}</div>
+        </div>
       </section>
 
       {state.fieldErrors?.configuration ? <p className="form-message form-error" role="alert">{state.fieldErrors.configuration}</p> : null}
       {state.message ? <p className={`form-message ${state.status === "success" ? "form-success" : "form-error"}`} role={state.status === "success" ? "status" : "alert"}>{state.message}</p> : null}
-      <p className="pricing-snapshot-note">Saved changes apply to new server calculations. Existing booking price snapshots remain immutable.</p>
-      <div className="form-actions"><SubmitButton /></div>
+      <p className="pricing-snapshot-note">Pricing changes apply to new booking quotes. Existing booking price snapshots remain unchanged.</p>
+      <div className="form-actions"><Link className="button button-quiet" href="/dashboard/settings">Cancel</Link><SubmitButton /></div>
     </form>
   );
 }

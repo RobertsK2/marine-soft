@@ -10,6 +10,9 @@ import { listOverviewBookings } from "@/domain/overview/repository";
 import { requireMarinaMembership } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { updateBerthStatusAction } from "@/app/dashboard/berths/actions";
+import { CalendarDays, CalendarPlus, ListChecks, Map, Rows3 } from "lucide-react";
+import Link from "next/link";
+import styles from "./overview.module.css";
 
 export const metadata = { title: "Dashboard" };
 
@@ -18,6 +21,10 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const now = new Date();
   const today = marinaDateKey(now, context.timezone);
+  const overviewHeader = <header className={styles.topbar}>
+    <div><h1>Overview</h1><p>{context.marinaName}</p></div>
+    <div className={styles.date}><CalendarDays size={18} aria-hidden="true" /><div><time dateTime={today}>Today, {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: context.timezone }).format(now)}</time><small>{context.timezone}</small></div></div>
+  </header>;
   // Two UTC days safely cover one complete marina-local day across all IANA zones;
   // the model performs the authoritative timezone filter after retrieval.
   const recentCreatedAt = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
@@ -30,6 +37,8 @@ export default async function DashboardPage() {
   if (!overviewData) {
     return (
       <AppShell
+        className={styles.overview}
+        overviewHeader={overviewHeader}
         context={context}
         title="Marina dashboard"
         description={`Operational overview for ${today}, calculated in ${context.timezone}.`}
@@ -50,6 +59,8 @@ export default async function DashboardPage() {
 
   return (
       <AppShell
+        className={styles.overview}
+        overviewHeader={overviewHeader}
         context={context}
         title="Marina dashboard"
         description={`Operational overview for ${today}, calculated in ${context.timezone}.`}
@@ -69,6 +80,12 @@ export default async function DashboardPage() {
             </div>
             <TodaysActivity activity={activity} />
           </div>
+          <nav className={styles.actions} aria-label="Quick actions">
+            <Link href="/dashboard/bookings/new"><CalendarPlus aria-hidden="true" /><span>Add booking<small>Create a new booking</small></span></Link>
+            <Link href="/dashboard/bookings"><ListChecks aria-hidden="true" /><span>Bookings<small>Review marina bookings</small></span></Link>
+            <Link href="/dashboard/berths"><Rows3 aria-hidden="true" /><span>Berth inventory<small>View berth records</small></span></Link>
+            <Link href="/dashboard/marina-map"><Map aria-hidden="true" /><span>Marina map<small>Open the full map</small></span></Link>
+          </nav>
         </div>
       </AppShell>
   );

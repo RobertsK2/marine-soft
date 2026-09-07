@@ -1,0 +1,78 @@
+.breadcrumb { display: flex; align-items: center; gap: 12px; min-height: 38px; margin-bottom: 28px; font-size: 14px; }
+.breadcrumb span { color: #8b9db8; }
+.heading.heading h1 { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.2; letter-spacing: -.5px; text-transform: none; }
+.heading p { margin: 7px 0 24px; color: #617593; font-size: 13px; }
+.ledger { --line: #e0e7f0; --muted: #627796; min-width: 0; font-size: 13px; }
+.summary { display: flex; align-items: center; flex-wrap: wrap; gap: 14px 0; margin: 0 0 24px; padding: 15px 20px; border: 1px solid var(--line); border-radius: 12px; background: white; }
+.summary > div { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 0 24px; border-right: 1px solid #edf1f6; }
+.summary > div:first-child { padding-left: 0; }
+.summary > div:last-child { padding-right: 0; border-right: 0; }
+.summary dt { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+.summary dd { margin: 0; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.summary small { color: #8295b1; font-size: 11px; }
+.summary i, .status i { display: inline-block; width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; }
+.greenDot { background: #10b981; }
+.amberDot { background: #f59e0b; }
+.redDot { background: #f43f5e; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 24px; }
+.search { display: flex; align-items: center; gap: 9px; flex: 1 1 250px; max-width: 385px; padding-left: 12px; border: 1px solid var(--line); border-radius: 7px; background: white; color: #8295b1; }
+.search input { width: 100%; min-width: 0; padding: 8px 10px 8px 0; border: 0; border-radius: 7px; background: transparent; color: var(--navy); font-size: 12px; }
+.search input::placeholder { color: #627796; }
+.toolbar select, .dateRange summary { min-height: 34px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 7px; background: white; color: var(--navy); font-size: 12px; }
+.dateRange { position: relative; }
+.dateRange summary { display: flex; align-items: center; gap: 9px; cursor: pointer; list-style: none; }
+.dateRange summary::-webkit-details-marker { display: none; }
+.dateRange summary svg { color: #8295b1; }
+.dateRange > div { position: absolute; z-index: 2; top: calc(100% + 8px); left: 0; display: grid; gap: 12px; width: 240px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: white; box-shadow: 0 6px 20px #0a192f10; }
+.dateRange p { margin: 0; color: var(--muted); font-size: 11px; }
+.dateRange label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+.dateRange input { min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; color: var(--navy); }
+.dateRange button { padding: 6px; border: 1px solid var(--line); border-radius: 4px; background: white; cursor: pointer; }
+.ledger :is(a, input, select, button, summary):focus-visible, .scroll:focus-visible { outline: 2px solid #0750ed; outline-offset: 3px; }
+.tableWrap { overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: white; }
+.scroll { overflow-x: auto; }
+.table { width: 100%; min-width: 940px; border-collapse: collapse; text-align: left; }
+.table th { height: 42px; padding: 12px 22px; color: #8b9db8; font-size: 11px; font-weight: 650; text-transform: uppercase; white-space: nowrap; }
+.table td { height: 76px; padding: 14px 22px; border-top: 1px solid #edf1f6; vertical-align: middle; }
+.table th:first-child { width: 17%; }
+.table th:nth-child(2) { width: 14%; }
+.table th:nth-child(3) { width: 16%; }
+.table th:nth-child(5) { width: 16%; }
+.table th:last-child, .table td:last-child { text-align: right; }
+.table tbody tr:hover { background: #fafcfe; }
+.reference { display: block; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+a.reference:hover, .view:hover { text-decoration: underline; }
+.amount { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.secondary { display: block; margin-top: 3px; color: #7b90ae; font-size: 11px; line-height: 1.4; }
+.muted { color: #536783; font-size: 12px; }
+.date { color: #6b80a0; font-size: 12px; white-space: nowrap; }
+.date span { display: block; }
+.view { display: inline-flex; align-items: center; min-height: 30px; color: #6b80a0; font-size: 12px; }
+.status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid #e1e8f2; border-radius: 999px; background: #f3f6fa; color: #586d8b; font-size: 11px; white-space: nowrap; }
+.status i { width: 6px; height: 6px; background: currentColor; }
+.paid, .paid_in_full, .paid_outside_berthio { border-color: #b9efd8; background: #edfdf5; color: #087853; }
+.deposit_paid, .balance_due, .payment_link_required { border-color: #ffe09a; background: #fffbeb; color: #a75c00; }
+.failed { border-color: #f8d8df; background: #fff4f6; color: #b3435e; }
+.pending, .expired { color: #586d8b; }
+.footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; padding: 15px 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.footer nav, .pageItem { display: flex; align-items: center; gap: 4px; }
+.footer button { min-width: 30px; min-height: 30px; padding: 5px 9px; border: 1px solid transparent; border-radius: 4px; background: white; color: #526989; font-size: 12px; cursor: pointer; }
+.footer nav > button { border-color: var(--line); }
+.footer button[aria-current=page] { background: #0750ed; color: white; }
+.footer button:disabled { color: #adb8c9; border-color: #edf1f6; cursor: default; }
+.empty { padding: 40px 22px; text-align: center; color: var(--muted); }
+.empty h2 { margin: 0 0 8px; font-size: 18px; color: var(--navy); }
+.empty p { margin: 0; }
+.note { margin: 12px 0 0; color: #7184a0; font-size: 11px; }
+.rangeError { color: #a33f51; font-size: 12px; }
+@media (max-width: 760px) {
+  .breadcrumb { margin-bottom: 18px; }
+  .summary { align-items: flex-start; flex-direction: column; gap: 12px; padding: 16px; }
+  .summary > div { padding: 0; border: 0; }
+  .search { flex-basis: 100%; max-width: none; }
+  .toolbar select, .dateRange summary, .search input { min-height: 42px; }
+  .dateRange > div { left: auto; right: 0; }
+  .footer { padding: 16px; }
+  .footer nav { flex-wrap: wrap; }
+  .footer button { min-height: 40px; }
+}

@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { updatePricingConfigurationAction } from "@/app/dashboard/settings/pricing/actions";
 import { AppShell } from "@/components/app-shell";
 import { PricingConfigurationForm } from "@/components/pricing/pricing-configuration-form";
@@ -6,6 +6,9 @@ import { loadPricingConfiguration } from "@/domain/pricing/repository";
 import type { PricingConfigurationInput } from "@/domain/pricing/types";
 import { requireMarinaMembership } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
+import shellStyles from "../../overview.module.css";
+import styles from "@/components/pricing/pricing-settings.module.css";
 
 export const metadata = { title: "Pricing configuration" };
 
@@ -42,7 +45,9 @@ export default async function PricingSettingsPage() {
   const action = updatePricingConfigurationAction.bind(null, expectedUpdatedAt);
 
   return (
-    <AppShell context={context} description="Tenant-scoped berth rates, seasons, required fees, and VAT/tax behavior." title="Pricing configuration" wide>
+    <AppShell activePage="settings" className={`${shellStyles.overview} ${styles.shell}`} context={context} description="Tenant-scoped berth rates, seasons, required fees, and VAT/tax behavior." title="Pricing" wide overviewHeader={<div className={styles.breadcrumb}><Link href="/dashboard/settings">Settings</Link><span>/</span><strong>Pricing</strong></div>}>
+      <Link className={styles.back} href="/dashboard/settings">← Back to Settings</Link>
+      <header className={styles.heading}><h1>Pricing</h1><p>Configure berth rates, seasonal pricing, mandatory fees, VAT, and billing currency.</p></header>
       <PricingConfigurationForm
         action={action}
         configurationVersion={expectedUpdatedAt ?? "new"}

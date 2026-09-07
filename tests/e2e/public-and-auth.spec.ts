@@ -300,7 +300,7 @@ test.describe("local Supabase marina auth", () => {
     await expect(page.getByText("Email or password is incorrect.", { exact: true })).toBeVisible();
   });
 
-  test("invited marina user can access the dashboard and log out", async ({ page }) => {
+  test("invited marina user can access the dashboard and log out", async ({ page }, testInfo) => {
     const email = process.env.E2E_MARINA_EMAIL;
     const password = process.env.E2E_MARINA_PASSWORD;
     test.skip(!email || !password, "Requires invited marina credentials.");
@@ -309,12 +309,74 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Password").fill(password!);
     await page.getByRole("button", { name: "Log in" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByRole("heading", { name: "Marina dashboard" })).toBeVisible();
-    await expect(page.locator(".overview-insight-card")).toHaveCount(3);
+    await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+    await expect(page.locator(".overview-insight-card")).toHaveCount(4);
     await expect(page.locator("[data-berth-id]")).toHaveCount(12);
+    await expect(page.getByRole("navigation", { name: "Quick actions" }).getByRole("link")).toHaveCount(4);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("overview.png"), fullPage: true });
+    await page.locator("[data-berth-id]").first().click();
+    await expect(page.locator(".map-detail-panel")).not.toHaveClass(/map-detail-empty/);
+    await page.screenshot({ path: testInfo.outputPath("overview-selected-berth.png"), fullPage: true });
+    await page.getByRole("navigation", { name: "Quick actions" }).getByRole("link", { name: "Berth inventory" }).click();
+    await expect(page).toHaveURL(/\/dashboard\/berths$/);
+    await expect(page.locator(".overview-tenant")).toHaveCount(0);
 
     await page.getByRole("button", { name: "Log out" }).click();
     await expect(page).toHaveURL(/\/login$/);
+  });
+
+  test("bookings list keeps six columns, real records and working filters", async ({ page }, testInfo) => {
+    const runtimeErrors: string[] = [];
+    page.on("pageerror", (error) => { runtimeErrors.push(error.message); console.error(error.message); });
+    const email = process.env.E2E_MARINA_EMAIL;
+    const password = process.env.E2E_MARINA_PASSWORD;
+    test.skip(!email || !password, "Requires invited marina credentials.");
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(email!);
+    await page.getByLabel("Password").fill(password!);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await page.goto("/dashboard/bookings");
+    await expect(page.getByRole("columnheader")).toHaveText(["Booking", "Stay", "Berth", "Status", "Payment", "Actions"]);
+    await expect(page.getByRole("region", { name: "Booking status summary" }).locator("article")).toHaveCount(3);
+    await expect(page.locator(".overview-activity-panel")).toHaveCount(0);
+    const first = page.locator("tbody tr").first();
+    await expect(first).toBeVisible();
+    const reference = await first.locator("td").first().getByRole("link").getAttribute("title");
+    const detailHref = await first.getByRole("link", { name: /^View booking/ }).getAttribute("href");
+    const count = await page.locator("tbody tr").count();
+    await expect(first.locator(".booking-status")).toHaveCount(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("bookings-list.png"), fullPage: true });
+    await page.getByLabel("Search bookings").fill(reference!);
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await page.getByLabel("Search bookings").fill("no-such-booking-e2e");
+    await expect(page.getByRole("heading", { name: "No matching bookings" })).toBeVisible();
+    await page.getByRole("button", { name: "Clear filters" }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(count);
+    await page.getByLabel("Booking status filter").selectOption("confirmed");
+    for (const status of await page.locator("tbody .booking-status").allTextContents()) expect(status).toBe("Confirmed");
+    await page.getByRole("button", { name: "Clear filters" }).click();
+    await page.locator("summary").filter({ hasText: "Date range" }).click();
+    await page.getByLabel("Stay through").fill("1900-01-01");
+    await expect(page.locator("tbody tr")).toHaveCount(0);
+    await page.getByRole("button", { name: "Clear filters" }).click();
+    await page.locator("summary").filter({ hasText: "Date range" }).click();
+    await page.locator("summary").filter({ hasText: "More filters" }).click();
+    await page.getByLabel("Payment filter").selectOption("paid");
+    for (const value of await page.locator("tbody tr td:nth-child(5)").allTextContents()) expect(value).toBe("Paid");
+    await page.getByRole("button", { name: "Clear filters" }).click();
+    await page.locator("summary").filter({ hasText: "More filters" }).click();
+    await first.getByRole("link", { name: /^View booking/ }).click();
+    await expect(page).toHaveURL(new RegExp(`${detailHref}$`));
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(reference!);
+    await page.goto("/dashboard/bookings");
+    await page.getByLabel("Search bookings").fill(reference!);
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await page.getByRole("link", { name: "Create booking" }).click();
+    await expect(page).toHaveURL(/\/dashboard\/bookings\/new$/, { timeout: 15000 });
+    expect(runtimeErrors).toEqual([]);
   });
 
   test("marina admin can update profile contacts and IANA timezone", async ({ page }, testInfo) => {
@@ -334,7 +396,8 @@ test.describe("local Supabase marina auth", () => {
       await page.getByRole("button", { name: "Log in" }).click();
       await expect(page).toHaveURL(/\/dashboard$/);
       await page.getByRole("link", { name: "Settings" }).click();
-      await expect(page.getByRole("heading", { name: "Marina settings" })).toBeVisible();
+      await page.getByRole("link", { name: "General", exact: true }).click();
+      await expect(page.getByRole("heading", { name: "General Settings" })).toBeVisible();
 
       original = {
         contactEmail: await page.getByLabel("Contact email").inputValue(),
@@ -343,8 +406,8 @@ test.describe("local Supabase marina auth", () => {
         websiteUrl: await page.getByLabel("Website").inputValue(),
       };
       const stalePage = await page.context().newPage();
-      await stalePage.goto("/dashboard/settings");
-      await expect(stalePage.getByRole("heading", { name: "Marina settings" })).toBeVisible();
+      await stalePage.goto("/dashboard/settings/general");
+      await expect(stalePage.getByRole("heading", { name: "General Settings" })).toBeVisible();
 
       await page.getByLabel("Contact email").fill(contactEmail);
       await page.getByLabel("Contact phone").fill("+371 20 123 456");
@@ -371,7 +434,7 @@ test.describe("local Supabase marina auth", () => {
       await stalePage.close();
     } finally {
       if (original) {
-        await page.goto("/dashboard/settings");
+        await page.goto("/dashboard/settings/general");
         await page.getByLabel("Contact email").fill(original.contactEmail);
         await page.getByLabel("Contact phone").fill(original.contactPhone);
         await page.getByLabel("Website").fill(original.websiteUrl);
@@ -401,11 +464,11 @@ test.describe("local Supabase marina auth", () => {
       await page.getByRole("button", { name: "Log in" }).click();
       await expect(page).toHaveURL(/\/dashboard$/);
       await page.goto("/dashboard/settings/publishing");
-      await expect(page.getByRole("heading", { name: "Public page publishing" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Publishing", exact: true })).toBeVisible();
       await expect(page.getByText("Published", { exact: true })).toBeVisible();
       await expect(page.getByText("/marina/marina-a", { exact: false })).toBeVisible();
 
-      await page.getByRole("button", { name: "Unpublish public page" }).click();
+      await page.getByRole("button", { name: "Unpublish Booking Page" }).click();
       await expect(page.locator(".form-message[role='status']")).toContainText("Public booking page unpublished");
       await page.goto("/marina/marina-a");
       await expect(page.locator("body")).toContainText("404");
@@ -455,11 +518,12 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Email").fill(adminEmail!);
     await page.getByLabel("Password").fill(password!);
     await page.getByRole("button", { name: "Log in" }).click();
+    await page.getByRole("link", { name: "Settings", exact: true }).click();
     await expect(page.getByRole("link", { name: "Audit log" })).toBeVisible();
     await page.getByRole("link", { name: "Audit log" }).click();
-    await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Full marina history" })).toBeVisible();
-    await expect(page.locator(".audit-event-list li").first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Audit Log" })).toBeVisible();
+    await expect(page.getByRole("table", { name: "Marina audit events, newest first" })).toBeVisible();
+    await expect(page.locator("tbody tr").first()).toBeVisible();
     await page.getByRole("button", { name: "Log out" }).click();
 
     await page.getByLabel("Email").fill(staffEmail!);
@@ -483,6 +547,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Customer name").fill(`Audit E2E ${Date.now()}`);
     await page.getByLabel("Email").fill(`audit-${Date.now()}@example.test`);
     await page.getByLabel("Phone").fill("+371 20000808");
+    await page.locator("summary").filter({ hasText: "Optional vessel details" }).click();
     await page.getByLabel("Vessel name").fill("Audit Logbook");
     await page.getByLabel("Length (m)").fill("8");
     await page.getByLabel("Beam (m)").fill("2.8");
@@ -594,19 +659,19 @@ test.describe("local Supabase marina auth", () => {
     await page.getByRole("button", { name: "Log in" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto("/dashboard/berths");
-    await expect(page.getByRole("heading", { name: "Berth inventory" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Berths", exact: true })).toBeVisible();
     await expect(page.getByText("A-01", { exact: true })).toBeVisible();
 
     await page.getByRole("link", { name: "Add berth" }).click();
-    await page.getByLabel("Berth code").fill(code);
+    await page.getByLabel("Berth Code / Name").fill(code);
     await page.getByLabel("Zone").fill("E2E Pier");
-    await page.getByLabel("Maximum length (m)", { exact: true }).fill("17.5");
-    await page.getByLabel("Maximum beam (m)", { exact: true }).fill("5.2");
-    await page.getByLabel("Maximum draft (m)", { exact: true }).fill("2.9");
+    await page.getByLabel("Maximum Length").fill("17.5");
+    await page.getByLabel("Maximum Beam").fill("5.2");
+    await page.getByLabel("Maximum Draft").fill("2.9");
     await page.getByLabel("Priority").fill("7");
     await page.getByLabel("Status").selectOption("available");
     await page.getByLabel("Allow smaller vessels").uncheck();
-    await page.getByRole("button", { name: "Create berth" }).click();
+    await page.getByRole("button", { name: "Add Berth", exact: true }).click();
 
     await expect(page).toHaveURL(/\/dashboard\/berths\/[0-9a-f-]+$/);
     await expect(page.getByRole("heading", { name: `Berth ${code}` })).toBeVisible();
@@ -667,7 +732,7 @@ test.describe("local Supabase marina auth", () => {
       await expect(page.getByText(/duplicated in CSV rows 2, 3/).first()).toBeVisible();
       await expect(page.getByText(/Maximum length must be/)).toBeVisible();
       await expect(page.getByText(/Choose a valid operational status/)).toBeVisible();
-      await expect(page.getByRole("button", { name: /Import \d+ berths/ })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /Import \d+ Berths/ })).toBeDisabled();
 
       await page.getByLabel("Berth inventory CSV").setInputFiles([]);
       await page.getByLabel("Berth inventory CSV").setInputFiles({
@@ -716,7 +781,7 @@ test.describe("local Supabase marina auth", () => {
     }
   });
 
-  test("marina admin can inspect and persist pilot map status", async ({ page }) => {
+  test("marina admin can inspect and persist pilot map status", async ({ page }, testInfo) => {
     const email = process.env.E2E_MARINA_EMAIL;
     const password = process.env.E2E_MARINA_PASSWORD;
     test.skip(!email || !password, "Requires invited marina credentials.");
@@ -730,6 +795,26 @@ test.describe("local Supabase marina auth", () => {
 
     await expect(page.getByRole("heading", { name: "Marina map" })).toBeVisible();
     await expect(page.locator("[data-berth-id]")).toHaveCount(12);
+    await expect(page.locator(".map-detail-panel")).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Berth status summary" }).locator("article")).toHaveCount(5);
+    await expect(page.getByRole("navigation", { name: "Marina administration" }).getByRole("link", { name: "Berth Map" })).toHaveAttribute("aria-current", "page");
+    await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+    await expect(page.getByLabel("Map zoom", { exact: true })).toHaveText("125%");
+    await page.getByRole("button", { name: "Reset map view" }).click();
+    await expect(page.getByLabel("Map zoom", { exact: true })).toHaveText("100%");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("berth-map.png"), fullPage: true });
+    await page.getByRole("button", { name: /Berth A-01/ }).focus();
+    await expect(page.getByRole("status", { name: "Berth preview" })).toContainText("Max 8 m length");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("heading", { name: "Berth A-01" })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("berth-map-selected.png"), fullPage: true });
+    await page.getByRole("button", { name: "Close berth details" }).click();
+    await expect(page.locator(".map-detail-panel")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Berth A-01/ })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".map-detail-panel")).toHaveCount(0);
     await page.getByRole("button", { name: /Berth A-01/ }).click();
     await expect(page.getByRole("heading", { name: "Berth A-01" })).toBeVisible();
     await expect(page.getByText("8.00 m", { exact: true })).toBeVisible();
@@ -769,6 +854,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Customer name").fill(`Cancellation E2E ${Date.now()}`);
     await page.getByLabel("Email").fill(`cancellation-${Date.now()}@example.test`);
     await page.getByLabel("Phone").fill("+371 20000999");
+    await page.locator("summary").filter({ hasText: "Optional vessel details" }).click();
     await page.getByLabel("Vessel name").fill("Cancellation Test Vessel");
     await page.getByLabel("Length (m)").fill("8");
     await page.getByLabel("Beam (m)").fill("2.8");
@@ -809,6 +895,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Customer name").fill(`Assignment E2E ${testInfo.project.name}`);
     await page.getByLabel("Email").fill(`assignment-${testInfo.project.name}@example.test`);
     await page.getByLabel("Phone").fill("+371 20000123");
+    await page.locator("summary").filter({ hasText: "Optional vessel details" }).click();
     await page.getByLabel("Vessel name").fill("Assignment Test Vessel");
     await page.getByLabel("Length (m)").fill("8.5");
     await page.getByLabel("Beam (m)").fill("2.9");
@@ -900,6 +987,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Customer name").fill(`Extension E2E ${testInfo.project.name}`);
     await page.getByLabel("Email").fill(`extension-${testInfo.project.name}@example.test`);
     await page.getByLabel("Phone").fill("+371 20000404");
+    await page.locator("summary").filter({ hasText: "Optional vessel details" }).click();
     await page.getByLabel("Vessel name").fill("Extension Test Vessel");
     await page.getByLabel("Length (m)").fill("8.5");
     await page.getByLabel("Beam (m)").fill("2.9");
@@ -995,6 +1083,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Customer name").fill(guestName);
     await page.getByLabel("Email").fill("transit@example.test");
     await page.getByLabel("Phone").fill("+371 20000009");
+    await page.locator("summary").filter({ hasText: "Optional vessel details" }).click();
     await page.getByLabel("Vessel name").fill("Test Aurora");
     await page.getByLabel("Length (m)").fill("9.5");
     await page.getByLabel("Beam (m)").fill("3.1");
@@ -1029,6 +1118,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Customer name").fill("Scarce Large Berth Guest");
     await page.getByLabel("Email").fill("large-one@example.test");
     await page.getByLabel("Phone").fill("+371 20000011");
+    await page.locator("summary").filter({ hasText: "Optional vessel details" }).click();
     await page.getByLabel("Vessel name").fill("Large One");
     await page.getByLabel("Length (m)").fill("19");
     await page.getByLabel("Beam (m)").fill("5.8");
@@ -1046,6 +1136,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Customer name").fill("Competing Large Berth Guest");
     await page.getByLabel("Email").fill("large-two@example.test");
     await page.getByLabel("Phone").fill("+371 20000012");
+    await page.locator("summary").filter({ hasText: "Optional vessel details" }).click();
     await page.getByLabel("Vessel name").fill("Large Two");
     await page.getByLabel("Length (m)").fill("19");
     await page.getByLabel("Beam (m)").fill("5.8");

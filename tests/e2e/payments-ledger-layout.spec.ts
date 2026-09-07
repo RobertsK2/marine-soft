@@ -1,0 +1,52 @@
+import { expect, test } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
+
+test.use({ baseURL: "http://localhost:3000" });
+test("payments ledger filters, pagination, booking routes and tenant isolation", async ({ page }, testInfo) => {
+  test.skip(!process.env.SUPABASE_SECRET_KEY, "Requires local Supabase fixtures.");
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  if (!["localhost", "127.0.0.1"].includes(new URL(url).hostname)) throw new Error("Local test database required.");
+  const service = createClient(url, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await service.auth.admin.generateLink({ type: "magiclink", email: "admin-a@berthio.test" });
+  if (error) throw new Error("Local test sign-in failed.");
+  await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(data.properties.hashed_token)}&next=/dashboard`);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.getByRole("navigation", { name: "Marina administration" }).getByRole("link", { name: "Payments", exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard\/payments$/);
+  await expect(page.getByRole("heading", { name: "Payments", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader")).toHaveText(["Booking", "Guest", "Amount", "Status", "Method", "Date", "Actions"]);
+  await expect(page.getByRole("button", { name: /Record Payment|Refund|Export CSV/i })).toHaveCount(0);
+  const records = await service.from("bookings").select("id,reference").eq("marina_id", "d1000000-0000-4000-8000-000000000001").order("id").limit(1);
+  expect(records.error).toBeNull();
+  const booking = records.data![0];
+  await page.getByRole("searchbox").fill(booking.reference);
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await expect(page.getByRole("link", { name: `View booking ${booking.reference}` })).toHaveAttribute("href", `/dashboard/bookings/${booking.id}`);
+  await page.getByRole("searchbox").fill("not-a-real-payment-xyz");
+  await expect(page.getByText("No matching payments")).toBeVisible();
+  await page.getByRole("searchbox").fill("");
+  await page.getByLabel("Payment Status", { exact: true }).selectOption("paid");
+  for (const cell of await page.locator("tbody tr td:nth-child(4)").all()) await expect(cell).toHaveText("Paid");
+  await page.getByLabel("Payment Status", { exact: true }).selectOption("");
+  await page.locator("summary").filter({ hasText: "Date: All dates" }).click();
+  await page.getByLabel("From", { exact: true }).fill("2099-01-01");
+  await expect(page.locator("tbody tr")).toHaveCount(0);
+  await page.getByRole("button", { name: "All dates", exact: true }).click();
+  await page.locator("summary").filter({ hasText: "Date: All dates" }).click();
+  const next = page.getByRole("button", { name: "Next", exact: true });
+  if (await next.isEnabled()) {
+    await next.click();
+    await expect(page.getByRole("button", { name: "Page 2", exact: true })).toHaveAttribute("aria-current", "page");
+    await page.getByRole("button", { name: "Previous", exact: true }).click();
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("payments-ledger.png"), fullPage: true });
+  const other = await service.auth.admin.generateLink({ type: "magiclink", email: "admin-b@berthio.test" });
+  if (other.error) throw new Error("Second tenant test sign-in failed.");
+  await page.context().clearCookies();
+  await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(other.data.properties.hashed_token)}&next=/dashboard/payments`);
+  await expect(page).toHaveURL(/\/dashboard\/payments$/);
+  await expect(page.getByText("Recorded payments, outstanding guest balances, and checkout attempts for Marina B.")).toBeVisible();
+  await page.getByRole("searchbox").fill(booking.reference);
+  await expect(page.locator("tbody tr")).toHaveCount(0);
+});

@@ -67,6 +67,7 @@ export async function updateMarinaProfileAction(
   }
 
   revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/settings/general");
   revalidatePath("/dashboard");
   revalidatePath(`/marina/${context.marinaSlug}`);
   return { status: "success", message: "Marina profile updated." };

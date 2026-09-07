@@ -1,0 +1,18 @@
+.breadcrumb { display: flex; align-items: center; gap: 12px; min-height: 42px; padding-bottom: 18px; border-bottom: 1px solid #e3eaf3; font-size: 14px; }
+.breadcrumb span { color: #8194af; }
+.breadcrumb strong { font-weight: 500; }
+.heading { margin: 32px 0; }
+.heading.heading h1 { margin: 0; font-size: 30px; line-height: 1.2; font-weight: 700; letter-spacing: -.6px; text-transform: none; }
+.heading p { margin: 8px 0 0; color: #5c7192; font-size: 15px; line-height: 1.6; }
+.hub { display: grid; gap: 17px; }
+.row { display: flex; align-items: center; gap: 22px; min-height: 102px; padding: 22px 28px; border: 1px solid #dfe6f0; border-radius: 13px; background: white; box-shadow: 0 2px 2px #0a192f04; }
+.icon { display: grid; place-items: center; flex-shrink: 0; width: 50px; height: 50px; border-radius: 13px; background: #eff5ff; color: #0750ed; }
+.copy { display: grid; gap: 7px; min-width: 0; }
+.copy strong { color: var(--navy); font-size: 17px; font-weight: 600; line-height: 1.3; }
+.copy > span { color: #5c7192; font-size: 14px; line-height: 1.5; }
+.chevron { margin-left: auto; color: #8b9fba; flex-shrink: 0; }
+.row:hover { border-color: #b7cbe8; background: #fcfdff; }
+.row:focus-visible { outline: 2px solid #0750ed; outline-offset: 4px; }
+.footer { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 32px; border-top: 1px solid #e3eaf3; padding: 24px 0 4px; color: #8194af; font-size: 12px; }
+@media (min-width: 1450px) { .row { min-height: 114px; padding: 25px 32px; gap: 25px; } .hub { gap: 20px; } .icon { width: 58px; height: 58px; } .copy strong { font-size: 19px; } .copy > span { font-size: 16px; } .heading p { font-size: 17px; } }
+@media (max-width: 760px) { .heading { margin: 24px 0; } .heading.heading h1 { font-size: 27px; } .heading p { font-size: 14px; } .hub { gap: 12px; } .row { min-height: 108px; padding: 18px 15px; gap: 14px; } .icon { width: 42px; height: 42px; border-radius: 10px; } .icon svg { width: 22px; height: 22px; } .copy strong { font-size: 15px; } .copy > span { font-size: 12px; } .chevron { width: 18px; } }

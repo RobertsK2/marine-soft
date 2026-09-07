@@ -1,4 +1,4 @@
-import { Anchor, LogIn, LogOut } from "lucide-react";
+import { Anchor, LogIn, LogOut, Ship } from "lucide-react";
 import { InsightCard } from "@/components/admin/overview/insight-card";
 import type { OverviewMetrics } from "@/domain/overview/types";
 
@@ -37,6 +37,7 @@ export function QuickInsights({ metrics }: { metrics: OverviewMetrics }) {
           label="Capacity pressure"
           value={occupancyValue}
         />
+        <InsightCard detail="Active bookings staying today" icon={Ship} label="Active stays" value={String(metrics.activeStayCount)} />
       </div>
     </section>
   );

@@ -1,0 +1,79 @@
+.shell.shell :global(.app-placeholder) { padding: 0 32px 32px; }
+.breadcrumb { display: flex; align-items: center; gap: 12px; min-height: 72px; margin: 0 -32px; padding: 0 32px; background: white; border-bottom: 1px solid #e2e9f2; font-size: 14px; }
+.breadcrumb a { color: #657b9c; }
+.breadcrumb svg { color: #92a5bf; }
+.breadcrumb strong { font-weight: 500; }
+.back { display: inline-flex; align-items: center; gap: 6px; margin-top: 30px; color: #0750ed; font-size: 13px; }
+.heading { margin: 12px 0 28px; }
+.heading.heading h1 { margin: 0; font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -.6px; text-transform: none; }
+.heading p { margin: 9px 0 0; color: #607593; font-size: 15px; line-height: 1.6; }
+.filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; padding: 12px; border: 1px solid #dfe7f2; border-radius: 14px; background: white; box-shadow: 0 2px 2px #0a192f04; }
+.filters input, .filters select { min-width: 0; max-width: 100%; min-height: 36px; border: 0; border-radius: 7px; padding: 8px 10px; background: #f7f9fc; color: #253a54; font: inherit; font-size: 12px; }
+.filters select { flex: 1 0 140px; max-width: 200px; }
+.search { display: flex; align-items: center; flex: 2 1 220px; gap: 8px; border-radius: 7px; padding-left: 10px; background: #f7f9fc; color: #8194af; }
+.search input { width: 100%; }
+.search svg { flex-shrink: 0; }
+.search input::placeholder { color: #8194af; }
+.dates { display: flex; align-items: center; gap: 4px; position: relative; margin: 0; padding: 0; border: 0; color: #8194af; }
+.dates legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.dates input { width: 126px; padding-inline: 6px; }
+.reset { padding: 8px; border: 0; background: transparent; color: #71839d; font-size: 12px; cursor: pointer; }
+.reset:hover { color: #0750ed; }
+.tablePanel { overflow: hidden; border: 1px solid #dfe7f2; border-radius: 15px; background: white; box-shadow: 0 2px 2px #0a192f04; }
+.scroll { overflow-x: auto; }
+.table { width: 100%; min-width: 880px; border-collapse: collapse; table-layout: fixed; text-align: left; }
+.table th { padding: 15px 16px; background: #f8fafe; border-bottom: 1px solid #dfe7f2; color: #607593; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.table th:nth-child(1) { width: 13%; }
+.table th:nth-child(2) { width: 21%; }
+.table th:nth-child(3) { width: 21%; }
+.table th:nth-child(4) { width: 16%; }
+.table th:nth-child(5) { width: 29%; }
+.table td { padding: 18px 16px; border-bottom: 1px solid #edf1f6; color: #253a54; vertical-align: top; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.table tbody > tr:last-child > td { border-bottom: 0; }
+.table time { font-size: 12px; }
+.actor { display: flex; align-items: center; gap: 9px; line-height: 1.5; }
+.actor small { display: block; margin-top: 2px; color: #8194af; font-size: 11px; }
+.avatar { display: grid; place-items: center; flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: #eef4ff; color: #426bae; }
+.system { color: #71839d; }
+.system .avatar { background: #f0f3f7; color: #71839d; }
+.action { color: #172238; font-size: 13px; font-weight: 600; line-height: 1.5; }
+.entity { display: inline-block; border-radius: 5px; padding: 1px 7px; background: #f1f5f9; font-size: 11px; line-height: 1.7; }
+.detailsCell { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; color: #607593; }
+.expand { display: grid; place-items: center; flex-shrink: 0; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #8194af; cursor: pointer; }
+.expand:hover { color: #0750ed; background: #f1f5fb; }
+.expand[aria-expanded=true] { color: #0750ed; }
+.expand[aria-expanded=true] svg { transform: rotate(180deg); }
+.expanded td { background: #f9fbfe; padding: 18px 22px; }
+.detailPanel { padding: 18px; border: 1px solid #e1e8f2; border-radius: 11px; background: white; }
+.metadata { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 0; }
+.metadata > div { display: flex; align-items: baseline; gap: 8px; }
+.detailPanel dt, .note > span { color: #8194af; font-weight: 400; }
+.detailPanel dd { margin: 0; }
+.metadata dd small { display: block; color: #8194af; font-size: 11px; }
+.changes { display: grid; gap: 10px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid #edf1f6; }
+.changes > div { display: grid; grid-template-columns: 145px minmax(0, 1fr); gap: 12px; }
+.changes dd { display: flex; flex-wrap: wrap; gap: 12px 24px; }
+.changes dd > span { flex: 1; min-width: 180px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.changes small { display: block; color: #8194af; font-size: 10px; }
+.note { display: flex; gap: 10px; margin: 12px 0 0; color: #607593; }
+.note > span { flex-shrink: 0; }
+.pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 18px; border-top: 1px solid #dfe7f2; background: #fafbfd; color: #607593; font-size: 12px; }
+.pagination p { margin: 0; }
+.pagination nav { display: flex; align-items: center; gap: 8px; }
+.pagination nav > span { margin-right: 6px; color: #8194af; }
+.pagination button { display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px; border: 1px solid #dbe4f0; border-radius: 6px; background: white; color: #253a54; font-size: 12px; cursor: pointer; }
+.pagination button:disabled { color: #a7b5c9; cursor: not-allowed; background: #fafbfd; }
+.limit { margin: 24px 0 0; color: #8194af; font-size: 11px; }
+.empty { text-align: center; padding: 40px !important; color: #71839d; }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.shell a:focus-visible, .filters input:focus-visible, .filters select:focus-visible, .filters button:focus-visible, .tablePanel button:focus-visible, .scroll:focus-visible { outline: 2px solid #0750ed; outline-offset: 3px; }
+@media (max-width: 760px) {
+  .shell.shell :global(.app-placeholder) { padding: 0 16px 24px; }
+  .breadcrumb { margin: 0 -16px; padding: 0 16px; min-height: 60px; }
+  .heading.heading h1 { font-size: 27px; }
+  .filters select { max-width: none; flex-basis: 40%; }
+  .search { flex-basis: 100%; }
+  .dates { flex: 1; }
+  .dates input { flex: 1; width: 115px; }
+  .pagination nav { margin-left: auto; }
+}

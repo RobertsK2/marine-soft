@@ -1,6 +1,7 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
+import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import type { MarinaProfileActionState } from "@/app/dashboard/settings/actions";
@@ -45,10 +46,12 @@ export function MarinaProfileForm({
   action,
   profile,
   timezones,
+  cancelHref = "/dashboard/settings",
 }: {
   action: ProfileAction;
   profile: MarinaProfile;
   timezones: readonly string[];
+  cancelHref?: string;
 }) {
   const [state, formAction] = useActionState(action, initialState);
 
@@ -58,8 +61,8 @@ export function MarinaProfileForm({
         <div className="form-section-heading">
           <span>01</span>
           <div>
-            <h2 id="marina-identity-heading">Marina identity</h2>
-            <p>The operational and public name for this marina.</p>
+            <h2 id="marina-identity-heading">Marina Profile</h2>
+            <p>Core identity information for this marina workspace.</p>
           </div>
         </div>
         <div className="berth-form-grid berth-form-grid-two">
@@ -77,9 +80,19 @@ export function MarinaProfileForm({
             <FieldError errors={state.fieldErrors} field="name" />
           </div>
           <div className="form-field">
-            <label htmlFor="slug">Public slug</label>
-            <input disabled id="slug" value={profile.slug} />
-            <p className="field-help">Read-only in this phase.</p>
+            <label htmlFor="websiteUrl">Website</label>
+            <input
+              aria-describedby={describedBy(state.fieldErrors, "websiteUrl", "websiteUrl-help")}
+              aria-invalid={Boolean(state.fieldErrors?.websiteUrl)}
+              defaultValue={profile.website_url ?? ""}
+              id="websiteUrl"
+              maxLength={2048}
+              name="websiteUrl"
+              placeholder="https://marina.example"
+              type="url"
+            />
+            <p className="field-help" id="websiteUrl-help">HTTPS only.</p>
+            <FieldError errors={state.fieldErrors} field="websiteUrl" />
           </div>
         </div>
       </section>
@@ -143,8 +156,8 @@ export function MarinaProfileForm({
         <div className="form-section-heading">
           <span>03</span>
           <div>
-            <h2 id="marina-contact-heading">Public contact</h2>
-            <p>Only completed fields appear on an already-published marina page.</p>
+            <h2 id="marina-contact-heading">Contact Information</h2>
+            <p>Primary communication channels for guest booking communications.</p>
           </div>
         </div>
         <div className="berth-form-grid berth-form-grid-two">
@@ -175,21 +188,6 @@ export function MarinaProfileForm({
             />
             <FieldError errors={state.fieldErrors} field="contactPhone" />
           </div>
-          <div className="form-field marina-profile-wide-field">
-            <label htmlFor="websiteUrl">Website</label>
-            <input
-              aria-describedby={describedBy(state.fieldErrors, "websiteUrl", "websiteUrl-help")}
-              aria-invalid={Boolean(state.fieldErrors?.websiteUrl)}
-              defaultValue={profile.website_url ?? ""}
-              id="websiteUrl"
-              maxLength={2048}
-              name="websiteUrl"
-              placeholder="https://marina.example"
-              type="url"
-            />
-            <p className="field-help" id="websiteUrl-help">HTTPS only.</p>
-            <FieldError errors={state.fieldErrors} field="websiteUrl" />
-          </div>
         </div>
       </section>
 
@@ -197,8 +195,8 @@ export function MarinaProfileForm({
         <div className="form-section-heading">
           <span>04</span>
           <div>
-            <h2 id="marina-timezone-heading">Operational timezone</h2>
-            <p>Bookings and audit timestamps remain stored in UTC. Displays use this IANA timezone.</p>
+            <h2 id="marina-timezone-heading">Operational Time</h2>
+            <p>Timezone controls booking check-in/out timestamps and operational schedules.</p>
           </div>
         </div>
         <div className="berth-form-grid berth-form-grid-two">
@@ -231,6 +229,7 @@ export function MarinaProfileForm({
       ) : null}
 
       <div className="form-actions">
+        <Link className="button button-secondary" href={cancelHref}>Cancel</Link>
         <SubmitButton />
       </div>
     </form>

@@ -16,7 +16,7 @@ test.describe("pricing configuration admin", () => {
   test("admin updates VAT mode atomically and can restore it", async ({ page }) => {
     await login(page, process.env.E2E_MARINA_EMAIL ?? "admin-a@berthio.test");
     await page.goto("/dashboard/settings/pricing");
-    await expect(page.getByRole("heading", { name: "Pricing configuration" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Pricing", exact: true })).toBeVisible();
     await expect(page.getByLabel("Currency")).toHaveValue("EUR");
     await expect(page.getByLabel("Pricing model")).toHaveValue("per_meter");
 
@@ -25,13 +25,13 @@ test.describe("pricing configuration admin", () => {
     const changedMode = originalMode === "exclusive" ? "inclusive" : "exclusive";
     try {
       await taxMode.selectOption(changedMode);
-      await page.getByRole("button", { name: "Save pricing configuration" }).click();
+      await page.getByRole("button", { name: "Save Changes" }).click();
       await expect(page.getByRole("status")).toContainText("Existing booking snapshots were not changed");
       await expect(page.getByLabel("VAT / tax mode")).toHaveValue(changedMode);
     } finally {
       await page.goto("/dashboard/settings/pricing");
       await page.getByLabel("VAT / tax mode").selectOption(originalMode);
-      await page.getByRole("button", { name: "Save pricing configuration" }).click();
+      await page.getByRole("button", { name: "Save Changes" }).click();
       await expect(page.getByRole("status")).toContainText("Pricing configuration updated");
     }
   });
@@ -42,3 +42,4 @@ test.describe("pricing configuration admin", () => {
     await expect(page.locator("body")).toContainText("404");
   });
 });
+

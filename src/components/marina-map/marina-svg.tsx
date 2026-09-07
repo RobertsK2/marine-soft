@@ -5,10 +5,12 @@ export function MarinaSvg({
   mappedBerths,
   selectedBerthId,
   onSelect,
+  onPreview,
 }: {
   mappedBerths: MappedBerth[];
   selectedBerthId: string | null;
   onSelect: (berthId: string) => void;
+  onPreview?: (berthId: string | null) => void;
 }) {
   return (
     <svg
@@ -41,6 +43,7 @@ export function MarinaSvg({
           key={mappedBerth.berth.id}
           mappedBerth={mappedBerth}
           onSelect={onSelect}
+          onPreview={onPreview}
           selected={mappedBerth.berth.id === selectedBerthId}
         />
       ))}

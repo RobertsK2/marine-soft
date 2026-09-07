@@ -9,10 +9,12 @@ export function BerthShape({
   mappedBerth,
   selected,
   onSelect,
+  onPreview,
 }: {
   mappedBerth: MappedBerth;
   selected: boolean;
   onSelect: (berthId: string) => void;
+  onPreview?: (berthId: string | null) => void;
 }) {
   const { berth, displayStatus, placement } = mappedBerth;
   const mapStatus = displayStatus === "unavailable" ? statusLabel(berth.status) : statusLabel(displayStatus);
@@ -33,6 +35,10 @@ export function BerthShape({
       data-berth-id={berth.id}
       onClick={select}
       onKeyDown={handleKeyDown}
+      onMouseEnter={onPreview ? () => onPreview(berth.id) : undefined}
+      onMouseLeave={onPreview ? () => onPreview(null) : undefined}
+      onFocus={onPreview ? () => onPreview(berth.id) : undefined}
+      onBlur={onPreview ? () => onPreview(null) : undefined}
       role="button"
       tabIndex={0}
       transform={`translate(${placement.x} ${placement.y}) rotate(${placement.rotation})`}

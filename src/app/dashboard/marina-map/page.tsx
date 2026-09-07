@@ -1,14 +1,16 @@
 import { updateBerthStatusAction } from "@/app/dashboard/berths/actions";
 import { AppShell } from "@/components/app-shell";
-import { MarinaMap } from "@/components/marina-map/marina-map";
+import { BerthMapWorkspace } from "@/components/marina-map/berth-map-workspace";
 import { listBerths } from "@/domain/berths/repository";
 import { listBookings } from "@/domain/bookings/repository";
 import { listBerthAssignments } from "@/domain/berth-assignments/repository";
 import type { MapBookingAssignment } from "@/domain/berth-assignments/types";
-import { mapBerthsToLayout } from "@/domain/marina-map/model";
+import { deriveMapDisplayStatus, mapBerthsToLayout } from "@/domain/marina-map/model";
 import { PILOT_BERTH_LAYOUT } from "@/domain/marina-map/pilot-layout";
 import { requireMarinaMembership } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { CalendarDays } from "lucide-react";
+import shellStyles from "../overview.module.css";
 
 export const metadata = { title: "Marina map" };
 
@@ -44,12 +46,19 @@ export default async function MarinaMapPage() {
 
   return (
     <AppShell
+      className={shellStyles.overview}
+      activePage="map"
+      overviewHeader={<header className={shellStyles.topbar}>
+        <div><h1>Marina map</h1><p>{context.marinaName}</p></div>
+        <div className={shellStyles.date}><CalendarDays size={18} aria-hidden="true" /><div>{new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: context.timezone }).format(new Date())}<small>{context.timezone}</small></div></div>
+      </header>}
       context={context}
       description="A Berthio-managed SVG connected directly to this marina's tenant-isolated berth records."
       title="Marina map"
       wide
     >
-      <MarinaMap
+      <BerthMapWorkspace
+        statuses={berths.map((berth) => deriveMapDisplayStatus(berth, assignmentsByBerth.get(berth.id)))}
         mappedBerths={mappedBerths}
         marinaName={context.marinaName}
         unmappedCount={unmappedBerths.length}

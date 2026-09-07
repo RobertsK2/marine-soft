@@ -1,73 +1,60 @@
-import { CalendarDays, Plus } from "lucide-react";
-import Link from "next/link";
+import { CalendarDays, Clock3, LogIn, LogOut } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import { BookingStatusBadge } from "@/components/bookings/booking-status";
-import {
-  formatBookingDate,
-  formatBookingTime,
-  formatVesselName,
-} from "@/domain/bookings/formatting";
+import { BookingsList } from "@/components/bookings/bookings-list";
+import { bookingPaymentLabel, bookingStayLabel } from "@/components/bookings/bookings-list-model";
 import { listBookings } from "@/domain/bookings/repository";
+import { listBerths } from "@/domain/berths/repository";
+import { listBerthAssignments } from "@/domain/berth-assignments/repository";
+import { deriveBookingPaymentBalance } from "@/domain/booking-payments/model";
+import { deriveOverviewMetrics, marinaDateKey } from "@/domain/overview/model";
 import { requireMarinaMembership } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import shellStyles from "../overview.module.css";
+import styles from "@/components/bookings/bookings-list.module.css";
 
 export const metadata = { title: "Bookings" };
 
 export default async function BookingsPage() {
   const context = await requireMarinaMembership("/dashboard/bookings");
   const supabase = await createClient();
-  const bookings = await listBookings(supabase, context.marinaId);
-  const counts = {
-    confirmed: bookings.filter((booking) => booking.status === "confirmed").length,
-    checkedIn: bookings.filter((booking) => booking.status === "checked_in").length,
-    completed: bookings.filter((booking) => booking.status === "checked_out").length,
-  };
+  const [bookings, berths, assignments, paymentResult] = await Promise.all([
+    listBookings(supabase, context.marinaId),
+    listBerths(supabase, context.marinaId),
+    listBerthAssignments(supabase, context.marinaId),
+    supabase.from("booking_payment_balances").select("booking_id,state,balance_due_minor,currency").eq("marina_id", context.marinaId),
+  ]);
+  if (paymentResult.error) throw new Error("Unable to load booking payment balances.");
+  const paymentByBooking = new Map(paymentResult.data.map((balance) => [balance.booking_id, balance]));
+  const berthById = new Map(berths.map((berth) => [berth.id, berth.code]));
+  const now = new Date();
+  const today = marinaDateKey(now, context.timezone);
+  const metrics = deriveOverviewMetrics(bookings, berths, today);
+  const rows = bookings.map((booking) => {
+    const balance = paymentByBooking.get(booking.id) ?? deriveBookingPaymentBalance(booking);
+    const berthCodes = [...new Set(assignments
+      .filter((assignment) => assignment.booking_id === booking.id && assignment.ended_at === null)
+      .sort((left, right) => left.arrival_date.localeCompare(right.arrival_date))
+      .map((assignment) => berthById.get(assignment.berth_id) ?? "Unknown berth"))];
+    return {
+      id: booking.id, reference: booking.reference, customer_name: booking.customer_name,
+      customer_email: booking.customer_email, vessel_name: booking.vessel_name,
+      arrival_date: booking.arrival_date, departure_date: booking.departure_date,
+      eta: booking.eta, etd: booking.etd, status: booking.status, source: booking.source,
+      berthCodes, payment: bookingPaymentLabel(balance), stayLabel: bookingStayLabel(booking.arrival_date, booking.departure_date),
+    };
+  });
 
-  return (
-    <AppShell
-      context={context}
-      description="Manual and confirmed online transit bookings in one capacity view."
-      title="Bookings"
-      wide
-    >
-      <div className="inventory-toolbar">
-        <p><CalendarDays size={17} aria-hidden="true" />{bookings.length} booking records</p>
-        <Link className="button button-primary" href="/dashboard/bookings/new">
-          <Plus size={17} aria-hidden="true" />Create booking
-        </Link>
-      </div>
-      <div className="inventory-stats" aria-label="Booking status summary">
-        <article><span>Total</span><strong>{bookings.length}</strong></article>
-        <article><span>Confirmed</span><strong>{counts.confirmed}</strong></article>
-        <article><span>Checked in</span><strong>{counts.checkedIn}</strong></article>
-        <article><span>Checked out</span><strong>{counts.completed}</strong></article>
-      </div>
-
-      {bookings.length === 0 ? (
-        <div className="inventory-empty">
-          <CalendarDays size={28} aria-hidden="true" />
-          <h2>No bookings recorded</h2>
-          <p>Create the first capacity booking for this marina.</p>
-        </div>
-      ) : (
-        <div className="berth-table-wrap">
-          <table className="berth-table booking-table">
-            <thead><tr><th>Reference</th><th>Stay</th><th>Customer</th><th>Vessel</th><th>Status</th><th><span className="sr-only">Open</span></th></tr></thead>
-            <tbody>
-              {bookings.map((booking) => (
-                <tr key={booking.id}>
-                  <td className="mono-cell"><strong>{booking.reference}</strong><span>{booking.source === "online" ? "Online · paid" : "Manual"}</span></td>
-                  <td><strong>{formatBookingDate(booking.arrival_date)}</strong><span>to {formatBookingDate(booking.departure_date)} / ETA {formatBookingTime(booking.eta)}</span></td>
-                  <td><strong>{booking.customer_name}</strong><span>{booking.customer_email}</span></td>
-                  <td><strong>{formatVesselName(booking.vessel_name)}</strong><span>{booking.vessel_length_m} × {booking.vessel_beam_m} × {booking.vessel_draft_m} m</span></td>
-                  <td><BookingStatusBadge status={booking.status} /></td>
-                  <td><Link className="table-link" href={`/dashboard/bookings/${booking.id}`}>View</Link></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </AppShell>
-  );
+  return <AppShell context={context} title="Bookings" description="Marina bookings" wide
+    className={shellStyles.overview} activePage="bookings"
+    overviewHeader={<header className={shellStyles.topbar}>
+      <div><h1>Bookings</h1><p>{context.marinaName}</p></div>
+      <div className={shellStyles.date}><CalendarDays size={18} aria-hidden="true" /><div><time dateTime={today}>Today, {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: context.timezone }).format(now)}</time><small>{context.timezone}</small></div></div>
+    </header>}>
+    <section className={styles.kpis} aria-label="Booking status summary">
+      <article><span className={styles.icon}><LogIn size={22} aria-hidden="true" /></span><div><h2>Arrivals today</h2><strong>{metrics.arrivalsToday}</strong><p>Scheduled for today</p></div></article>
+      <article><span className={styles.icon}><LogOut size={22} aria-hidden="true" /></span><div><h2>Departures today</h2><strong>{metrics.departuresToday}</strong><p>Scheduled for today</p></div></article>
+      <article><span className={styles.icon}><Clock3 size={22} aria-hidden="true" /></span><div><h2>Confirmed bookings</h2><strong>{bookings.filter(({ status }) => status === "confirmed").length}</strong><p>Total confirmed</p></div></article>
+    </section>
+    <BookingsList rows={rows} />
+  </AppShell>;
 }

@@ -1,0 +1,74 @@
+.shell :global(.app-placeholder) { padding: 0 40px 56px; }
+.breadcrumb { display: flex; align-items: center; gap: 12px; min-height: 80px; margin: 0 -40px; padding: 0 40px; border-bottom: 1px solid #e0e7f0; background: white; font-size: 14px; }
+.breadcrumb a { color: #607593; }
+.breadcrumb span { color: #bbc7d7; }
+.back { display: inline-flex; margin-top: 28px; color: #0750ed; font-size: 13px; }
+.back:hover { text-decoration: underline; }
+.heading { margin: 18px 0 28px; }
+.heading.heading h1 { margin: 0; font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -.6px; text-transform: none; }
+.heading p { margin: 10px 0 0; color: #607593; font-size: 15px; }
+.shell :global(.pricing-config-form) { display: grid; gap: 0; margin: 0; border: 1px solid #dfe6f0; border-radius: 14px; overflow: hidden; background: white; }
+.shell :global(.form-section) { position: relative; padding: 30px; border: 0; border-bottom: 1px solid #edf1f6; }
+.shell :global(.form-section-heading) { display: block; padding: 0; border: 0; }
+.shell :global(.form-section-heading > span) { display: none; }
+.shell :global(.form-section-heading h2) { margin: 0; font-size: 18px; font-weight: 600; text-transform: none; letter-spacing: -.2px; }
+.shell :global(.form-section-heading p) { margin: 6px 0 0; color: #607593; font-size: 13px; }
+.shell :global(.form-section:has(.pricing-add) .form-section-heading) { padding-right: 100px; }
+.shell :global(.pricing-config-list) { display: grid; gap: 12px; margin-top: 20px; }
+.shell :global(.pricing-config-card) { display: block; min-width: 0; margin: 0; padding: 0; border: 1px solid #e1e8f1; border-radius: 9px; background: #fbfcfe; }
+.tierRow { display: flex; align-items: center; gap: 12px; min-height: 96px; padding: 18px; }
+.tierNumber { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 36px; border: 1px solid #e1e8f1; border-radius: 7px; color: #607593; font-size: 13px; }
+.tierDescription { flex: 1; min-width: 0; }
+.tierDescription h3 { margin: 0; font-size: 15px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+.tierDescription p { margin: 5px 0 0; font-size: 12px; color: #607593; overflow-wrap: anywhere; }
+.refund { display: grid; gap: 4px; text-align: right; margin-right: 8px; }
+.refund strong { font-size: 24px; font-weight: 650; }
+.refund span { font-size: 11px; color: #607593; }
+.iconButton { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border: 0; border-radius: 6px; color: #7186a1; background: transparent; cursor: pointer; }
+.iconButton:hover { background: #edf2f9; color: #233852; }
+.iconButton:focus-visible { outline: 2px solid #0750ed; }
+.iconButton:disabled { opacity: .4; cursor: default; }
+.shell :global(.berth-form-grid) { padding: 18px; border-top: 1px solid #e1e8f1; gap: 16px; }
+.shell :global(.form-field) { display: grid; align-content: start; gap: 7px; min-width: 0; }
+.shell :global(.form-field label) { font-size: 12px; color: #53647a; font-weight: 500; }
+.shell :global(.form-field input) { width: 100%; min-width: 0; min-height: 42px; border: 1px solid #cbd7e6; border-radius: 7px; background: white; padding: 9px 12px; font: inherit; font-size: 13px; }
+.shell :global(.form-field input:disabled) { background: #f1f4f8; color: #607593; }
+.shell :global(.form-field input:focus-visible) { outline: 2px solid #c6d7ff; border-color: #0750ed; }
+.shell :global(.pricing-add) { position: absolute; top: 25px; right: 20px; border: 0; color: #0750ed; background: transparent; font-size: 13px; }
+.shell :global(.pricing-config-form .button) { text-transform: none; letter-spacing: 0; }
+.coverage, .preview { margin-top: 18px; padding: 20px; border: 1px solid #e1e8f1; border-radius: 9px; background: #f8fafc; }
+.coverage p { margin: 0; font-size: 13px; color: #53647a; }
+.timeline { display: flex; gap: 2px; margin: 12px 0; border-radius: 5px; overflow: hidden; }
+.timeline span { flex: 1; min-width: 0; padding: 5px 0; background: #dce6f3; color: #324d70; font-size: 11px; text-align: center; overflow: hidden; }
+.timeline span:nth-child(even) { background: #c8d7eb; }
+.invalid { opacity: .35; }
+.coverage .coverageHelp { font-size: 11px; color: #7186a1; }
+.preview { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: start; gap: 24px; }
+.previewResult { display: grid; gap: 6px; padding-left: 24px; border-left: 1px solid #dfe6f0; }
+.previewResult > span { color: #607593; font-size: 12px; }
+.previewResult strong { color: #0750ed; font-size: 25px; }
+.previewResult p { margin: 0; font-size: 12px; color: #607593; }
+.note { display: flex; align-items: start; gap: 12px; padding: 22px 30px; color: #607593; font-size: 12px; }
+.note svg { flex-shrink: 0; margin-top: 2px; }
+.note strong { color: #53647a; font-weight: 500; }
+.note p { margin: 5px 0 0; line-height: 1.6; }
+.shell :global(.form-actions) { display: flex; flex-direction: row; justify-content: flex-end; gap: 12px; margin: 0; padding: 22px 30px; border-top: 1px solid #edf1f6; background: #f8fafc; }
+.shell :global(.form-actions .button) { width: auto; min-height: 42px; padding: 10px 22px; border-radius: 7px; font-size: 13px; }
+.shell :global(.form-actions .button-primary) { border: 0; background: #0750ed; color: white; }
+.shell :global(.form-actions .button-quiet) { border: 1px solid #dfe6f0; background: white; color: #53647a; }
+@media (max-width: 760px) {
+  .shell :global(.app-placeholder) { padding: 0 16px 30px; }
+  .breadcrumb { margin: 0 -16px; padding: 0 16px; min-height: 62px; font-size: 12px; }
+  .heading.heading h1 { font-size: 26px; }
+  .heading p { font-size: 13px; }
+  .shell :global(.form-section) { padding: 22px 18px; }
+  .shell :global(.form-section:has(.pricing-add) .form-section-heading) { padding-right: 0; }
+  .shell :global(.pricing-add) { position: static; margin-top: 12px; }
+  .tierRow { flex-wrap: wrap; gap: 8px; padding: 14px; }
+  .tierDescription { flex-basis: calc(100% - 48px); }
+  .refund { flex: 1; text-align: left; margin: 8px 0 0 40px; }
+  .shell :global(.berth-form-grid-four) { grid-template-columns: 1fr 1fr; padding: 14px; }
+  .preview { grid-template-columns: 1fr; padding: 16px; gap: 18px; }
+  .previewResult { padding: 16px 0 0; border: 0; border-top: 1px solid #dfe6f0; }
+  .note, .shell :global(.form-actions) { padding: 20px 18px; }
+}
