@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -24,8 +24,9 @@ const request = {
     version: 1, currency: "EUR", totalMinor: 10000,
     arrivalDate: "2026-11-10", departureDate: "2026-11-12", vesselLengthM: 19,
   },
-  request_session_hash: "1".repeat(64),
-  request_network_hash: "2".repeat(64),
+  // Isolate separate test runs while all racers within this run share quotas.
+  request_session_hash: randomBytes(32).toString("hex"),
+  request_network_hash: randomBytes(32).toString("hex"),
 };
 
 const results = await Promise.all(clients.map((client, index) => client.rpc("create_booking_hold", {
@@ -62,12 +63,15 @@ const quotaResults = await Promise.all(Array.from({ length: 4 }, async (_, index
     },
   });
 }));
-for (const result of quotaResults) assert.equal(result.error, null);
 const quotaRows = quotaResults.map((result) => result.data?.[0]);
-assert.deepEqual(quotaRows.map((row) => row?.outcome).sort(), ["created", "created", "rate_limited", "rate_limited"]);
-for (const row of quotaRows.filter((candidate) => candidate?.hold_token)) {
-  const cleanup = await clients[0].rpc("release_booking_hold_after_checkout_failure", { target_hold_token: row.hold_token });
-  assert.equal(cleanup.error, null);
+try {
+  for (const result of quotaResults) assert.equal(result.error, null);
+  assert.deepEqual(quotaRows.map((row) => row?.outcome).sort(), ["created", "created", "rate_limited", "rate_limited"]);
+} finally {
+  for (const row of quotaRows.filter((candidate) => candidate?.hold_token)) {
+    const cleanup = await clients[0].rpc("release_booking_hold_after_checkout_failure", { target_hold_token: row.hold_token });
+    assert.equal(cleanup.error, null);
+  }
 }
 
 console.log("PASS: concurrent capacity and anonymous-session quota races stayed serialized and within their limits.");

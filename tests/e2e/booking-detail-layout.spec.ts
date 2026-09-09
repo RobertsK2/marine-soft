@@ -17,8 +17,8 @@ test.describe("booking detail workspace", () => {
     } else {
     await page.goto("/login");
     await page.getByLabel("Email").fill(process.env.E2E_MARINA_EMAIL!);
-    await page.getByLabel("Password").fill(process.env.E2E_MARINA_PASSWORD!);
-    await page.getByRole("button", { name: "Log in" }).click();
+    await page.getByLabel("Password", { exact: true }).fill(process.env.E2E_MARINA_PASSWORD!);
+    await page.getByRole("button", { name: "Sign In" }).click();
     }
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto("/dashboard/bookings/da000000-0000-4000-8000-000000000002");

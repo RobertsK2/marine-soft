@@ -20,7 +20,7 @@ export async function loadPublicationSettings(
   const [profileResult, pricing, integrations] = await Promise.all([
     supabase
       .from("marinas")
-      .select("id, name, slug, timezone, public_description, is_public, updated_at")
+      .select("id, name, slug, timezone, public_description, is_public, updated_at, accepts_online_payment, accepts_pay_at_marina")
       .eq("id", marinaId)
       .maybeSingle(),
     loadPricingConfiguration(supabase, marinaId),
@@ -34,6 +34,8 @@ export async function loadPublicationSettings(
   if (!profileResult.data) throw new PublicationRepositoryError("Marina publication settings were not found.");
 
   const profile: PublicationProfile = {
+    acceptsOnlinePayment: profileResult.data.accepts_online_payment,
+    acceptsPayAtMarina: profileResult.data.accepts_pay_at_marina,
     id: profileResult.data.id,
     name: profileResult.data.name,
     slug: profileResult.data.slug,
@@ -49,4 +51,3 @@ export async function loadPublicationSettings(
     readiness: buildPublicationReadiness({ profile, pricing, integrations }),
   };
 }
-

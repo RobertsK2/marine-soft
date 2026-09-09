@@ -2,6 +2,8 @@ import type { IntegrationStatus, ReadinessState } from "@/domain/integration-sta
 import type { PricingConfiguration } from "@/domain/pricing/types";
 
 export type PublicationProfile = {
+  acceptsOnlinePayment: boolean;
+  acceptsPayAtMarina: boolean;
   id: string;
   name: string;
   slug: string;
@@ -12,7 +14,7 @@ export type PublicationProfile = {
 };
 
 export type PublicationReadinessItem = {
-  key: "profile" | "pricing" | "stripe" | "postmark" | "worker";
+  key: "profile" | "pricing" | "payments" | "stripe" | "postmark" | "worker";
   label: string;
   state: ReadinessState;
   detail: string;
@@ -35,4 +37,3 @@ export type PublicationActionState = {
   status: "idle" | "success" | "error";
   message?: string;
 };
-

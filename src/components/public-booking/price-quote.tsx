@@ -1,4 +1,4 @@
-import { Calculator, ReceiptText, XCircle } from "lucide-react";
+import { XCircle } from "lucide-react";
 import type {
   PriceNightSnapshot,
   PublicPriceQuote,
@@ -43,9 +43,11 @@ function feeUnit(type: PublicPriceQuote["mandatoryFees"][number]["type"]) {
 export function PriceQuote({
   error,
   quote,
+  paymentRequired = true,
 }: {
   error?: string;
   quote: PublicPriceQuote | null;
+  paymentRequired?: boolean;
 }) {
   if (error) {
     return (
@@ -72,13 +74,26 @@ export function PriceQuote({
     >
       <header>
         <div>
-          <p><Calculator aria-hidden="true" size={15} /> Server-calculated quote</p>
           <h3 id="public-price-heading">Price breakdown</h3>
         </div>
-        <strong>{money(quote.totalMinor, quote.currency)}</strong>
       </header>
 
       <dl className="public-price-lines">
+        <div><dt>Stay ({quote.nights.length} {quote.nights.length === 1 ? "night" : "nights"})</dt><dd>{money(quote.nights.reduce((sum, night) => sum + night.amountMinor, 0), quote.currency)}</dd></div>
+        <div><dt>Mandatory fees</dt><dd>{money(quote.mandatoryFees.reduce((sum, fee) => sum + fee.amountMinor, 0), quote.currency)}</dd></div>
+        <div>
+          <dt>
+            <strong>Tax / VAT {taxPercent}%</strong>
+            <span>{quote.taxBehavior === "inclusive" ? "Included in configured prices" : "Added to configured prices"}</span>
+          </dt>
+          <dd>{money(quote.taxMinor, quote.currency)}</dd>
+        </div>
+        <div className="public-price-total">
+          <dt>Total <span>Includes taxes &amp; mandatory fees</span></dt>
+          <dd>{money(quote.totalMinor, quote.currency)}</dd>
+        </div>
+      </dl>
+      <details className="public-price-details"><summary>View rate and fee details</summary><dl className="public-price-lines">
         {rateGroups.map((group) => (
           <div key={`${group.season}:${group.rateUnit}:${group.rateMinor}`}>
             <dt>
@@ -104,24 +119,9 @@ export function PriceQuote({
             <dd>{money(fee.amountMinor, quote.currency)}</dd>
           </div>
         ))}
-        <div className="public-price-subtotal">
-          <dt>Configured subtotal</dt>
-          <dd>{money(quote.subtotalMinor, quote.currency)}</dd>
-        </div>
-        <div>
-          <dt>
-            <strong>Tax / VAT {taxPercent}%</strong>
-            <span>{quote.taxBehavior === "inclusive" ? "Included in configured prices" : "Added to configured prices"}</span>
-          </dt>
-          <dd>{money(quote.taxMinor, quote.currency)}</dd>
-        </div>
-        <div className="public-price-total">
-          <dt><ReceiptText aria-hidden="true" size={16} /> Final tax-inclusive total</dt>
-          <dd>{money(quote.totalMinor, quote.currency)}</dd>
-        </div>
-      </dl>
+      </dl></details>
       <p className="public-price-note">
-        Every occupied night uses its active seasonal rate. This quote is calculated on the server; no booking, payment, or capacity hold has been created.
+        {paymentRequired ? "Rates include each night of your stay. Your booking is confirmed after successful payment." : "Rates include each night of your stay and all mandatory fees."}
       </p>
     </section>
   );

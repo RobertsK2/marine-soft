@@ -1,4 +1,4 @@
-export type CheckoutActionState = { status: "idle" | "error"; message?: string };
+export type CheckoutActionState = { status: "idle" | "error"; message?: string; requiresAvailabilityCheck?: boolean; fieldErrors?: Partial<Record<"customerName" | "customerEmail" | "customerPhone", string>> };
 export type CheckoutReturnStatus = {
   status: "paid" | "processing" | "failed";
   amountTotalMinor: number;

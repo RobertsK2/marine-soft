@@ -3,6 +3,8 @@ import type { IntegrationStatus, ReadinessState } from "@/domain/integration-sta
 import { buildPublicationReadiness, integrationsAllowPublishing } from "@/domain/public-page-publishing/model";
 
 const profile = {
+  acceptsOnlinePayment: true,
+  acceptsPayAtMarina: false,
   id: "marina-a",
   name: "Marina A",
   slug: "marina-a",
@@ -72,5 +74,11 @@ describe("public page publishing readiness", () => {
     expect(integrationsAllowPublishing(status)).toBe(false);
     expect(buildPublicationReadiness({ profile, pricing, integrations: status }).ready).toBe(false);
   });
-});
 
+  it("allows pay-at-marina-only publishing without Stripe readiness", () => {
+    const status = integrations(["not_ready", "ready", "ready"]);
+    const payLaterProfile = { ...profile, acceptsOnlinePayment: false, acceptsPayAtMarina: true };
+    expect(integrationsAllowPublishing(status, false)).toBe(true);
+    expect(buildPublicationReadiness({ profile: payLaterProfile, pricing, integrations: status }).ready).toBe(true);
+  });
+});

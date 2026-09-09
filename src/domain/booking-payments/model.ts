@@ -15,7 +15,7 @@ export function deriveBookingPaymentBalance(booking: Booking): BookingPaymentBal
     marina_id: booking.marina_id,
     booking_id: booking.id,
     state,
-    collection_method: state === "payment_link_required" ? "payment_link" : booking.source === "online" ? "berthio" : "on_site",
+    collection_method: state === "payment_link_required" ? "payment_link" : booking.booking_payment_id ? "berthio" : "on_site",
     currency: booking.price_currency,
     total_due_minor: total,
     paid_minor: paid,

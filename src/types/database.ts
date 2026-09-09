@@ -448,6 +448,8 @@ export type Database = {
       };
       marinas: {
         Row: {
+          accepts_online_payment: boolean;
+          accepts_pay_at_marina: boolean;
           contact_email: string | null;
           contact_phone: string | null;
           cover_image_url: string | null;
@@ -469,6 +471,8 @@ export type Database = {
           website_url: string | null;
         };
         Insert: {
+          accepts_online_payment?: boolean;
+          accepts_pay_at_marina?: boolean;
           contact_email?: string | null;
           contact_phone?: string | null;
           cover_image_url?: string | null;
@@ -490,6 +494,8 @@ export type Database = {
           website_url?: string | null;
         };
         Update: {
+          accepts_online_payment?: boolean;
+          accepts_pay_at_marina?: boolean;
           contact_email?: string | null;
           contact_phone?: string | null;
           cover_image_url?: string | null;
@@ -867,6 +873,8 @@ export type Database = {
           price_currency: string;
           booking_status: Database["public"]["Enums"]["booking_status"];
           access_expires_at: string;
+          balance_due_minor: number;
+          collection_method: Database["public"]["Enums"]["booking_collection_method"];
         }[];
       };
       update_guest_booking_times: {
@@ -884,6 +892,12 @@ export type Database = {
           request_session_hash: string; request_network_hash: string;
         };
         Returns: { outcome: string; hold_token: string | null; hold_expires_at: string | null; total_minor: number | null; currency: string | null }[];
+      };
+      confirm_pay_at_marina_booking: {
+        Args: Database["public"]["Functions"]["create_booking_hold"]["Args"] & {
+          requested_customer_name: string; requested_customer_email: string; requested_customer_phone: string;
+        };
+        Returns: { outcome: string; booking_id: string | null }[];
       };
       release_booking_hold_after_checkout_failure: {
         Args: { target_hold_token: string };

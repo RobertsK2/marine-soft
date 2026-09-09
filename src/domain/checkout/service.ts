@@ -1,5 +1,5 @@
 import "server-only";
-import { randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import type Stripe from "stripe";
 import { getSiteUrl, isStripeLocalPlatformFallbackEnabled } from "@/lib/env";
 import { createPrivilegedClient } from "@/lib/supabase/privileged";
@@ -26,37 +26,52 @@ export async function createCheckoutForHold(holdToken: string, stripe: Stripe = 
     idempotencyKey: `berthio-checkout-${prepared.payment_id}`,
     ...(!useLocalPlatform ? { stripeAccount: prepared.stripe_account_id } : {}),
   };
+  let creatingSession = false;
   try {
     if (prepared.existing_checkout_session_id) {
       const existing = await stripe.checkout.sessions.retrieve(prepared.existing_checkout_session_id, {}, requestOptions);
       return { outcome: "ready", url: existing.url };
     }
     const siteUrl = getSiteUrl();
+    creatingSession = true;
     const session = await stripe.checkout.sessions.create(buildCheckoutSessionParams({
       holdToken, paymentId: prepared.payment_id, marinaName: prepared.marina_name,
       marinaSlug: prepared.marina_slug, amountTotalMinor: prepared.amount_total_minor,
       currency: prepared.currency, siteUrl,
-      integrationIdentifier: `berthio_phase6_${randomLetters(8)}`,
+      integrationIdentifier: `berthio_phase6_${paymentLetters(prepared.payment_id)}`,
       localPlatformAccountMarker: useLocalPlatform ? LOCAL_PLATFORM_ACCOUNT_MARKER : undefined,
     }), requestOptions);
+    creatingSession = false;
     if (!session.url) throw new Error("Stripe did not return a hosted Checkout URL.");
     const { data: attached, error: attachError } = await supabase.rpc("attach_booking_checkout_session", {
       target_payment_id: prepared.payment_id,
       target_session_id: session.id,
     });
     if (attachError || !attached) {
-      await stripe.checkout.sessions.expire(session.id, {}, requestOptions).catch(() => undefined);
+      // A concurrent retry may have attached this same idempotent session.
+      // Leave it recoverable rather than expiring another request's Checkout.
       throw attachError ?? new Error("Checkout Session could not be attached.");
     }
     return { outcome: "ready", url: session.url };
   } catch (checkoutError) {
-    await supabase.rpc("fail_booking_checkout_creation", { target_payment_id: prepared.payment_id });
+    // Network failures, conflicts, retrieval and attachment failures may have a
+    // live session. Retain the 15-minute hold and payment identity for retry.
+    // Only an unambiguous create rejection can safely release inventory here.
+    const rejection = checkoutError as { type?: string; statusCode?: number };
+    if (creatingSession &&
+        ["StripeInvalidRequestError", "StripeAuthenticationError", "StripePermissionError"].includes(rejection?.type ?? "") &&
+        rejection.statusCode !== undefined && rejection.statusCode >= 400 && rejection.statusCode < 500 &&
+        rejection.statusCode !== 409 && rejection.statusCode !== 429) {
+      const { error: failureError } = await supabase.rpc("fail_booking_checkout_creation", { target_payment_id: prepared.payment_id });
+      if (failureError) throw new CheckoutServiceError("Unable to record rejected Checkout; hold will expire.", { cause: failureError });
+    }
     throw new CheckoutServiceError("Unable to create Stripe Checkout.", { cause: checkoutError });
   }
 }
 
-function randomLetters(length: number) {
-  return [...randomBytes(length)].map((value) => String.fromCharCode(97 + (value % 26))).join("");
+function paymentLetters(paymentId: string) {
+  return [...createHash("sha256").update(paymentId).digest().subarray(0, 8)]
+    .map((value) => String.fromCharCode(97 + (value % 26))).join("");
 }
 
 export async function getCheckoutReturnStatus(marinaSlug: string, sessionId: string) {

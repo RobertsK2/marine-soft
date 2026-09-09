@@ -2,6 +2,7 @@
 import { updatePricingConfigurationAction } from "@/app/dashboard/settings/pricing/actions";
 import { AppShell } from "@/components/app-shell";
 import { PricingConfigurationForm } from "@/components/pricing/pricing-configuration-form";
+import { PaymentMethodsForm } from "@/components/pricing/payment-methods-form";
 import { loadPricingConfiguration } from "@/domain/pricing/repository";
 import type { PricingConfigurationInput } from "@/domain/pricing/types";
 import { requireMarinaMembership } from "@/lib/auth/session";
@@ -25,6 +26,9 @@ export default async function PricingSettingsPage() {
   const context = await requireMarinaMembership("/dashboard/settings/pricing");
   if (context.role !== "marina_admin") notFound();
   const configuration = await loadPricingConfiguration(await createClient(), context.marinaId);
+  const { data: paymentMethods, error: methodsError } = await (await createClient()).from("marinas")
+    .select("accepts_online_payment, accepts_pay_at_marina, updated_at").eq("id", context.marinaId).single();
+  if (methodsError) throw new Error("Unable to load accepted payment methods.");
   const initialConfiguration: PricingConfigurationInput = configuration
     ? {
         currency: configuration.currency,
@@ -53,6 +57,7 @@ export default async function PricingSettingsPage() {
         configurationVersion={expectedUpdatedAt ?? "new"}
         initialConfiguration={initialConfiguration}
       />
+      <PaymentMethodsForm key={paymentMethods.updated_at} online={paymentMethods.accepts_online_payment} atMarina={paymentMethods.accepts_pay_at_marina} updatedAt={paymentMethods.updated_at} />
     </AppShell>
   );
 }

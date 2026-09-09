@@ -19,7 +19,7 @@ export function BookingPaymentBalanceForm({
     <form action={formAction} className="booking-payment-form">
       <div className="payment-balance-summary">
         <span>Current state</span>
-        <strong>{balance.state.replaceAll("_", " ")}</strong>
+        <strong>{balance.collection_method === "on_site" && balance.balance_due_minor > 0 ? "Due at marina" : balance.state.replaceAll("_", " ")}</strong>
         {balance.overdue ? <em>OVERDUE — warning only; booking remains active</em> : null}
       </div>
       <div className="booking-payment-grid">

@@ -1,4 +1,6 @@
 export type PublicMarina = {
+  acceptsOnlinePayment: boolean;
+  acceptsPayAtMarina: boolean;
   contactEmail: string | null;
   contactPhone: string | null;
   coverImageUrl: string | null;

@@ -113,7 +113,7 @@ export default async function BookingDetailPage({
           ) : <p className="assignment-warning">Cancelled and checked-out bookings cannot be extended.</p>}
         </div></details>
           </section>
-          <section className={styles.card}><h2>Financial & billing</h2><p className={styles.paymentState}>{paymentBalance.state.replaceAll("_", " ")}</p><dl className={styles.money}>
+          <section className={styles.card}><h2>Financial & billing</h2><p className={styles.paymentState}>{paymentBalance.collection_method === "on_site" && paymentBalance.balance_due_minor > 0 ? "Due at marina" : paymentBalance.state.replaceAll("_", " ")}</p><dl className={styles.money}>
             <div><dt>Total amount</dt><dd>{money(paymentBalance.total_due_minor)}</dd></div><div><dt>Recorded paid</dt><dd>{money(paymentBalance.paid_minor)}</dd></div><div><dt>Balance due</dt><dd>{money(paymentBalance.balance_due_minor)}</dd></div>
           </dl>{paymentBalance.overdue ? <p className={styles.warning}>Overdue - booking remains active</p> : null}
 <details className={styles.disclosure} ><summary>Manage payment / staff note</summary><div className={styles.formBody}>

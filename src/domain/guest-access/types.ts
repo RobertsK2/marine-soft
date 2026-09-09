@@ -13,6 +13,8 @@ export type GuestBooking = {
   vesselDraftM: number;
   priceTotalMinor: number;
   priceCurrency: string;
+  balanceDueMinor: number;
+  collectionMethod: Database["public"]["Enums"]["booking_collection_method"];
   status: Database["public"]["Enums"]["booking_status"];
   accessExpiresAt: string;
 };

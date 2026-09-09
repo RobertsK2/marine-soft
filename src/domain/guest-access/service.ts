@@ -69,6 +69,8 @@ export async function loadGuestBooking(token: string): Promise<GuestBooking | nu
     vesselDraftM: booking.vessel_draft_m,
     priceTotalMinor: booking.price_total_minor,
     priceCurrency: booking.price_currency,
+    balanceDueMinor: booking.balance_due_minor,
+    collectionMethod: booking.collection_method,
     status: booking.booking_status,
     accessExpiresAt: booking.access_expires_at,
   };

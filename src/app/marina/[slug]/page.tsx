@@ -2,7 +2,9 @@
 import type { CSSProperties } from "react";
 import { randomUUID } from "node:crypto";
 import type { Metadata } from "next";
-import { Anchor, ArrowDown, Clock3, Compass, ExternalLink, Mail, Phone } from "lucide-react";
+import { Anchor, Clock3, LockKeyhole, Mail } from "lucide-react";
+import Link from "next/link";
+import styles from "@/components/public-booking/guest-booking.module.css";
 import { notFound } from "next/navigation";
 import { BookingSearchForm } from "@/components/public-booking/booking-search-form";
 import {
@@ -11,7 +13,7 @@ import {
   marinaDateKey,
   validatePublicBookingSearch,
 } from "@/domain/public-booking/validation";
-import { marinaInitials, timezoneLabel } from "@/domain/public-marinas/model";
+import { marinaInitials } from "@/domain/public-marinas/model";
 import { getPublicMarinaBySlug } from "@/domain/public-marinas/repository";
 import { getPublicAvailability } from "@/domain/public-availability/service";
 import type { PublicAvailabilityResult } from "@/domain/public-availability/types";
@@ -80,114 +82,31 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
         marina_slug: marina.slug,
         operation: "public_price_quote",
       });
-      priceError = "Please try again. No booking, payment, or capacity hold was created.";
+      priceError = "Pricing could not be loaded. Please check availability again.";
     }
   }
   const brandStyle: BrandedStyle = { "--marina-brand": marina.primaryColor };
-  const localTimeZone = timezoneLabel(marina.timezone);
-  const hasPublicContact = Boolean(
-    marina.contactEmail || marina.contactPhone || marina.websiteUrl,
-  );
 
   return (
-    <main className="public-marina" style={brandStyle}>
-      <header className="public-marina-header">
-        <a className="public-marina-identity" href="#marina-overview" aria-label={`${marina.name} overview`}>
-          {marina.logoUrl ? (
-            <img alt={`${marina.name} logo`} src={marina.logoUrl} />
-          ) : (
-            <span aria-hidden="true">{marinaInitials(marina.name)}</span>
-          )}
+    <main className={styles.page} style={brandStyle}>
+      <header className={styles.header}>
+        <a className={styles.identity} href="#marina-overview" aria-label={`${marina.name} overview`}>
+          {marina.logoUrl ? <img alt={`${marina.name} logo`} src={marina.logoUrl} /> : <span aria-hidden="true">{marinaInitials(marina.name)}</span>}
           <strong>{marina.name}</strong>
         </a>
-        <a className="public-marina-header-cta" href="#booking-entry">
-          Request a berth
-        </a>
+        <span className={styles.powered}>Powered by <strong>Berthio</strong></span>
       </header>
-
-      <section className={`public-marina-hero${marina.coverImageUrl ? " has-cover" : ""}`} id="marina-overview">
-        {marina.coverImageUrl ? (
-          <img alt={`${marina.name} harbour`} className="public-marina-cover" src={marina.coverImageUrl} />
-        ) : null}
-        <div className="public-marina-hero-grid">
-          <div className="public-marina-hero-copy">
-            <p className="public-marina-kicker"><Anchor size={14} /> Berth requests / {marina.slug}</p>
-            <h1>{marina.name}</h1>
-            <p className="public-marina-lede">
-              {marina.publicText ?? "Plan your arrival and send the marina your berth requirements."}
-            </p>
-            <a className="button button-primary button-large" href="#booking-entry">
-              Plan a berth stay <ArrowDown size={16} />
-            </a>
-          </div>
-
-          <aside className="public-marina-instrument" aria-label="Marina local time context">
-            <p>Harbour context</p>
-            <dl>
-              <div>
-                <dt><Clock3 size={15} /> Local timezone</dt>
-                <dd>{marina.timezone}</dd>
-              </div>
-              <div>
-                <dt><Compass size={15} /> Time standard</dt>
-                <dd>{localTimeZone}</dd>
-              </div>
-              <div>
-                <dt><Anchor size={15} /> Booking channel</dt>
-                <dd>Direct marina request</dd>
-              </div>
-            </dl>
-          </aside>
-        </div>
-      </section>
-
-      {marina.localText || hasPublicContact ? (
-        <section
-          className={`public-marina-details${marina.localText && hasPublicContact ? " has-two-columns" : ""}`}
-          aria-label="Marina information"
-        >
-          {marina.localText ? (
-            <article className="public-marina-local-note">
-              <p className="public-marina-section-code">Local harbour note</p>
-              <h2>{marina.localLanguage ?? "Local information"}</h2>
-              <p lang={marina.localLanguage ? undefined : "en"}>{marina.localText}</p>
-            </article>
-          ) : null}
-          {hasPublicContact ? (
-            <address className="public-marina-contact">
-              <p className="public-marina-section-code">Marina contact</p>
-              <h2>Contact</h2>
-              <ul>
-                {marina.contactEmail ? (
-                  <li><Mail size={16} aria-hidden="true" /><a href={`mailto:${marina.contactEmail}`}>{marina.contactEmail}</a></li>
-                ) : null}
-                {marina.contactPhone ? (
-                  <li><Phone size={16} aria-hidden="true" /><a href={`tel:${marina.contactPhone}`}>{marina.contactPhone}</a></li>
-                ) : null}
-                {marina.websiteUrl ? (
-                  <li><ExternalLink size={16} aria-hidden="true" /><a href={marina.websiteUrl}>Marina website</a></li>
-                ) : null}
-              </ul>
-            </address>
-          ) : null}
+      <div className={styles.content}>
+        <section className={`${styles.hero} ${marina.coverImageUrl ? styles.hasCover : ""}`} id="marina-overview">
+          {marina.coverImageUrl ? <img alt={`${marina.name} harbour`} src={marina.coverImageUrl} /> : null}
+          <div><h1>Book your stay at {marina.name}</h1><p>Find suitable berth capacity for your vessel and dates.</p></div>
         </section>
-      ) : null}
-
-      <section className="public-marina-booking" id="booking-entry">
-        <div>
-          <p className="public-marina-section-code">Availability + pricing + hold / Phase 5</p>
-          <h2>Request a berth</h2>
-          <p>
-            Enter the stay window and the vessel&apos;s safe maximum dimensions. Berthio checks real physical capacity without assigning a berth.
-          </p>
-          <dl className="public-booking-semantics">
-            <div><dt>Stay model</dt><dd>[arrival, departure)</dd></div>
-            <div><dt>Timezone</dt><dd>{marina.timezone}</dd></div>
-            <div><dt>Booking created</dt><dd>No</dd></div>
-          </dl>
-        </div>
+        <section id="booking-entry" aria-label="Booking search">
         <BookingSearchForm
+          key={JSON.stringify(query)}
           availability={availability}
+          acceptsOnlinePayment={marina.acceptsOnlinePayment}
+          acceptsPayAtMarina={marina.acceptsPayAtMarina}
           availabilityError={availabilityError}
           errors={errors}
           formError={formError}
@@ -199,13 +118,23 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
           priceError={priceError}
           priceQuote={priceQuote}
           request={searchRequest}
+          resultAttempt={typeof query.searchAttempt === "string" ? query.searchAttempt : undefined}
           values={formValues}
         />
-      </section>
-
-      <footer className="public-marina-footer">
-        <span>{marina.name}</span>
-        <span>Hosted by Berthio</span>
+        </section>
+        <div className={styles.trust} aria-label="Booking information">
+          <span><Anchor size={16} aria-hidden="true" /> Capacity reserved; berth assigned by the marina</span>
+          <span><Clock3 size={16} aria-hidden="true" /> Arrival times in {marina.timezone}</span>
+          <span><LockKeyhole size={16} aria-hidden="true" /> Secure checkout with Stripe</span>
+        </div>
+        {(marina.publicText || marina.localText) ? <details className={styles.marinaInfo}><summary>About {marina.name}</summary>{marina.publicText ? <p>{marina.publicText}</p> : null}{marina.localText ? <p>{marina.localText}</p> : null}</details> : null}
+      </div>
+      <footer className={styles.footer}>
+        <span>{marina.name}</span><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link>
+        {marina.contactEmail ? <a href={`mailto:${marina.contactEmail}`}><Mail size={14} aria-hidden="true" /> Contact</a> : null}
+        {marina.contactPhone ? <a href={`tel:${marina.contactPhone}`}>{marina.contactPhone}</a> : null}
+        {marina.websiteUrl ? <a href={marina.websiteUrl}>Marina website</a> : null}
+        <span className={styles.powered}>Powered by <strong>Berthio</strong></span>
       </footer>
     </main>
   );

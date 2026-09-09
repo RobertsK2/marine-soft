@@ -51,9 +51,51 @@ describe("Stripe checkout service", () => {
     });
   });
 
-  it("marks the payment failed and releases the hold when Stripe creation fails", async () => {
+  it("marks the payment failed and releases the hold on definite Stripe rejection", async () => {
     mocks.rpc.mockResolvedValueOnce({ data: [prepared], error: null }).mockResolvedValueOnce({ data: true, error: null });
-    await expect(createCheckoutForHold("61000000-0000-4000-8000-000000000001", fakeStripe(vi.fn().mockRejectedValue(new Error("Stripe unavailable"))))).rejects.toThrow("Unable to create Stripe Checkout");
+    await expect(createCheckoutForHold("61000000-0000-4000-8000-000000000001", fakeStripe(vi.fn().mockRejectedValue({ type: "StripeInvalidRequestError", statusCode: 400 })))).rejects.toThrow("Unable to create Stripe Checkout");
     expect(mocks.rpc).toHaveBeenLastCalledWith("fail_booking_checkout_creation", { target_payment_id: prepared.payment_id });
+  });
+
+  it.each([
+    new Error("connection lost"),
+    { type: "StripeAPIError", statusCode: 500 },
+    { type: "StripeInvalidRequestError", statusCode: 409 },
+    { type: "StripeRateLimitError", statusCode: 429 },
+    { type: "StripeIdempotencyError", statusCode: 400 },
+  ])("retains the hold and payment identity on uncertain creation failure: %j", async (error) => {
+    mocks.rpc.mockResolvedValue({ data: [prepared], error: null });
+    await expect(createCheckoutForHold("hold", fakeStripe(vi.fn().mockRejectedValue(error)))).rejects.toThrow();
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries attachment failure with identical Stripe parameters and idempotency key", async () => {
+    mocks.rpc.mockImplementation(async (name) => name === "prepare_booking_checkout"
+      ? { data: [prepared], error: null } : { data: true, error: null });
+    mocks.rpc.mockResolvedValueOnce({ data: [prepared], error: null })
+      .mockResolvedValueOnce({ data: null, error: new Error("connection lost after attach") });
+    const create = vi.fn().mockResolvedValue({ id: "cs_test_one", url: "https://checkout.stripe.com/c/pay/cs_test_one" });
+    const stripe = fakeStripe(create);
+    await expect(createCheckoutForHold("hold", stripe)).rejects.toThrow();
+    await expect(createCheckoutForHold("hold", stripe)).resolves.toMatchObject({ outcome: "ready" });
+    expect(create.mock.calls[0]).toEqual(create.mock.calls[1]);
+    expect(stripe.checkout.sessions.expire).not.toHaveBeenCalled();
+    expect(mocks.rpc.mock.calls.some(([name]) => name === "fail_booking_checkout_creation")).toBe(false);
+  });
+
+  it("reuses an attached Checkout without creating another session", async () => {
+    mocks.rpc.mockResolvedValue({ data: [{ ...prepared, existing_checkout_session_id: "cs_test_one" }], error: null });
+    const stripe = fakeStripe(vi.fn());
+    vi.mocked(stripe.checkout.sessions.retrieve).mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_test_one" } as Stripe.Response<Stripe.Checkout.Session>);
+    await expect(createCheckoutForHold("hold", stripe)).resolves.toMatchObject({ outcome: "ready" });
+    expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["expired", "closed", "not_configured"])("does not call Stripe for %s holds", async (outcome) => {
+    mocks.rpc.mockResolvedValue({ data: [{ outcome }], error: null });
+    const stripe = fakeStripe(vi.fn());
+    expect(await createCheckoutForHold("hold", stripe)).toEqual({ outcome, url: null });
+    expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
   });
 });

@@ -15,9 +15,7 @@ test("local paid Checkout confirms one booking and exposes it to marina admin", 
     vesselName: `Phase 6 Local ${Date.now()}`,
   });
   await page.goto(`/marina/marina-a?${query.toString()}#booking-entry`);
-  await page.getByRole("button", { name: "Continue to payment" }).click();
-  await expect(page.locator("[data-hold-token]")).toContainText("Capacity is held for 15 minutes");
-  await page.getByRole("button", { name: "Pay securely with Stripe" }).click();
+  await page.getByRole("button", { name: "Continue to Payment" }).click();
   await page.waitForURL(/^https:\/\/checkout\.stripe\.com\//, { timeout: 30_000 });
 
   await fillCheckoutField(page, /email/i, "#email", "phase6-local@berthio.test");
@@ -53,8 +51,8 @@ test("local paid Checkout confirms one booking and exposes it to marina admin", 
   expect(adminPassword, "E2E_MARINA_PASSWORD is required for the admin visibility assertion").toBeTruthy();
   await page.goto("/login");
   await page.getByLabel("Email").fill(adminEmail!);
-  await page.getByLabel("Password").fill(adminPassword!);
-  await page.getByRole("button", { name: "Log in" }).click();
+  await page.getByLabel("Password", { exact: true }).fill(adminPassword!);
+  await page.getByRole("button", { name: "Sign In" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.goto("/dashboard/bookings");
   const bookingRow = page.getByRole("row").filter({ hasText: bookingReference! });

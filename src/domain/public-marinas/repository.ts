@@ -4,7 +4,7 @@ import type { PublicMarina } from "@/domain/public-marinas/types";
 import type { Database } from "@/types/database";
 
 const PUBLIC_MARINA_COLUMNS =
-  "name, slug, timezone, logo_url, cover_image_url, map_image_url, primary_color, public_description, public_description_local, local_language, contact_email, contact_phone, website_url" as const;
+  "name, slug, timezone, logo_url, cover_image_url, map_image_url, primary_color, public_description, public_description_local, local_language, contact_email, contact_phone, website_url, accepts_online_payment, accepts_pay_at_marina" as const;
 
 export class PublicMarinaRepositoryError extends Error {
   constructor(options?: ErrorOptions) {
@@ -29,6 +29,8 @@ export async function getPublicMarinaBySlug(
   if (!data) return null;
 
   return {
+    acceptsOnlinePayment: data.accepts_online_payment,
+    acceptsPayAtMarina: data.accepts_pay_at_marina,
     contactEmail: data.contact_email,
     contactPhone: data.contact_phone,
     coverImageUrl: data.cover_image_url,

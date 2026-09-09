@@ -8,12 +8,12 @@ export type BookingListRow = Pick<Booking, "id" | "reference" | "customer_name" 
 };
 export type BookingListFilters = { query: string; status: string; from: string; to: string; source: string; payment: string };
 
-export function bookingPaymentLabel(balance: Pick<BookingPaymentBalance, "state" | "balance_due_minor" | "currency">) {
+export function bookingPaymentLabel(balance: Pick<BookingPaymentBalance, "state" | "balance_due_minor" | "currency"> & Partial<Pick<BookingPaymentBalance, "collection_method">>) {
   if (balance.balance_due_minor > 0) {
     const amount = balance.currency
       ? new Intl.NumberFormat("en-GB", { style: "currency", currency: balance.currency, minimumFractionDigits: balance.balance_due_minor % 100 ? 2 : 0, maximumFractionDigits: 2 }).format(balance.balance_due_minor / 100)
       : `${(balance.balance_due_minor / 100).toFixed(2)} (currency unknown)`;
-    return `${amount} due`;
+    return balance.collection_method === "on_site" ? `Due at marina · ${amount}` : `${amount} due`;
   }
   return balance.state === "paid_in_full" || balance.state === "paid_outside_berthio" ? "Paid" : "Unpaid";
 }

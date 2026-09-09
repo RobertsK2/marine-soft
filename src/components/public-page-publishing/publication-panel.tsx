@@ -25,6 +25,7 @@ function SubmitButton({ isPublic, ready }: { isPublic: boolean; ready: boolean }
 
 const readinessPresentation = {
   profile: { name: "Marina Profile", icon: Building2 },
+  payments: { name: "Accepted Payment Methods", icon: CreditCard },
   pricing: { name: "Pricing & Seasonal Rates", icon: CircleDollarSign },
   stripe: { name: "Payment Readiness (Stripe)", icon: CreditCard },
   postmark: { name: "Email Delivery (Postmark)", icon: Mail },

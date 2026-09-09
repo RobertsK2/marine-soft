@@ -8,8 +8,8 @@ function integrationDetail(name: string, state: ReadinessState) {
   return `${name} has required configuration missing or invalid.`;
 }
 
-export function integrationsAllowPublishing(status: IntegrationStatus) {
-  return [status.stripe.state, status.postmark.state, status.worker.state]
+export function integrationsAllowPublishing(status: IntegrationStatus, acceptsOnlinePayment = true) {
+  return [acceptsOnlinePayment ? status.stripe.state : "ready", status.postmark.state, status.worker.state]
     .every((state) => state !== "not_ready");
 }
 
@@ -47,6 +47,15 @@ export function buildPublicationReadiness({
       href: "/dashboard/settings",
     },
     {
+      key: "payments" as const,
+      label: "Accepted payment methods",
+      state: profile.acceptsOnlinePayment || profile.acceptsPayAtMarina ? "ready" as const : "not_ready" as const,
+      detail: profile.acceptsOnlinePayment || profile.acceptsPayAtMarina
+        ? "At least one public booking payment method is enabled."
+        : "Enable online payment or pay at marina.",
+      href: "/dashboard/settings/pricing",
+    },
+    {
       key: "pricing" as const,
       label: "Booking pricing",
       state: pricingReady ? "ready" as const : "not_ready" as const,
@@ -56,7 +65,7 @@ export function buildPublicationReadiness({
       href: "/dashboard/settings/pricing",
     },
     ...([
-      ["stripe", "Stripe Connect", integrations.stripe.state],
+      ["stripe", "Stripe Connect", profile.acceptsOnlinePayment ? integrations.stripe.state : "ready"],
       ["postmark", "Postmark", integrations.postmark.state],
       ["worker", "Notification worker", integrations.worker.state],
     ] as const).map(([key, label, state]) => ({
@@ -73,4 +82,3 @@ export function buildPublicationReadiness({
     items,
   };
 }
-

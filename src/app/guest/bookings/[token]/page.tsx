@@ -13,11 +13,14 @@ export const metadata: Metadata = {
   referrer: "no-referrer",
 };
 
-export default async function GuestBookingPage({ params }: { params: Promise<{ token: string }> }) {
+export default async function GuestBookingPage({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ confirmation?: string }> }) {
   const { token } = await params;
   const booking = await loadGuestBooking(token);
   if (!booking) notFound();
 
+  const confirming = (await searchParams).confirmation === "1" && booking.status === "confirmed";
+  const dueAtMarina = booking.collectionMethod === "on_site" && booking.balanceDueMinor > 0;
+  const dueTotal = new Intl.NumberFormat("en-GB", { style: "currency", currency: booking.priceCurrency }).format(booking.balanceDueMinor / 100);
   const paidTotal = new Intl.NumberFormat("en-GB", {
     style: "currency",
     currency: booking.priceCurrency,
@@ -33,7 +36,8 @@ export default async function GuestBookingPage({ params }: { params: Promise<{ t
       </header>
       <div className="guest-booking-shell">
         <p className="public-marina-section-code">Booking management / {booking.reference}</p>
-        <h1>{booking.marinaName}</h1>
+        <h1>{confirming ? "Booking confirmed" : booking.marinaName}</h1>
+        {confirming ? <p>{booking.marinaName}</p> : null}
         <p className="guest-booking-intro">View the confirmed booking record and update arrival or departure time. Cancellation, refunds, vessel changes, and customer details require marina assistance.</p>
 
         <dl className="guest-booking-grid">
@@ -42,7 +46,10 @@ export default async function GuestBookingPage({ params }: { params: Promise<{ t
           <div><dt>Stay</dt><dd>{formatBookingDate(booking.arrivalDate)} to {formatBookingDate(booking.departureDate)}</dd></div>
           <div><dt>ETA / ETD</dt><dd>{formatBookingTime(booking.eta)} / {formatBookingTime(booking.etd)}</dd></div>
           <div><dt>Vessel</dt><dd>{formatVesselName(booking.vesselName)} · {booking.vesselLengthM} × {booking.vesselBeamM} × {booking.vesselDraftM} m</dd></div>
-          <div><dt>Payment summary</dt><dd>Paid · {paidTotal}</dd></div>
+          <div>
+            <dt>Payment summary</dt>
+            <dd>{dueAtMarina ? `Due at marina · ${dueTotal}` : `Paid · ${paidTotal}`}</dd>
+          </div>
         </dl>
 
         <section className="guest-booking-editor" aria-labelledby="arrival-times-heading">

@@ -21,7 +21,7 @@ export default async function BookingsPage() {
     listBookings(supabase, context.marinaId),
     listBerths(supabase, context.marinaId),
     listBerthAssignments(supabase, context.marinaId),
-    supabase.from("booking_payment_balances").select("booking_id,state,balance_due_minor,currency").eq("marina_id", context.marinaId),
+    supabase.from("booking_payment_balances").select("booking_id,state,balance_due_minor,currency,collection_method").eq("marina_id", context.marinaId),
   ]);
   if (paymentResult.error) throw new Error("Unable to load booking payment balances.");
   const paymentByBooking = new Map(paymentResult.data.map((balance) => [balance.booking_id, balance]));

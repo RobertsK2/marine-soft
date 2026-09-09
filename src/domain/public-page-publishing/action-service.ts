@@ -27,10 +27,11 @@ export async function updatePublicationStateAction(
   const requestedPublic = requestedState === "publish";
 
   try {
-    const integrationsReady = requestedPublic
-      ? integrationsAllowPublishing(
-          (await loadPublicationSettings(await createClient(), context.marinaId)).integrations,
-        )
+    const publication = requestedPublic
+      ? await loadPublicationSettings(await createClient(), context.marinaId)
+      : null;
+    const integrationsReady = publication
+      ? integrationsAllowPublishing(publication.integrations, publication.profile.acceptsOnlinePayment)
       : false;
     const { data, error } = await createPrivilegedClient().rpc("set_marina_publication_state", {
       target_marina_id: context.marinaId,

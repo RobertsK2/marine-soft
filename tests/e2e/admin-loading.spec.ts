@@ -32,6 +32,18 @@ test("sidebar stays mounted and usable across admin navigation", async ({ page }
   await page.getByRole("navigation", { name: "Settings sections" }).getByRole("link", { name: "Integrations", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Integrations", exact: true })).toBeVisible();
   await expect(sidebar).toHaveAttribute("data-persistence-check", "mounted");
+  const logo = sidebar.getByRole("link", { name: "Go to Overview", exact: true });
+  await expect(logo).toHaveAttribute("href", "/dashboard");
+  const dimensions = await logo.boundingBox();
+  const tenant = await sidebar.locator(".overview-tenant").innerText();
+  await logo.click();
+  await expect(page).toHaveURL("http://localhost:3000/dashboard");
+  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+  await expect(sidebar).toHaveAttribute("data-persistence-check", "mounted");
+  await expect(sidebar.locator(".overview-tenant")).toHaveText(tenant, { useInnerText: true });
+  const afterNavigation = await logo.boundingBox();
+  expect(afterNavigation?.width).toBe(dimensions?.width);
+  expect(afterNavigation?.height).toBe(dimensions?.height);
   await page.screenshot({ path: testInfo.outputPath("persistent-admin-shell.png"), fullPage: true });
 });
 

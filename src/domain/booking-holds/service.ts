@@ -14,12 +14,12 @@ export class BookingHoldServiceError extends Error {
   }
 }
 
-export async function createPublicBookingHold(
+async function preparePublicBookingHold(
   marinaSlug: string,
   idempotencyKey: string,
   request: PublicBookingSearch,
   requester: BookingHoldRequester,
-): Promise<BookingHoldResult> {
+) {
   const supabase = createPrivilegedClient();
   const { data: marina, error: marinaError } = await supabase
     .from("marinas")
@@ -28,13 +28,13 @@ export async function createPublicBookingHold(
     .eq("is_public", true)
     .maybeSingle();
   if (marinaError) throw new BookingHoldServiceError("Unable to resolve the marina.", { cause: marinaError });
-  if (!marina) return { outcome: "not_found", holdToken: null, expiresAt: null, totalMinor: null, currency: null };
+  if (!marina) return null;
 
   try {
     const catalog = await loadPricingCatalog(supabase, marina.id);
     if (!catalog) throw new BookingHoldServiceError("Pricing is not configured.");
     const snapshot = calculatePriceSnapshot(request, catalog);
-    const { data, error } = await supabase.rpc("create_booking_hold", {
+    return {
       target_marina_id: marina.id,
       request_idempotency_key: idempotencyKey,
       requested_arrival: request.arrivalDate,
@@ -50,21 +50,38 @@ export async function createPublicBookingHold(
       calculated_price_snapshot: snapshot as unknown as Json,
       request_session_hash: requester.sessionHash,
       request_network_hash: requester.networkHash,
-    });
-    if (error) throw error;
-    const row = data?.[0];
-    if (!row) throw new Error("Hold operation returned no result.");
-    return {
-      outcome: row.outcome as BookingHoldResult["outcome"],
-      holdToken: row.hold_token,
-      expiresAt: row.hold_expires_at,
-      totalMinor: row.total_minor,
-      currency: row.currency,
     };
   } catch (error) {
     if (error instanceof BookingHoldServiceError) throw error;
-    throw new BookingHoldServiceError("Unable to create the booking hold.", { cause: error });
+    throw new BookingHoldServiceError("Unable to prepare the protected booking request.", { cause: error });
   }
+}
+
+export async function createPublicBookingHold(
+  marinaSlug: string, idempotencyKey: string, request: PublicBookingSearch, requester: BookingHoldRequester,
+): Promise<BookingHoldResult> {
+  const args = await preparePublicBookingHold(marinaSlug, idempotencyKey, request, requester);
+  if (!args) return { outcome: "not_found", holdToken: null, expiresAt: null, totalMinor: null, currency: null };
+  const { data, error } = await createPrivilegedClient().rpc("create_booking_hold", args);
+  const row = data?.[0];
+  if (error || !row) throw new BookingHoldServiceError("Unable to create the booking hold.", { cause: error });
+  return { outcome: row.outcome as BookingHoldResult["outcome"], holdToken: row.hold_token,
+    expiresAt: row.hold_expires_at, totalMinor: row.total_minor, currency: row.currency };
+}
+
+export async function confirmPublicPayAtMarinaBooking(
+  marinaSlug: string, idempotencyKey: string, request: PublicBookingSearch, requester: BookingHoldRequester,
+  customer: { customerName: string; customerEmail: string; customerPhone: string },
+) {
+  const args = await preparePublicBookingHold(marinaSlug, idempotencyKey, request, requester);
+  if (!args) return { outcome: "not_found", bookingId: null };
+  const { data, error } = await createPrivilegedClient().rpc("confirm_pay_at_marina_booking", {
+    ...args, requested_customer_name: customer.customerName,
+    requested_customer_email: customer.customerEmail, requested_customer_phone: customer.customerPhone,
+  });
+  const row = data?.[0];
+  if (error || !row) throw new BookingHoldServiceError("Unable to confirm the booking.", { cause: error });
+  return { outcome: row.outcome, bookingId: row.booking_id };
 }
 
 export async function releasePublicBookingHoldAfterCheckoutFailure(holdToken: string) {

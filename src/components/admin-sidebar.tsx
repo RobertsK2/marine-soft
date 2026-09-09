@@ -28,7 +28,7 @@ function AdminSidebar({ context }: { context: SidebarContext }) {
     : pathname.startsWith("/dashboard/payments") ? "payments" : "overview";
   return (
       <header className="app-bar">
-        <Link className="brand" href="/">
+        <Link className="brand" href="/dashboard" aria-label="Go to Overview">
           <span className="brand-mark">
             <Anchor size={18} aria-hidden="true" />
           </span>
