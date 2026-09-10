@@ -38,5 +38,26 @@ jobs:
       - name: Start local Supabase
         run: supabase start
 
-      - name: Verify repository
-        run: npm run verify
+      # The test fixtures assume the seed data from the current migrations.
+      # Resetting here affects only the runner's disposable local database and
+      # prevents a reused volume from changing the test outcome.
+      - name: Reset local database fixtures
+        run: supabase db reset --local
+
+      - name: Verify tracked secrets
+        run: npm run verify:secrets
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run unit tests
+        run: npm run test
+
+      - name: Run database tests
+        run: npm run test:db
+
+      - name: Build production application
+        run: npm run build
