@@ -2,7 +2,7 @@
 
 import { Info, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useActionState, useMemo, useState, type SetStateAction } from "react";
+import { useActionState, useMemo, useState, useSyncExternalStore, type SetStateAction } from "react";
 import { useFormStatus } from "react-dom";
 import type { CancellationPolicyActionState } from "@/app/dashboard/settings/cancellation-policy/actions";
 import type { CancellationPolicyInput } from "@/domain/cancellation-policy/types";
@@ -19,6 +19,7 @@ function windowLabel(min: number | null, max: number | null) {
 
 const initialState: CancellationPolicyActionState = { status: "idle" };
 type PolicyAction = (state: CancellationPolicyActionState, formData: FormData) => Promise<CancellationPolicyActionState>;
+const subscribeToHydration = () => () => {};
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -54,6 +55,7 @@ export function CancellationPolicyForm({
   const [editingTier, setEditingTier] = useState<number | null>(null);
   const [arrivalDate, setArrivalDate] = useState("");
   const [cancellationDate, setCancellationDate] = useState("");
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const validation = validateCancellationPolicyInput(policy);
   const daysBeforeArrival = arrivalDate && cancellationDate
     ? Math.round((Date.parse(arrivalDate) - Date.parse(cancellationDate)) / 86400000)
@@ -79,7 +81,7 @@ export function CancellationPolicyForm({
   }
 
   return (
-    <form action={formAction} className="pricing-config-form" key={activeVersion} noValidate>
+    <form action={formAction} className="pricing-config-form" data-hydrated={hydrated ? "true" : "false"} key={activeVersion} noValidate>
       <input name="policy" type="hidden" value={serialized} />
       <section className="form-section" aria-labelledby="cancellation-rules-heading">
         <div className="form-section-heading">
@@ -140,8 +142,8 @@ export function CancellationPolicyForm({
       <section className="form-section" aria-labelledby="cancellation-preview-heading">
         <div className="form-section-heading"><h2 id="cancellation-preview-heading">Policy Preview</h2><p>Test the current tiers using whole calendar days before arrival.</p></div>
         <div className={styles.preview}>
-          <div className="form-field"><label htmlFor="preview-arrival">Arrival date</label><input id="preview-arrival" type="date" value={arrivalDate} onChange={(event) => setArrivalDate(event.target.value)} /></div>
-          <div className="form-field"><label htmlFor="preview-cancellation">Cancellation date</label><input id="preview-cancellation" type="date" value={cancellationDate} onChange={(event) => setCancellationDate(event.target.value)} /></div>
+          <div className="form-field"><label htmlFor="preview-arrival">Arrival date</label><input disabled={!hydrated} id="preview-arrival" type="date" value={arrivalDate} onChange={(event) => setArrivalDate(event.target.value)} /></div>
+          <div className="form-field"><label htmlFor="preview-cancellation">Cancellation date</label><input disabled={!hydrated} id="preview-cancellation" type="date" value={cancellationDate} onChange={(event) => setCancellationDate(event.target.value)} /></div>
           <div className={styles.previewResult} aria-live="polite"><span>Applicable refund</span><strong>{preview ? `${preview.refundPercent}%` : "—"}</strong><p>{!validation.success ? "Resolve the policy errors to preview." : preview ? `${daysBeforeArrival} days before arrival · ${preview.policyCode.replaceAll("_", " ")}` : "Choose both dates to preview."}</p></div>
         </div>
       </section>

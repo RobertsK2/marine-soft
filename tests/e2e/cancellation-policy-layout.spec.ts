@@ -12,13 +12,19 @@ test("policy preview boundaries, coverage validation, saves and layout", async (
   if (link.error) throw new Error("Local sign-in failed.");
   await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(link.data.properties.hashed_token)}&next=/dashboard/settings/cancellation-policy`);
   await expect(page.getByRole("heading", { name: "Cancellation Policy", exact: true })).toBeVisible();
+  const form = page.locator("form.pricing-config-form");
+  await expect(form).toHaveAttribute("data-hydrated", "true");
   const payload = page.locator('input[name="policy"]');
   const original = JSON.parse(await payload.inputValue());
   await expect(page.getByText("Complete coverage · No gaps or overlaps")).toBeVisible();
-  await page.getByLabel("Arrival date", { exact: true }).fill("2026-10-15");
+  const arrival = page.getByLabel("Arrival date", { exact: true });
+  const cancellation = page.getByLabel("Cancellation date", { exact: true });
+  await arrival.fill("2026-10-15");
+  await expect(arrival).toHaveValue("2026-10-15");
   for (const days of [-1, 0, 1, 2, 6, 7, 30]) {
     const date = new Date(Date.UTC(2026, 9, 15 - days)).toISOString().slice(0, 10);
-    await page.getByLabel("Cancellation date", { exact: true }).fill(date);
+    await cancellation.fill(date);
+    await expect(cancellation).toHaveValue(date);
     const tier = original.tiers.find((item: { minDaysBeforeArrival: number | null; maxDaysBeforeArrival: number | null }) => (item.minDaysBeforeArrival === null || days >= item.minDaysBeforeArrival) && (item.maxDaysBeforeArrival === null || days <= item.maxDaysBeforeArrival));
     await expect(page.locator('[aria-labelledby="cancellation-preview-heading"] strong')).toHaveText(`${tier.refundPercent}%`);
   }
