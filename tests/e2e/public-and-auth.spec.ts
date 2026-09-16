@@ -36,8 +36,8 @@ test.describe("public marina page", () => {
 
   test("booking search validates and preserves a clean timezone-aware request", async ({ page }, testInfo) => {
     // The asserted tariff is the seeded September high-season tariff.
-    const arrival = new Date("2026-09-15T00:00:00Z");
-    const departure = new Date("2026-09-18T00:00:00Z");
+    const arrival = new Date("2026-09-17T00:00:00Z");
+    const departure = new Date("2026-09-20T00:00:00Z");
     const isoDate = (value: Date) => value.toISOString().slice(0, 10);
 
     await page.goto("/marina/marina-a#booking-entry");
@@ -325,7 +325,10 @@ test.describe("local Supabase marina auth", () => {
     await page.screenshot({ path: testInfo.outputPath("overview-selected-berth.png"), fullPage: true });
     await page.getByRole("navigation", { name: "Quick actions" }).getByRole("link", { name: "Berth inventory" }).click();
     await expect(page).toHaveURL(/\/dashboard\/berths$/);
-    await expect(page.locator(".overview-tenant")).toHaveCount(0);
+    // Tenant identity belongs to the persistent DashboardShell on every route.
+    await expect(page.locator(".overview-tenant")).toHaveCount(1);
+    await expect(page.locator(".overview-tenant")).toContainText("Marina A");
+    await expect(page.locator(".overview-tenant")).not.toContainText("Marina B");
 
     await page.getByRole("button", { name: "Log out" }).click();
     await expect(page).toHaveURL(/\/login$/);
@@ -421,10 +424,12 @@ test.describe("local Supabase marina auth", () => {
       await page.getByRole("button", { name: "Save marina profile" }).click();
 
       await expect(page.getByRole("status")).toHaveText("Marina profile updated.");
-      await expect(page.locator(".app-status")).toContainText("Europe/London");
+      await page.reload();
+      await expect(page.getByLabel("IANA timezone")).toHaveValue("Europe/London");
 
       await page.goto("/marina/marina-a");
-      await expect(page.getByRole("link", { name: contactEmail })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Contact", exact: true })).toHaveAttribute("href", `mailto:${contactEmail}`);
+      await expect(page.getByText("Arrival times in Europe/London", { exact: true })).toBeVisible();
       await expect(page.getByRole("link", { name: "+371 20 123 456" })).toBeVisible();
       await expect(page.getByRole("link", { name: "Marina website" })).toHaveAttribute(
         "href",
@@ -503,7 +508,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByRole("button", { name: "Sign In" }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByText("MARINA STAFF", { exact: true })).toBeVisible();
+    await expect(page.locator(".app-user").getByText(email!, { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Settings" })).toHaveCount(0);
     await page.goto("/dashboard/settings");
     await expect(page.locator("body")).toContainText("404");
@@ -524,10 +529,10 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
     await page.getByRole("link", { name: "Settings", exact: true }).click();
-    await expect(page.getByRole("link", { name: "Audit log" })).toBeVisible();
-    await page.getByRole("link", { name: "Audit log" }).click();
+    await expect(page.getByRole("link", { name: /Audit Log/i })).toBeVisible();
+    await page.getByRole("link", { name: /Audit Log/i }).click();
     await expect(page.getByRole("heading", { name: "Audit Log" })).toBeVisible();
-    await expect(page.getByRole("table", { name: "Marina audit events, newest first" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Marina audit history", exact: true }).getByRole("table")).toBeVisible();
     await expect(page.locator("tbody tr").first()).toBeVisible();
     await page.getByRole("button", { name: "Log out" }).click();
 
@@ -535,7 +540,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByRole("link", { name: "Audit log" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Audit Log/i })).toHaveCount(0);
     await page.goto("/dashboard/audit");
     await expect(page.getByRole("heading", { name: "This page could not be found." })).toBeVisible();
 
@@ -559,9 +564,9 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Draft (m)").fill("1.4");
     await page.getByRole("button", { name: "Create booking" }).click();
     await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/, { timeout: 30_000 });
-    await expect(page.getByRole("heading", { name: "Operational history" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "History / Activity", exact: true })).toBeVisible();
     await expect(page.getByText("booking / created", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("Operational history").getByText(staffEmail!, { exact: true })).toBeVisible();
+    await expect(page.getByRole("region", { name: "History / Activity", exact: true }).getByText(staffEmail!, { exact: true })).toBeVisible();
   });
 
   test("Marina A cannot open a Marina B berth by manipulated id", async ({ page }) => {
@@ -598,7 +603,7 @@ test.describe("local Supabase marina auth", () => {
     type MailpitList = { messages?: MailpitSummary[] };
 
     const initialResponse = await request.get(
-      "http://127.0.0.1:54324/api/v1/messages",
+      `${process.env.E2E_MAILPIT_URL ?? "http://127.0.0.1:54324"}/api/v1/messages`,
     );
     expect(initialResponse.ok()).toBe(true);
     const initialMailbox = (await initialResponse.json()) as MailpitList;
@@ -614,7 +619,7 @@ test.describe("local Supabase marina auth", () => {
     let message: MailpitSummary | undefined;
     await expect
       .poll(async () => {
-        const response = await request.get("http://127.0.0.1:54324/api/v1/messages");
+        const response = await request.get(`${process.env.E2E_MAILPIT_URL ?? "http://127.0.0.1:54324"}/api/v1/messages`);
         expect(response.ok()).toBe(true);
         const mailbox = (await response.json()) as MailpitList;
         message = mailbox.messages?.find((candidate) =>
@@ -626,7 +631,7 @@ test.describe("local Supabase marina auth", () => {
       .toBe(true);
 
     const response = await request.get(
-      `http://127.0.0.1:54324/api/v1/message/${message!.ID}`,
+      `${process.env.E2E_MAILPIT_URL ?? "http://127.0.0.1:54324"}/api/v1/message/${message!.ID}`,
     );
     expect(response.ok()).toBe(true);
     const detail = (await response.json()) as { HTML?: string };
@@ -648,8 +653,9 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
     await expect(page).toHaveURL("http://localhost:3000/dashboard");
-    await expect(page.getByText("Marina B / marina-b", { exact: true })).toBeVisible();
-    await expect(page.getByText("Marina A / marina-a", { exact: true })).toHaveCount(0);
+    await expect(page.locator(".overview-tenant")).toHaveCount(1);
+    await expect(page.locator(".overview-tenant")).toContainText("Marina B");
+    await expect(page.locator(".overview-tenant")).not.toContainText("Marina A");
   });
 
   test("marina admin can create and operate a berth", async ({ page }) => {
@@ -674,26 +680,28 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Maximum Beam").fill("5.2");
     await page.getByLabel("Maximum Draft").fill("2.9");
     await page.getByLabel("Priority").fill("7");
-    await page.getByLabel("Status").selectOption("available");
+    await page.getByRole("combobox", { name: "Initial Status" }).selectOption("available");
     await page.getByLabel("Allow smaller vessels").uncheck();
     await page.getByRole("button", { name: "Add Berth", exact: true }).click();
 
     await expect(page).toHaveURL(/\/dashboard\/berths\/[0-9a-f-]+$/);
     await expect(page.getByRole("heading", { name: `Berth ${code}` })).toBeVisible();
-    await expect(page.getByText("Not allowed", { exact: true })).toBeVisible();
+    const specifications = page.getByRole("region", { name: "Physical Limits & Specifications" });
+    const summary = page.getByRole("complementary", { name: "Berth summary" });
+    await expect(specifications.locator("div").filter({ has: page.getByText("Allow Smaller Vessels", { exact: true }) }).getByRole("definition")).toHaveText("No");
 
     await page.getByRole("link", { name: "Edit berth" }).click();
     await page.getByLabel("Zone").fill("E2E North Pier");
     await page.getByLabel("Status").selectOption("blocked");
     await page.getByRole("button", { name: "Save berth" }).click();
-    await expect(page.getByText("Blocked", { exact: true })).toBeVisible();
-    await expect(page.getByText("E2E North Pier", { exact: true })).toBeVisible();
-    await expect(page.getByText("17.50 m", { exact: true })).toBeVisible();
+    await expect(summary.getByText("Blocked", { exact: true })).toBeVisible();
+    await expect(specifications.getByText("E2E North Pier", { exact: true })).toBeVisible();
+    await expect(summary.getByText("17.50 m", { exact: true })).toBeVisible();
 
     await page.getByRole("link", { name: "Edit berth" }).click();
     await page.getByLabel("Status").selectOption("out_of_service");
     await page.getByRole("button", { name: "Save berth" }).click();
-    await expect(page.getByText("Out of service", { exact: true })).toBeVisible();
+    await expect(summary.getByText("Out of service", { exact: true })).toBeVisible();
   });
 
   test("marina admin previews row errors and atomically imports berth CSV", async ({ page }, testInfo) => {
@@ -867,13 +875,14 @@ test.describe("local Supabase marina auth", () => {
     await page.getByRole("button", { name: "Create booking" }).click();
     await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/, { timeout: 30_000 });
 
+    await page.locator("summary").filter({ hasText: "Review cancellation" }).click();
     await page.getByLabel("Booking status").selectOption("cancelled");
     await page.getByRole("button", { name: "Update status" }).click();
     await expect(page.getByText("Cancellation review", { exact: true })).toBeVisible();
     await expect(page.getByText(/refund recommendation|refund recommended/i)).toBeVisible();
     await page.getByLabel("Cancellation reason").fill("Customer requested cancellation.");
     await page.getByRole("button", { name: "Confirm cancellation" }).click();
-    await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
+    await expect(page.locator(".booking-status")).toHaveText("Cancelled");
   });
 
   test("marina staff can assign and reassign a suitable real berth", async ({ page }, testInfo) => {
@@ -910,6 +919,7 @@ test.describe("local Supabase marina auth", () => {
     await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/, { timeout: 30_000 });
     const bookingReference = (await page.locator("h1").textContent())?.trim();
     expect(bookingReference).toMatch(/^BK-[A-Z0-9]{10}$/);
+    await page.locator("summary").filter({ hasText: "Assign / reassign berth" }).click();
     await expect(page.getByText("Capacity-based / unassigned", { exact: true })).toBeVisible();
 
     await page.getByLabel("Suitable operational berth").selectOption("d5000000-0000-4000-8000-000000000002");
@@ -919,6 +929,7 @@ test.describe("local Supabase marina auth", () => {
 
     const extendedDeparture = new Date(departure);
     extendedDeparture.setUTCDate(extendedDeparture.getUTCDate() + 1);
+    await page.locator("summary").filter({ hasText: "Edit booking details" }).click();
     await page.getByLabel("Departure date", { exact: true }).fill(isoDate(extendedDeparture));
     await page.getByLabel("ETA", { exact: true }).fill("15:15");
     await page.getByRole("button", { name: "Save booking changes" }).click();
@@ -945,7 +956,7 @@ test.describe("local Supabase marina auth", () => {
     await bookingLink.click();
 
     await page.getByRole("button", { name: "Confirm check-in" }).click();
-    await expect(page.getByText("Checked in", { exact: true })).toBeVisible();
+    await expect(page.locator(".booking-status")).toHaveText("Checked in");
     await expect(page.getByText(/checked in at berth A-03/i)).toBeVisible();
 
     await page.goto("/dashboard/marina-map");
@@ -954,7 +965,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByRole("link", { name: new RegExp(bookingReference!) }).click();
 
     await page.getByRole("button", { name: "Confirm check-out" }).click();
-    await expect(page.getByText("Checked out", { exact: true })).toBeVisible();
+    await expect(page.locator(".booking-status")).toHaveText("Checked out");
     await expect(page.getByText(/checked out from berth A-03/i)).toBeVisible();
 
     await page.goto("/dashboard/marina-map");
@@ -1000,6 +1011,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByRole("button", { name: "Create booking" }).click();
     await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/, { timeout: 30_000 });
     bookingId = page.url().split("/").at(-1)!;
+    await page.locator("summary").filter({ hasText: "Assign / reassign berth" }).click();
     await page.getByLabel("Suitable operational berth").selectOption("d5000000-0000-4000-8000-000000000002");
     await page.getByRole("button", { name: "Assign berth" }).click();
     await expect(page.getByText("Berth A-02 assigned.", { exact: true })).toBeVisible();
@@ -1031,6 +1043,7 @@ test.describe("local Supabase marina auth", () => {
     });
     expect(blockerAssignment.error).toBeNull();
 
+    await page.locator("summary").filter({ hasText: "Extend stay / berth moves" }).click();
     await page.getByLabel("New departure date").fill(isoDate(extendedDeparture));
     await page.getByRole("button", { name: "Preview extension" }).click();
     await expect(page.getByText(/berth A-02 cannot serve the added nights/i)).toBeVisible();
@@ -1097,10 +1110,12 @@ test.describe("local Supabase marina auth", () => {
 
     await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/);
     await expect(page.locator("h1")).toHaveText(/^BK-[A-Z0-9]{10}$/);
-    await expect(page.getByText(guestName, { exact: true })).toBeVisible();
-    await expect(page.getByText("Test Aurora", { exact: true })).toBeVisible();
-    await expect(page.getByText("Manual", { exact: true })).toBeVisible();
-    await expect(page.getByText("3", { exact: true })).toBeVisible();
+    const bookingHeader = page.locator("header").filter({ has: page.getByRole("heading", { level: 1 }) });
+    await expect(bookingHeader.getByText(guestName, { exact: true })).toBeVisible();
+    await expect(bookingHeader.getByText("Test Aurora", { exact: true })).toBeVisible();
+    await page.locator("summary").filter({ hasText: "Booking record" }).click();
+    await expect(page.getByRole("region", { name: "Booking records" }).getByText("Manual", { exact: true })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Stay window" })).toContainText("3 nights");
 
     const bookingUrl = page.url();
     await page.goto("/dashboard");
@@ -1109,11 +1124,12 @@ test.describe("local Supabase marina auth", () => {
 
     await page.getByLabel(/exceptional check-in without an assigned berth/i).check();
     await page.getByRole("button", { name: "Confirm check-in" }).click();
-    await expect(page.getByText("Checked in", { exact: true })).toBeVisible();
+    await expect(page.locator(".booking-status")).toHaveText("Checked in");
 
     await page.getByRole("link", { name: "Back to bookings" }).click();
-    await expect(page.getByText(guestName, { exact: true })).toBeVisible();
-    await expect(page.getByText("Checked in", { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/dashboard\/bookings$/);
+    await expect(page.getByRole("row").filter({ hasText: guestName }).getByText(guestName, { exact: true })).toBeVisible();
+    await expect(page.getByRole("row").filter({ hasText: guestName }).locator(".booking-status")).toHaveText("Checked in");
 
     await page.getByRole("link", { name: "Create booking" }).click();
     await page.getByLabel("Arrival date").fill(isoDate(arrival));
@@ -1130,7 +1146,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Draft (m)").fill("3.1");
     await page.getByRole("button", { name: "Create booking" }).click();
     await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/);
-    await expect(page.getByText("Large One", { exact: true })).toBeVisible();
+    await expect(bookingHeader.getByText("Large One", { exact: true })).toBeVisible();
 
     await page.getByRole("link", { name: "Back to bookings" }).click();
     await page.getByRole("link", { name: "Create booking" }).click();

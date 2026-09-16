@@ -7,11 +7,12 @@ export default defineConfig({
   // database. Serialize that integration suite so projects cannot invalidate
   // each other's recovery sessions or capacity snapshots.
   workers: process.env.E2E_SUPABASE_READY ? 1 : 2,
-  retries: process.env.CI ? 2 : 0,
-  reporter: "list",
+  retries: 0,
+  reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: "http://127.0.0.1:3000",
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
@@ -20,6 +21,6 @@ export default defineConfig({
   webServer: {
     command: "node node_modules/next/dist/bin/next dev",
     url: "http://127.0.0.1:3000",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !process.env.CI && !process.env.BERTHIO_ISOLATED_TESTS,
   },
 });

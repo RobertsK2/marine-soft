@@ -12,10 +12,10 @@
     "verify": "npm run verify:secrets && npm run lint && npm run typecheck && npm run test && npm run test:db && npm run build",
     "verify:secrets": "node scripts/verify-no-committed-secrets.mjs",
     "test:watch": "vitest",
-    "test:db": "supabase test db",
-    "test:hold-concurrency": "node --env-file=.env.local scripts/test-booking-hold-concurrency.mjs",
-    "test:assignment-concurrency": "node --env-file=.env.local scripts/test-berth-assignment-concurrency.mjs",
-    "test:e2e": "playwright test",
+    "test:db": "node scripts/test-database.mjs",
+    "test:hold-concurrency": "node scripts/test-integration.mjs hold",
+    "test:assignment-concurrency": "node scripts/test-integration.mjs assignment",
+    "test:e2e": "node scripts/test-integration.mjs e2e",
     "stripe:verify": "node --env-file=.env.local scripts/verify-stripe-phase6.mjs",
     "stripe:setup-marina-a": "node --env-file=.env.local scripts/setup-local-marina-a-stripe-account.mjs",
     "stripe:set-account": "node --env-file=.env.local scripts/set-local-marina-stripe-account.mjs",
@@ -36,7 +36,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.31.0",
-    "next": "16.3.0",
+    "next": "16.3.3",
     "posthog-js": "1.414.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -52,11 +52,11 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.0",
+    "eslint-config-next": "16.3.3",
     "supabase": "2.113.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   },
   "allowScripts": {
     "unrs-resolver@1.12.2": true
