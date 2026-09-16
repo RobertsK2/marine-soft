@@ -123,9 +123,9 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
         />
         </section>
         <div className={styles.trust} aria-label="Booking information">
-          <span><Anchor size={16} aria-hidden="true" /> Capacity reserved; berth assigned by the marina</span>
+          <span><Anchor size={16} aria-hidden="true" /> Check suitable capacity before booking; berth assigned by the marina</span>
           <span><Clock3 size={16} aria-hidden="true" /> Arrival times in {marina.timezone}</span>
-          <span><LockKeyhole size={16} aria-hidden="true" /> Secure checkout with Stripe</span>
+          <span><LockKeyhole size={16} aria-hidden="true" /> {marina.acceptsOnlinePayment && !marina.acceptsPayAtMarina ? "Secure online checkout with Stripe" : marina.acceptsPayAtMarina && !marina.acceptsOnlinePayment ? "Pay at the marina after booking" : "Choose how to pay when you review your booking"}</span>
         </div>
         {(marina.publicText || marina.localText) ? <details className={styles.marinaInfo}><summary>About {marina.name}</summary>{marina.publicText ? <p>{marina.publicText}</p> : null}{marina.localText ? <p>{marina.localText}</p> : null}</details> : null}
       </div>

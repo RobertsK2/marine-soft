@@ -102,7 +102,7 @@ export function SearchForm({ action, children, resultAttempt, reviewAvailable }:
     <div className={styles.mobileStep}>
       {review ? <EditSearchButton onEdit={() => { edited.current = true; setReview(false); }} /> : null}
       <p>Step {review ? "2" : "1"} of 2</p>
-      <h2 ref={stepHeading} tabIndex={-1}>{review ? "Review & Pay" : "Search Availability"}</h2>
+      <h2 ref={stepHeading} tabIndex={-1}>{review ? "Review Booking" : "Search Availability"}</h2>
     </div>
     {children}
     {dirty && !pending ? <p role="status">Details changed. Please check availability again.</p> : null}

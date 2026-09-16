@@ -8,6 +8,8 @@ test("public booking search, fit errors, one payment CTA and stale-result protec
   if (!["localhost", "127.0.0.1"].includes(new URL(url).hostname)) throw new Error("Local test database required.");
   await page.goto("/marina/marina-a");
   await expect(page.getByRole("heading", { name: "Book your stay at Marina A" })).toBeVisible();
+  await expect(page.getByLabel("Booking information")).toContainText("Check suitable capacity before booking");
+  await expect(page.getByLabel("Booking information")).not.toContainText("Capacity reserved");
   await expect(page.getByRole("navigation", { name: "Marina administration" })).toHaveCount(0);
   await page.getByRole("button", { name: "Check Availability", exact: true }).click();
   await expect(page.locator('[aria-invalid="true"]').first()).toBeVisible();
@@ -23,6 +25,7 @@ test("public booking search, fit errors, one payment CTA and stale-result protec
   await page.getByLabel("Draft (Depth)").fill("1.7");
   await page.getByRole("button", { name: "Check Availability", exact: true }).click();
   await expect(page.locator('[data-availability="available"]')).toBeVisible();
+  await expect(page.locator('[data-availability="available"]')).toContainText("No booking has been created.");
   await expect(page.getByRole("heading", { name: "Suitable berth capacity" })).toBeVisible();
   await expect(page.locator('[data-price-total-minor]')).toBeVisible();
   await expect(page.locator('[data-berth-id]')).toHaveCount(0);

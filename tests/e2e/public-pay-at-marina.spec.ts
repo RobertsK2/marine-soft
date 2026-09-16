@@ -36,7 +36,9 @@ test("pay-at-marina-only confirms once with the full balance outstanding", async
   try {
     const query = new URLSearchParams({ arrivalDate: "2026-12-08", departureDate: "2026-12-10", eta: "14:30", etd: "10:00", vesselLengthM: "9.5", vesselBeamM: "3.1", vesselDraftM: "1.7", vesselName });
     await page.goto(`/marina/marina-a?${query}#booking-entry`);
-    await expect(page.getByRole("heading", { name: "Review & Pay" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Review Booking" })).toBeVisible();
+    await expect(page.getByLabel("Booking information")).toContainText("Pay at the marina after booking");
+    await expect(page.getByLabel("Booking information")).not.toContainText("Stripe");
     await expect(page.getByRole("group", { name: "Payment method" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Continue to Payment" })).toHaveCount(0);
     const confirm = page.getByRole("button", { name: "Confirm Booking", exact: true });
@@ -95,6 +97,8 @@ test("both methods show a two-option choice that defaults to Pay now", async ({ 
     await page.goto(`/marina/marina-a?${query}#booking-entry`);
     const methods = page.getByRole("group", { name: "Payment method" });
     await expect(methods).toBeVisible();
+    await expect(page.getByLabel("Booking information")).toContainText("Choose how to pay when you review your booking");
+    await expect(page.getByLabel("Booking information")).not.toContainText("Stripe");
     const payNow = page.getByRole("radio", { name: /Pay now/ });
     const payAtMarina = page.getByRole("radio", { name: /Pay at marina/ });
     await expect(payNow).toBeChecked();

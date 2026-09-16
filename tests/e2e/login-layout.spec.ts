@@ -49,6 +49,19 @@ test("login retains inline callback errors and password-update confirmation", as
   }
 });
 
+test("legal links reach Berthio routes without presenting unapproved text as an agreement", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByRole("link", { name: "Terms", exact: true }).click();
+  await expect(page).toHaveURL(/\/terms$/);
+  await expect(page.getByRole("heading", { name: "Terms of service unavailable" })).toBeVisible();
+  await expect(page.getByRole("main")).not.toContainText("DockPay");
+  await page.goto("/login");
+  await page.getByRole("link", { name: "Privacy Policy" }).click();
+  await expect(page).toHaveURL(/\/privacy$/);
+  await expect(page.getByRole("heading", { name: "Privacy policy unavailable" })).toBeVisible();
+  await expect(page.getByRole("main")).not.toContainText("DockPay");
+});
+
 test("desktop split and unchanged centered mobile/tablet proportions", async ({ page }, testInfo) => {
   await page.goto("/login");
   const panel = page.getByRole("complementary", { name: "About Berthio" });

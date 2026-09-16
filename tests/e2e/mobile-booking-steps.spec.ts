@@ -4,7 +4,7 @@ test("mobile search stays inline when unavailable, then opens compact review and
   test.skip(testInfo.project.name !== "mobile" || !process.env.E2E_SUPABASE_READY, "Mobile with local Supabase fixtures required.");
   await page.goto("/marina/marina-a");
   const searchHeading = page.getByRole("heading", { name: "Search Availability", exact: true });
-  const reviewHeading = page.getByRole("heading", { name: "Review & Pay", exact: true });
+  const reviewHeading = page.getByRole("heading", { name: "Review Booking", exact: true });
   const check = page.getByRole("button", { name: "Check Availability", exact: true });
   const pay = page.getByRole("button", { name: "Continue to Payment", exact: true });
   await expect(searchHeading).toBeVisible();

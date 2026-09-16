@@ -3,5 +3,5 @@ import Link from "next/link";
 export const metadata = { title: "Terms" };
 
 export default function TermsPage() {
-  return <main className="legal-page"><Link href="/">← DockPay</Link><p className="eyebrow">Legal / document pending</p><h1>Terms of service</h1><p>DockPay’s production terms will be published before the pilot opens to customers. This page intentionally avoids presenting placeholder language as an active agreement.</p></main>;
+  return <main className="legal-page"><Link href="/">← Berthio</Link><h1>Terms of service unavailable</h1><p>Approved terms have not been provided. This page does not contain an agreement. Public pilot bookings must wait until the approved Berthio terms are published here.</p></main>;
 }
