@@ -44,12 +44,16 @@ test.describe("publishing settings", () => {
       await expect(page.locator("main h2")).toHaveText(["Public Booking Page", "Publishing Readiness", "Publication Status"]);
       await expect(page.getByText("Published", { exact: true })).toHaveCount(1);
       const checklist = page.getByRole("region", { name: "Publishing Readiness", exact: true });
-      await expect(checklist.getByRole("listitem")).toHaveCount(5);
+      await expect(checklist.getByRole("listitem")).toHaveCount(6);
+      await expect(checklist.getByRole("link")).toHaveText([
+        "Marina Profile", "Accepted Payment Methods", "Pricing & Seasonal Rates",
+        "Payment Readiness (Stripe)", "Email Delivery (Postmark)", "Notification Worker & Scheduler",
+      ]);
       await expect(checklist.getByRole("button")).toHaveCount(0);
       for (const row of await checklist.getByRole("listitem").all()) {
         await expect(row.getByText(/^(Ready|Action Required)$/)).toHaveCount(1);
       }
-      await expect(checklist.getByText(/\d of 5 Ready/)).toBeVisible();
+      await expect(checklist.getByText(/\d of 6 Ready/)).toBeVisible();
       await expect(page.getByRole("link", { name: "View Public Page" })).toHaveAttribute("href", "/marina/marina-a");
       await expect(page.getByRole("button", { name: "Copy URL" })).toHaveCount(0);
       await expect(page.locator("main code")).toContainText("/marina/marina-a");

@@ -2,7 +2,7 @@
 
 import { Anchor, Check, LoaderCircle } from "lucide-react";
 import Link from "next/link";
-import { useActionState, useEffect, useRef, useState, type InputHTMLAttributes } from "react";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore, type InputHTMLAttributes } from "react";
 import { useFormStatus } from "react-dom";
 import type { BookingActionState } from "@/app/dashboard/bookings/actions";
 import type { BookingField, BookingFieldErrors } from "@/domain/bookings/types";
@@ -12,9 +12,11 @@ import styles from "./create-booking.module.css";
 const initialState: BookingActionState = { status: "idle" };
 const initialValues: Record<BookingField, string> = { arrivalDate: "", departureDate: "", eta: "", etd: "", customerName: "", customerEmail: "", customerPhone: "", vesselName: "", vesselLengthM: "", vesselBeamM: "", vesselDraftM: "" };
 
-function SubmitButton() {
+const subscribeToHydration = () => () => {};
+
+function SubmitButton({ ready }: { ready: boolean }) {
   const { pending } = useFormStatus();
-  return <button className={styles.submit} disabled={pending} type="submit">
+  return <button className={styles.submit} disabled={!ready || pending} type="submit">
     {pending ? <LoaderCircle className="spin" size={18} aria-hidden="true" /> : <Check size={18} aria-hidden="true" />}
     {pending ? "Creating..." : "Create booking"}
   </button>;
@@ -36,12 +38,14 @@ export function BookingForm({ action, timezone }: {
 }) {
   const [state, formAction] = useActionState(action, initialState);
   const [values, setValues] = useState(initialValues);
+  // Controlled inputs must not accept values before their event handlers exist.
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const form = useRef<HTMLFormElement>(null);
   const errors = state.fieldErrors;
   useEffect(() => {
     if (state.fieldErrors) form.current?.querySelector<HTMLInputElement>("input[aria-invalid=true]")?.focus();
   }, [state]);
-  const field = (name: BookingField, label: string, props: Omit<InputHTMLAttributes<HTMLInputElement>, "name" | "value" | "onChange"> = {}) => <Field key={name} name={name} label={label} value={values[name]} onChange={(value) => setValues((current) => ({ ...current, [name]: value }))} errors={errors} {...props} />;
+  const field = (name: BookingField, label: string, props: Omit<InputHTMLAttributes<HTMLInputElement>, "name" | "value" | "onChange"> = {}) => <Field key={name} name={name} label={label} value={values[name]} onChange={(value) => setValues((current) => ({ ...current, [name]: value }))} errors={errors} disabled={!hydrated} {...props} />;
   const rawNights = bookingNights(values.arrivalDate, values.departureDate);
   const nights = Number.isFinite(rawNights) && rawNights > 0 ? rawNights : null;
 
@@ -85,7 +89,7 @@ export function BookingForm({ action, timezone }: {
       <p className={styles.helper}>Manual creation does not calculate a price or collect payment. Manage the payment balance after creating the booking.</p>
       {state.message ? <p className={styles.formError} role="alert">{state.message}</p> : null}
       {errors && Object.keys(errors).length ? <p className={styles.formError} role="alert">Check the highlighted fields before creating the booking.</p> : null}
-      <SubmitButton />
+      <SubmitButton ready={hydrated} />
       <Link className={styles.cancel} href="/dashboard/bookings">Cancel and return to list</Link>
     </aside>
   </form>;

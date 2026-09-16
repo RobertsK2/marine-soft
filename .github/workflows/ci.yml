@@ -30,20 +30,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Set up Supabase CLI
-        uses: supabase/setup-cli@v3
-        with:
-          version: 2.113.0
-
-      - name: Start local Supabase
-        run: supabase start
-
-      # The test fixtures assume the seed data from the current migrations.
-      # Resetting here affects only the runner's disposable local database and
-      # prevents a reused volume from changing the test outcome.
-      - name: Reset local database fixtures
-        run: supabase db reset --local
-
       - name: Verify tracked secrets
         run: npm run verify:secrets
 
@@ -61,3 +47,58 @@ jobs:
 
       - name: Build production application
         run: npm run build
+
+  concurrency-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Hold capacity and quota races (isolated local fixtures)
+        run: npm run test:hold-concurrency
+      - name: Berth assignment race (isolated local fixtures)
+        run: npm run test:assignment-concurrency
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install browser and system dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Playwright with generated local users and isolated Supabase
+        run: npm run test:e2e
+      - name: Upload browser diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  release-gate:
+    needs: [verify, concurrency-tests, e2e]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every pilot verification job to succeed
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          CONCURRENCY_RESULT: ${{ needs.concurrency-tests.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+        run: |
+          test "$VERIFY_RESULT" = success
+          test "$CONCURRENCY_RESULT" = success
+          test "$E2E_RESULT" = success

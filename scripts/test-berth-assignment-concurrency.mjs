@@ -5,6 +5,7 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const secret = process.env.SUPABASE_SECRET_KEY;
 const password = process.env.BERTHIO_LOCAL_TEST_PASSWORD;
 if (!secret || !password) throw new Error("SUPABASE_SECRET_KEY and BERTHIO_LOCAL_TEST_PASSWORD are required.");
+if (!["localhost", "127.0.0.1"].includes(new URL(url).hostname)) throw new Error("Concurrency tests require local Supabase.");
 
 const service = createClient(url, secret, { auth: { autoRefreshToken: false, persistSession: false } });
 const staff = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
@@ -53,7 +54,9 @@ try {
   }
   console.log("PASS: simultaneous assignment race produced one assignment and one conflict.");
 } finally {
-  await service.from("booking_berth_assignments").delete().in("booking_id", bookingIds);
-  await service.from("bookings").delete().in("id", bookingIds);
-  await staff.auth.signOut();
+  const assignments = await service.from("booking_berth_assignments").delete().in("booking_id", bookingIds);
+  const bookings = await service.from("bookings").delete().in("id", bookingIds);
+  const signOut = await staff.auth.signOut();
+  const errors = [assignments.error, bookings.error, signOut.error].filter(Boolean);
+  if (errors.length) throw new AggregateError(errors, "Assignment race cleanup failed.");
 }

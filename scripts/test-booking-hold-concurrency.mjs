@@ -5,6 +5,13 @@ import { createClient } from "@supabase/supabase-js";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SECRET_KEY;
 if (!url || !key) throw new Error("Local Supabase URL and secret key are required.");
+if (!["localhost", "127.0.0.1"].includes(new URL(url).hostname)) throw new Error("Concurrency tests require local Supabase.");
+const runKeys = [];
+function idempotencyKey() {
+  const key = randomUUID();
+  runKeys.push(key);
+  return key;
+}
 
 const clients = [0, 1].map(() => createClient(url, key, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -29,49 +36,54 @@ const request = {
   request_network_hash: randomBytes(32).toString("hex"),
 };
 
-const results = await Promise.all(clients.map((client, index) => client.rpc("create_booking_hold", {
-  ...request,
-  request_idempotency_key: randomUUID(),
-  requested_vessel_name: `Concurrent racer ${index + 1}`,
-})));
-for (const result of results) assert.equal(result.error, null);
-const rows = results.map((result) => result.data?.[0]);
-assert.deepEqual(rows.map((row) => row?.outcome).sort(), ["created", "unavailable"]);
-
-const winner = rows.find((row) => row?.outcome === "created");
-assert.ok(winner?.hold_token);
-const release = await clients[0].rpc("release_booking_hold_after_checkout_failure", {
-  target_hold_token: winner.hold_token,
-});
-assert.equal(release.error, null);
-assert.equal(release.data, true);
-
-const quotaResults = await Promise.all(Array.from({ length: 4 }, async (_, index) => {
-  const arrivalDay = 1 + index * 3;
-  const arrivalDate = `2026-12-${String(arrivalDay).padStart(2, "0")}`;
-  const departureDate = `2026-12-${String(arrivalDay + 2).padStart(2, "0")}`;
-  return clients[index % clients.length].rpc("create_booking_hold", {
-    ...request,
-    request_idempotency_key: randomUUID(),
-    requested_arrival: arrivalDate,
-    requested_departure: departureDate,
-    requested_vessel_name: `Quota racer ${index + 1}`,
-    calculated_price_snapshot: {
-      ...request.calculated_price_snapshot,
-      arrivalDate,
-      departureDate,
-    },
-  });
-}));
-const quotaRows = quotaResults.map((result) => result.data?.[0]);
 try {
-  for (const result of quotaResults) assert.equal(result.error, null);
-  assert.deepEqual(quotaRows.map((row) => row?.outcome).sort(), ["created", "created", "rate_limited", "rate_limited"]);
-} finally {
-  for (const row of quotaRows.filter((candidate) => candidate?.hold_token)) {
-    const cleanup = await clients[0].rpc("release_booking_hold_after_checkout_failure", { target_hold_token: row.hold_token });
-    assert.equal(cleanup.error, null);
-  }
-}
+  const results = await Promise.all(clients.map((client, index) => client.rpc("create_booking_hold", {
+    ...request,
+    request_idempotency_key: idempotencyKey(),
+    requested_vessel_name: `Concurrent racer ${index + 1}`,
+  })));
+  for (const result of results) assert.equal(result.error, null);
+  const rows = results.map((result) => result.data?.[0]);
+  assert.deepEqual(rows.map((row) => row?.outcome).sort(), ["created", "unavailable"]);
 
-console.log("PASS: concurrent capacity and anonymous-session quota races stayed serialized and within their limits.");
+  const winner = rows.find((row) => row?.outcome === "created");
+  assert.ok(winner?.hold_token);
+  const release = await clients[0].rpc("release_booking_hold_after_checkout_failure", {
+    target_hold_token: winner.hold_token,
+  });
+  assert.equal(release.error, null);
+  assert.equal(release.data, true);
+
+  const quotaResults = await Promise.all(Array.from({ length: 4 }, async (_, index) => {
+    const arrivalDay = 1 + index * 3;
+    const arrivalDate = `2026-12-${String(arrivalDay).padStart(2, "0")}`;
+    const departureDate = `2026-12-${String(arrivalDay + 2).padStart(2, "0")}`;
+    return clients[index % clients.length].rpc("create_booking_hold", {
+      ...request,
+      request_idempotency_key: idempotencyKey(),
+      requested_arrival: arrivalDate,
+      requested_departure: departureDate,
+      requested_vessel_name: `Quota racer ${index + 1}`,
+      calculated_price_snapshot: {
+        ...request.calculated_price_snapshot,
+        arrivalDate,
+        departureDate,
+      },
+    });
+  }));
+  const quotaRows = quotaResults.map((result) => result.data?.[0]);
+  try {
+    for (const result of quotaResults) assert.equal(result.error, null);
+    assert.deepEqual(quotaRows.map((row) => row?.outcome).sort(), ["created", "created", "rate_limited", "rate_limited"]);
+  } finally {
+    for (const row of quotaRows.filter((candidate) => candidate?.hold_token)) {
+      const cleanup = await clients[0].rpc("release_booking_hold_after_checkout_failure", { target_hold_token: row.hold_token });
+      assert.equal(cleanup.error, null);
+    }
+  }
+
+  console.log("PASS: concurrent capacity and anonymous-session quota races stayed serialized and within their limits.");
+} finally {
+  const cleanup = await clients[0].from("booking_holds").delete().in("idempotency_key", runKeys);
+  assert.equal(cleanup.error, null, "All holds created by this run must be cleaned up, including failed races.");
+}
