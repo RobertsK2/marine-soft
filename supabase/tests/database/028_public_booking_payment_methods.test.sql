@@ -61,12 +61,12 @@ values
   ('d0000000-0000-4000-8000-000000000001','78000000-0000-4000-8000-000000000010','marina_admin'),
   ('e0000000-0000-4000-8000-000000000002','78000000-0000-4000-8000-000000000011','marina_admin');
 set local role authenticated;
-select set_config('request.jwt.claims','{"sub":"78000000-0000-4000-8000-000000000010","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"78000000-0000-4000-8000-000000000010","role":"authenticated","aal":"aal2"}',true);
 select results_eq(
   $$update public.marinas set accepts_pay_at_marina=true where id='d1000000-0000-4000-8000-000000000001' returning accepts_pay_at_marina$$,
   $$values (true)$$,
   'marina admin can configure accepted payment methods');
-select set_config('request.jwt.claims','{"sub":"78000000-0000-4000-8000-000000000011","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"78000000-0000-4000-8000-000000000011","role":"authenticated","aal":"aal2"}',true);
 select results_eq(
   $$update public.marinas set accepts_online_payment=false where id='d1000000-0000-4000-8000-000000000001' returning accepts_online_payment$$,
   $$select false where false$$,

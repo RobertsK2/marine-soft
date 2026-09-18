@@ -619,6 +619,10 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      allow_public_availability_check: {
+        Args: { request_session_hash: string; request_network_hash: string };
+        Returns: boolean;
+      };
       get_marina_integration_health: {
         Args: { target_marina_id: string };
         Returns: {

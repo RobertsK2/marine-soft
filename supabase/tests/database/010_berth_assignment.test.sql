@@ -33,7 +33,7 @@ insert into public.bookings (
   ('8a200000-0000-4000-8000-000000000005','d1000000-0000-4000-8000-000000000001','2028-08-01','2028-08-03','14:00','10:00','Cancelled Assignment','five@example.test','+37120000005','Five',9,3,1.5,'cancelled');
 
 set local role authenticated;
-select set_config('request.jwt.claims','{"sub":"81000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"81000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}',true);
 
 select is((select outcome from public.assign_booking_berth('8a200000-0000-4000-8000-000000000001','d5000000-0000-4000-8000-000000000002')),'assigned','a suitable operational berth can be assigned');
 select is((select count(*)::integer from public.booking_berth_assignments where booking_id='8a200000-0000-4000-8000-000000000001' and ended_at is null),1,'booking has one active assignment');
@@ -58,10 +58,10 @@ select throws_ok(
   '42501',null,'direct booking edits cannot bypass the server revalidation workflow');
 select is((select outcome from public.assign_booking_berth('8a200000-0000-4000-8000-000000000003','d5000000-0000-4000-8000-000000000003')),'assigned','back-to-back stays do not conflict');
 
-select set_config('request.jwt.claims','{"sub":"81000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"81000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1"}',true);
 select is((select outcome from public.assign_booking_berth('8a200000-0000-4000-8000-000000000004','d5000000-0000-4000-8000-000000000004')),'assigned','marina staff can assign a suitable berth');
 
-select set_config('request.jwt.claims','{"sub":"82000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"82000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}',true);
 select is((select outcome from public.assign_booking_berth('8a200000-0000-4000-8000-000000000001','e5000000-0000-4000-8000-000000000002')),'not_found','another tenant cannot assign the booking');
 select is((select count(*)::integer from public.booking_berth_assignments where marina_id='d1000000-0000-4000-8000-000000000001'),0,'another tenant cannot read assignment history');
 

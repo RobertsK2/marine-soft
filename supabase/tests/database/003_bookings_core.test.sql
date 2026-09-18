@@ -54,7 +54,7 @@ values
   ('4b200000-0000-4000-8000-000000000002', '4b100000-0000-4000-8000-000000000002', '2026-09-11', '2026-09-14', '16:00', '09:00', 'Customer B', 'b@example.test', '+37120000002', 'Borealis', 15, 5, 3);
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"41000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"41000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 
 select results_eq(
   'select customer_name from public.bookings order by customer_name',
@@ -160,7 +160,7 @@ select results_eq(
   'the pre-existing confirmed cancellation remains available'
 );
 
-select set_config('request.jwt.claims', '{"sub":"41000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"41000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1"}', true);
 select results_eq(
   $$insert into public.bookings (
       marina_id, arrival_date, departure_date, eta, etd,

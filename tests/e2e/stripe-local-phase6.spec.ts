@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 
 test("local paid Checkout confirms one booking and exposes it to marina admin", async ({ page }) => {
@@ -53,6 +54,7 @@ test("local paid Checkout confirms one booking and exposes it to marina admin", 
   await page.getByLabel("Email").fill(adminEmail!);
   await page.getByLabel("Password", { exact: true }).fill(adminPassword!);
   await page.getByRole("button", { name: "Sign In" }).click();
+  await completeAdminMfa(page);
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.goto("/dashboard/bookings");
   const bookingRow = page.getByRole("row").filter({ hasText: bookingReference! });

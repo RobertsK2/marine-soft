@@ -37,7 +37,7 @@ select to_jsonb(bookings) snapshot from public.bookings where id = 'b1200000-000
 grant select on pricing_booking_before to authenticated;
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"b1100000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"b1100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 
 select results_eq(
   $$select outcome from public.replace_marina_pricing_configuration(
@@ -84,12 +84,12 @@ select throws_ok(
   )$$, '22023', 'A mandatory fee has an invalid minor-unit amount.', 'negative mandatory fees are rejected'
 );
 
-select set_config('request.jwt.claims', '{"sub":"b1100000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"b1100000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1"}', true);
 select throws_ok(
   $$select * from public.replace_marina_pricing_configuration('d1000000-0000-4000-8000-000000000001', null, '{}'::jsonb)$$,
   '42501', 'Marina admin access is required.', 'marina staff cannot configure pricing'
 );
-select set_config('request.jwt.claims', '{"sub":"b1100000-0000-4000-8000-000000000003","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"b1100000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2"}', true);
 select throws_ok(
   $$select * from public.replace_marina_pricing_configuration('d1000000-0000-4000-8000-000000000001', null, '{}'::jsonb)$$,
   '42501', 'Marina admin access is required.', 'another tenant admin cannot configure pricing'

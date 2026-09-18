@@ -15,7 +15,7 @@ import {
 } from "@/domain/public-booking/validation";
 import { marinaInitials } from "@/domain/public-marinas/model";
 import { getPublicMarinaBySlug } from "@/domain/public-marinas/repository";
-import { getPublicAvailability } from "@/domain/public-availability/service";
+import { getPublicAvailability, PublicAvailabilityRateLimitError } from "@/domain/public-availability/service";
 import type { PublicAvailabilityResult } from "@/domain/public-availability/types";
 import { getPublicPriceQuote } from "@/domain/pricing/service";
 import type { PublicPriceQuote } from "@/domain/pricing/types";
@@ -66,11 +66,16 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
       availability = await getPublicAvailability(marina.slug, searchRequest);
       if (!availability) availabilityError = "The marina is not available for public booking.";
     } catch (error) {
-      captureServerError(error, {
-        marina_slug: marina.slug,
-        operation: "public_availability_check",
-      });
-      availabilityError = "Please try again. No booking or berth assignment was created.";
+      if (error instanceof PublicAvailabilityRateLimitError) {
+        console.warn("Public availability rate limit reached", { marina_slug: marina.slug });
+        availabilityError = "Too many availability checks. Please try again shortly.";
+      } else {
+        captureServerError(error, {
+          marina_slug: marina.slug,
+          operation: "public_availability_check",
+        });
+        availabilityError = "Please try again. No booking or berth assignment was created.";
+      }
     }
   }
   if (searchRequest && availability?.available) {

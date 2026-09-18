@@ -115,7 +115,7 @@ insert into public.marina_mandatory_fees (
 values ('5a100000-0000-4000-8000-000000000001', 'Admin fee', 'per_booking', 500, 10);
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"51000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"51000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 
 select results_eq(
   'select currency from public.marina_pricing_configs order by currency',
@@ -137,7 +137,7 @@ select results_eq(
   'Marina A admin cannot mutate Marina B pricing'
 );
 
-select set_config('request.jwt.claims', '{"sub":"51000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"51000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1"}', true);
 select results_eq(
   'select currency from public.marina_pricing_configs',
   array['EUR'::text],
@@ -261,7 +261,7 @@ select results_eq(
 );
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"51000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"51000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 select throws_ok(
   $$update public.bookings set price_total_minor = 1
     where id = '5a200000-0000-4000-8000-000000000001'$$,

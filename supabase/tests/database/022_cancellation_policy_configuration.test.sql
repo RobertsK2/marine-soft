@@ -42,7 +42,7 @@ create temporary table cancellation_config_history_before as
 select coalesce(jsonb_agg(to_jsonb(events) order by id), '[]'::jsonb) snapshot from public.booking_cancellation_events events;
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"c6100000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"c6100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 
 select is((select count(*)::integer from public.marina_cancellation_policies), 1, 'admin reads only the owned marina policy');
 select results_eq(
@@ -88,13 +88,13 @@ select throws_ok(
   '22023', 'Cancellation policy codes must be unique.', 'duplicate tier codes are rejected'
 );
 
-select set_config('request.jwt.claims', '{"sub":"c6100000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"c6100000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1"}', true);
 select is((select count(*)::integer from public.marina_cancellation_policies), 0, 'marina staff cannot read admin cancellation policy');
 select throws_ok(
   $$select * from public.replace_marina_cancellation_policy('d1000000-0000-4000-8000-000000000001', null, '{}'::jsonb)$$,
   '42501', 'Marina admin access is required.', 'marina staff cannot configure cancellation policy'
 );
-select set_config('request.jwt.claims', '{"sub":"c6100000-0000-4000-8000-000000000003","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"c6100000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2"}', true);
 select is((select count(*)::integer from public.marina_cancellation_policies where marina_id = 'd1000000-0000-4000-8000-000000000001'), 0, 'another tenant cannot read cancellation policy');
 select throws_ok(
   $$select * from public.replace_marina_cancellation_policy('d1000000-0000-4000-8000-000000000001', null, '{}'::jsonb)$$,

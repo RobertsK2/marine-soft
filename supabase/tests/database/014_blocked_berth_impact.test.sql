@@ -20,7 +20,7 @@ insert into public.bookings(id,marina_id,arrival_date,departure_date,eta,etd,cus
   ('b4100000-0000-4000-8000-000000000005','e1000000-0000-4000-8000-000000000002','2033-05-01','2033-05-03','14:00','10:00','Other Tenant','other@example.test','+37122000005','Other',9,3,1.5,'confirmed');
 
 set local role authenticated;
-select set_config('request.jwt.claims','{"sub":"b1500000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"b1500000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}',true);
 select is((select outcome from public.assign_booking_berth('b4100000-0000-4000-8000-000000000001','d5000000-0000-4000-8000-000000000007')),'assigned','first booking is assigned to A-03');
 select is((select outcome from public.assign_booking_berth('b4100000-0000-4000-8000-000000000002','d5000000-0000-4000-8000-000000000007')),'assigned','second booking is assigned to A-03');
 select is((select outcome from public.transition_booking_stay('b4100000-0000-4000-8000-000000000002','checked_in',false)),'checked_in','second affected booking can be operationally checked in');

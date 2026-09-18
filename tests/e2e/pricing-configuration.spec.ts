@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 
 const password = process.env.E2E_MARINA_PASSWORD;
@@ -7,6 +8,7 @@ async function login(page: import("@playwright/test").Page, email: string) {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password!);
   await page.getByRole("button", { name: "Sign In" }).click();
+  await completeAdminMfa(page);
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 

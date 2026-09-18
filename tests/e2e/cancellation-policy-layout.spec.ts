@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
@@ -11,6 +12,7 @@ test("policy preview boundaries, coverage validation, saves and layout", async (
   const link = await service.auth.admin.generateLink({ type: "magiclink", email: "admin-a@berthio.test" });
   if (link.error) throw new Error("Local sign-in failed.");
   await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(link.data.properties.hashed_token)}&next=/dashboard/settings/cancellation-policy`);
+  await completeAdminMfa(page);
   await expect(page.getByRole("heading", { name: "Cancellation Policy", exact: true })).toBeVisible();
   const form = page.locator("form.pricing-config-form");
   await expect(form).toHaveAttribute("data-hydrated", "true");

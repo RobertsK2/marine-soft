@@ -19,7 +19,7 @@ insert into public.organization_members(organization_id, user_id, role) values
   ('d0000000-0000-4000-8000-000000000001', 'a8100000-0000-4000-8000-000000000002', 'marina_staff'),
   ('e0000000-0000-4000-8000-000000000002', 'a8100000-0000-4000-8000-000000000003', 'marina_admin');
 
-select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 insert into public.bookings(
   id, marina_id, arrival_date, departure_date, eta, etd, customer_name, customer_email,
   customer_phone, vessel_name, vessel_length_m, vessel_beam_m, vessel_draft_m, status
@@ -69,7 +69,7 @@ select is((select after_data ->> 'customer_name' from public.audit_events
 select set_config('berthio.audit_actor_id', '', true);
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 update public.berths set status = 'blocked' where id = 'a8300000-0000-4000-8000-000000000001';
 select ok(exists(
   select 1 from public.audit_events where berth_id = 'a8300000-0000-4000-8000-000000000001'
@@ -106,15 +106,15 @@ select ok(exists(
 ), 'guest ETA or ETD change is identified without a staff actor');
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 select ok((select count(*) from public.audit_events where marina_id = 'd1000000-0000-4000-8000-000000000001') >= 8, 'admin can read full marina history');
 select ok((select count(*) from public.audit_events where booking_id = 'a8200000-0000-4000-8000-000000000001') >= 5, 'admin can read booking entity history');
 
-select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1"}', true);
 select ok((select count(*) from public.audit_events where booking_id = 'a8200000-0000-4000-8000-000000000001') >= 5, 'staff can read booking entity history');
 select ok((select count(*) from public.audit_events where berth_id = 'a8300000-0000-4000-8000-000000000001') >= 3, 'staff can read berth entity history');
 
-select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000003","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2"}', true);
 select is((select count(*)::integer from public.audit_events where marina_id = 'd1000000-0000-4000-8000-000000000001'), 0, 'cross-tenant audit access is denied');
 
 reset role;

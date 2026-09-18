@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
@@ -11,6 +12,7 @@ test("berth inventory filters preserve totals and existing routes", async ({ pag
   const { data, error } = await service.auth.admin.generateLink({ type: "magiclink", email: "admin-a@berthio.test" });
   if (error) throw new Error("Local test sign-in failed.");
   await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(data.properties.hashed_token)}&next=/dashboard`);
+  await completeAdminMfa(page);
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.goto("/dashboard/berths");
   await expect(page.getByRole("heading", { name: "Berths", exact: true })).toBeVisible();

@@ -5,6 +5,7 @@ import type { PublicBookingSearch } from "@/domain/public-booking/types";
 import { evaluatePublicAvailability } from "@/domain/public-availability/model";
 import type { PublicAvailabilityResult } from "@/domain/public-availability/types";
 import { createPrivilegedClient } from "@/lib/supabase/privileged";
+import { getBookingHoldRequester } from "@/domain/booking-holds/requester";
 
 export class PublicAvailabilityServiceError extends Error {
   constructor(message: string, options?: ErrorOptions) {
@@ -12,6 +13,8 @@ export class PublicAvailabilityServiceError extends Error {
     this.name = "PublicAvailabilityServiceError";
   }
 }
+
+export class PublicAvailabilityRateLimitError extends Error {}
 
 export async function getPublicAvailability(
   marinaSlug: string,
@@ -31,6 +34,14 @@ export async function getPublicAvailability(
     });
   }
   if (!marina) return null;
+
+  const requester = await getBookingHoldRequester();
+  const { data: allowed, error: limitError } = await supabase.rpc("allow_public_availability_check", {
+    request_session_hash: requester.sessionHash,
+    request_network_hash: requester.networkHash,
+  });
+  if (limitError) throw new PublicAvailabilityServiceError("Unable to check public availability limits.", { cause: limitError });
+  if (!allowed) throw new PublicAvailabilityRateLimitError("Too many availability checks.");
 
   const request: AvailabilityRequest = {
     marinaId: marina.id,

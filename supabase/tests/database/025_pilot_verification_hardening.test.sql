@@ -36,7 +36,7 @@ values (
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
-  '{"sub":"c9100000-0000-4000-8000-000000000001","role":"authenticated"}',
+  '{"sub":"c9100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}',
   true
 );
 select throws_ok(

@@ -24,7 +24,7 @@ insert into public.bookings(id,marina_id,arrival_date,departure_date,eta,etd,cus
   ('c4100000-0000-4000-8000-000000000006','e1000000-0000-4000-8000-000000000002',current_date + 10,current_date + 12,'14:00','10:00','Other Tenant','other@example.test','+37123000006','Other',8,2.8,1.4,'confirmed',null,null,null);
 
 set local role authenticated;
-select set_config('request.jwt.claims','{"sub":"c1500000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"c1500000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}',true);
 select is((select outcome from public.assign_booking_berth('c4100000-0000-4000-8000-000000000001','d5000000-0000-4000-8000-000000000001')),'assigned','full-refund booking gets an assignment');
 select is((select outcome from public.assign_booking_berth('c4100000-0000-4000-8000-000000000005','d5000000-0000-4000-8000-000000000002')),'assigned','checked-out fixture gets an assignment');
 select is((select outcome from public.transition_booking_stay('c4100000-0000-4000-8000-000000000005','checked_in',false)),'checked_in','fixture checks in');

@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
@@ -13,6 +14,7 @@ test("settings hub preserves destinations, general saves and role guards", async
     if (result.error) throw new Error("Local test sign-in failed.");
     await page.context().clearCookies();
     await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(result.data.properties.hashed_token)}&next=/dashboard`);
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
   };
   await signIn("admin-a@berthio.test");

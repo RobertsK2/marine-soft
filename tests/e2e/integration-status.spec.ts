@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 
 const password = process.env.E2E_MARINA_PASSWORD;
@@ -14,6 +15,7 @@ async function login(page: import("@playwright/test").Page, email: string) {
     const result = await service.auth.admin.generateLink({ type: "magiclink", email });
     if (result.error) throw new Error("Local test sign-in failed.");
     await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(result.data.properties.hashed_token)}&next=/dashboard`);
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
     return;
   }
@@ -21,6 +23,7 @@ async function login(page: import("@playwright/test").Page, email: string) {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password!);
   await page.getByRole("button", { name: "Sign In" }).click();
+  await completeAdminMfa(page);
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 

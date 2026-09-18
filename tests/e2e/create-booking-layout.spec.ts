@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
@@ -15,6 +16,7 @@ test("manual booking preserves validation and creates unassigned capacity", asyn
   page.on("pageerror", (value) => runtimeErrors.push(value.message));
   try {
     await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(data.properties.hashed_token)}&next=/dashboard`);
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto("/dashboard/bookings/new");
     await expect(page.getByRole("heading", { name: "Create manual booking" })).toBeVisible();

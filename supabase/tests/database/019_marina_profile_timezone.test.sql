@@ -40,7 +40,7 @@ where id = 'a1200000-0000-4000-8000-000000000001';
 grant select on booking_before to authenticated;
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"a1100000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"a1100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 
 select results_eq(
   $$update public.marinas set
@@ -94,14 +94,14 @@ select throws_ok(
   '23514', null, 'unsafe public website URLs are rejected in the database'
 );
 
-select set_config('request.jwt.claims', '{"sub":"a1100000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"a1100000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1"}', true);
 select results_eq(
   $$update public.marinas set name = 'Staff changed' where id = 'd1000000-0000-4000-8000-000000000001' returning name$$,
   array[]::text[],
   'marina staff cannot update profile configuration'
 );
 
-select set_config('request.jwt.claims', '{"sub":"a1100000-0000-4000-8000-000000000003","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"a1100000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2"}', true);
 select results_eq(
   $$update public.marinas set name = 'Cross-tenant changed' where id = 'd1000000-0000-4000-8000-000000000001' returning name$$,
   array[]::text[],

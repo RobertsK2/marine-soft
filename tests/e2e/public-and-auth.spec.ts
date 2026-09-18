@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
@@ -36,8 +37,8 @@ test.describe("public marina page", () => {
 
   test("booking search validates and preserves a clean timezone-aware request", async ({ page }, testInfo) => {
     // The asserted tariff is the seeded September high-season tariff.
-    const arrival = new Date("2026-09-17T00:00:00Z");
-    const departure = new Date("2026-09-20T00:00:00Z");
+    const arrival = new Date("2026-09-25T00:00:00Z");
+    const departure = new Date("2026-09-28T00:00:00Z");
     const isoDate = (value: Date) => value.toISOString().slice(0, 10);
 
     await page.goto("/marina/marina-a#booking-entry");
@@ -313,6 +314,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
     await expect(page.locator(".overview-insight-card")).toHaveCount(4);
@@ -344,6 +346,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto("/dashboard/bookings");
     await expect(page.getByRole("columnheader")).toHaveText(["Booking", "Stay", "Berth", "Status", "Payment", "Actions"]);
@@ -402,6 +405,7 @@ test.describe("local Supabase marina auth", () => {
       await page.getByLabel("Email").fill(email!);
       await page.getByLabel("Password", { exact: true }).fill(password!);
       await page.getByRole("button", { name: "Sign In" }).click();
+      await completeAdminMfa(page);
       await expect(page).toHaveURL(/\/dashboard$/);
       await page.getByRole("link", { name: "Settings" }).click();
       await page.getByRole("link", { name: "General", exact: true }).click();
@@ -472,6 +476,7 @@ test.describe("local Supabase marina auth", () => {
       await page.getByLabel("Email").fill(email!);
       await page.getByLabel("Password", { exact: true }).fill(password!);
       await page.getByRole("button", { name: "Sign In" }).click();
+      await completeAdminMfa(page);
       await expect(page).toHaveURL(/\/dashboard$/);
       await page.goto("/dashboard/settings/publishing");
       await expect(page.getByRole("heading", { name: "Publishing", exact: true })).toBeVisible();
@@ -528,6 +533,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Email").fill(adminEmail!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
+    await completeAdminMfa(page);
     await page.getByRole("link", { name: "Settings", exact: true }).click();
     await expect(page.getByRole("link", { name: /Audit Log/i })).toBeVisible();
     await page.getByRole("link", { name: /Audit Log/i }).click();
@@ -539,6 +545,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Email").fill(staffEmail!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByRole("link", { name: /Audit Log/i })).toHaveCount(0);
     await page.goto("/dashboard/audit");
@@ -578,6 +585,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
 
     await page.goto(
@@ -652,10 +660,50 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
+    await completeAdminMfa(page);
     await expect(page).toHaveURL("http://localhost:3000/dashboard");
     await expect(page.locator(".overview-tenant")).toHaveCount(1);
     await expect(page.locator(".overview-tenant")).toContainText("Marina B");
     await expect(page.locator(".overview-tenant")).not.toContainText("Marina A");
+  });
+
+  test("recovery token confirmation reaches reset and restores the normal MFA gate", async ({ page }, testInfo) => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SECRET_KEY;
+    test.skip(!url || !key || !process.env.E2E_RECOVERY_PASSWORD, "Requires isolated local recovery user.");
+    const service = createClient(url!, key!, { auth: { persistSession: false } });
+    const email = `recovery-confirm-${testInfo.project.name}@berthio.test`;
+    const created = await service.auth.admin.createUser({
+      email, password: process.env.E2E_RECOVERY_PASSWORD!, email_confirm: true,
+    });
+    expect(created.error).toBeNull();
+    try {
+      const membership = await service.from("organization_members").insert({
+        organization_id: "e0000000-0000-4000-8000-000000000002",
+        user_id: created.data.user!.id, role: "marina_admin", status: "active",
+      });
+      expect(membership.error).toBeNull();
+      const { data, error } = await service.auth.admin.generateLink({ type: "recovery", email });
+      expect(error).toBeNull();
+      if (!data.properties) throw new Error("Recovery link was not generated.");
+      await page.goto(`http://localhost:3000/auth/confirm?type=recovery&token_hash=${encodeURIComponent(data.properties.hashed_token)}&next=/reset-password`);
+      await expect(page).toHaveURL(/\/reset-password$/);
+      await expect(page.getByRole("heading", { name: "Secure your account" })).toBeVisible();
+
+      const password = `Recovery-${testInfo.project.name}-${Date.now()}`;
+      await page.getByLabel("New password", { exact: true }).fill(password);
+      await page.getByLabel("Confirm new password").fill(password);
+      await page.getByRole("button", { name: "Update password" }).click();
+      await expect(page).toHaveURL(/\/login\?message=password-updated$/);
+      await page.getByLabel("Email").fill(email);
+      await page.getByLabel("Password", { exact: true }).fill(password);
+      await page.getByRole("button", { name: "Sign In" }).click();
+      await expect(page).toHaveURL(/\/mfa\?next=%2Fdashboard$/);
+      await completeAdminMfa(page);
+      await expect(page).toHaveURL(/\/dashboard$/);
+    } finally {
+      expect((await service.auth.admin.deleteUser(created.data.user!.id)).error).toBeNull();
+    }
   });
 
   test("marina admin can create and operate a berth", async ({ page }) => {
@@ -668,6 +716,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto("/dashboard/berths");
     await expect(page.getByRole("heading", { name: "Berths", exact: true })).toBeVisible();
@@ -720,6 +769,7 @@ test.describe("local Supabase marina auth", () => {
       await page.getByLabel("Email").fill(email!);
       await page.getByLabel("Password", { exact: true }).fill(password!);
       await page.getByRole("button", { name: "Sign In" }).click();
+      await completeAdminMfa(page);
       await expect(page).toHaveURL(/\/dashboard$/);
       await page.goto("/dashboard/berths");
       await page.getByRole("link", { name: "Import CSV" }).click();
@@ -803,6 +853,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto("/dashboard/marina-map");
 
@@ -858,6 +909,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto("/dashboard/bookings/new");
     await page.getByLabel("Arrival date").fill(isoDate(arrival));
@@ -900,6 +952,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto("/dashboard/bookings/new");
     await page.getByLabel("Arrival date").fill(isoDate(arrival));
@@ -994,6 +1047,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto("/dashboard/bookings/new");
     await page.getByLabel("Arrival date").fill(isoDate(arrival));
@@ -1089,6 +1143,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
 
     await page.goto("/dashboard/bookings");

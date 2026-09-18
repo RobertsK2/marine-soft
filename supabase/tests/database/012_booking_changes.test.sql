@@ -68,7 +68,7 @@ select is((select count(*)::integer from public.booking_price_adjustments where 
 
 reset role;
 set local role authenticated;
-select set_config('request.jwt.claims','{"sub":"a1300000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"a1300000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}',true);
 select is((select outcome from public.assign_booking_berth('a3200000-0000-4000-8000-000000000002','d5000000-0000-4000-8000-000000000002')),'assigned','fixture receives a current berth');
 reset role;
 set local role service_role;

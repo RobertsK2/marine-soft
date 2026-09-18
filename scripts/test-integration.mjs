@@ -41,6 +41,8 @@ env.GUEST_ACCESS_SIGNING_SECRET = randomBytes(32).toString("hex");
 env.NOTIFICATION_WORKER_SECRET = randomBytes(32).toString("hex");
 env.E2E_MAILPIT_URL = "http://127.0.0.1:57324";
 env.E2E_SUPABASE_READY = "1";
+env.BERTHIO_REQUIRE_ADMIN_MFA = "true";
+env.E2E_PRODUCTION = process.env.E2E_PRODUCTION === "1" ? "1" : "0";
 env.BERTHIO_ISOLATED_TESTS = "1";
 env.NEXT_TELEMETRY_DISABLED = "1";
 const cli = join(root, "node_modules/supabase/dist/supabase.js");
@@ -79,6 +81,9 @@ try {
   }
   run(join(root, "scripts/setup-local-test-users.mjs"));
   if (mode === "e2e") {
+    if (process.env.E2E_PRODUCTION === "1") {
+      run(join(root, "node_modules/next/dist/bin/next"), ["build"]);
+    }
     const { createClient } = await import("@supabase/supabase-js");
     const client = createClient(status.API_URL, env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });
     const recovery = await client.auth.admin.createUser({ email: env.E2E_RECOVERY_EMAIL, password: env.E2E_RECOVERY_PASSWORD, email_confirm: true });

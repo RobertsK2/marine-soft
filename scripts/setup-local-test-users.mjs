@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHmac } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 
@@ -126,6 +127,30 @@ async function verifyFixture(fixture) {
     throw signInError ?? new Error(`Could not sign in as ${fixture.email}.`);
   }
 
+  let factorId;
+  if (fixture.role === "marina_admin") {
+    const denied = await client.from("organizations").select("id");
+    if (denied.error || denied.data?.length !== 0) {
+      throw new Error("Password-only admin session must not read tenant data.");
+    }
+    // Use real local Auth-issued AAL2 sessions for the existing tenant checks.
+    // Remove this temporary factor afterwards so browser enrollment tests start clean.
+    const { data: factor, error: enrollError } = await client.auth.mfa.enroll({ factorType: "totp" });
+    if (enrollError) throw enrollError;
+    factorId = factor.id;
+    let bits = "";
+    for (const char of factor.totp.secret.replace(/=+$/, "")) {
+      bits += "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567".indexOf(char).toString(2).padStart(5, "0");
+    }
+    const key = Buffer.from(bits.match(/.{8}/g).map((byte) => Number.parseInt(byte, 2)));
+    const counter = Buffer.alloc(8);
+    counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30_000)));
+    const digest = createHmac("sha1", key).update(counter).digest();
+    const code = ((digest.readUInt32BE(digest[digest.length - 1] & 15) & 0x7fffffff) % 1_000_000).toString().padStart(6, "0");
+    const verification = await client.auth.mfa.challengeAndVerify({ factorId, code });
+    if (verification.error) throw verification.error;
+  }
+
   const { data: memberships, error: membershipError } = await client
     .from("organization_members")
     .select("organization_id, role, status")
@@ -155,6 +180,10 @@ async function verifyFixture(fixture) {
     throw new Error(`Tenant isolation verification failed for ${fixture.email}.`);
   }
 
+  if (factorId) {
+    const { error } = await client.auth.mfa.unenroll({ factorId });
+    if (error) throw error;
+  }
   await client.auth.signOut();
 }
 

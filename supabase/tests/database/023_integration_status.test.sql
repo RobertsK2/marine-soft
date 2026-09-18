@@ -47,7 +47,7 @@ insert into public.notification_outbox(marina_id, event_type, dedupe_key, recipi
 values ('d1000000-0000-4000-8000-000000000001', 'arrival_reminder', 'integration-status-a', 'status@example.test', 'Status', 'Status body');
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"c7100000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"c7100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 select is((select count(*)::integer from public.get_marina_integration_health('d1000000-0000-4000-8000-000000000001')), 1, 'owned marina admin receives one health row');
 select is((select stripe_webhook_event_count from public.get_marina_integration_health('d1000000-0000-4000-8000-000000000001')), 1::bigint, 'health includes only matched tenant webhook activity');
 select is((select latest_stripe_webhook_outcome from public.get_marina_integration_health('d1000000-0000-4000-8000-000000000001')), 'paid', 'latest matched webhook outcome is reported');
@@ -57,9 +57,9 @@ select is((select pending_notification_count from public.get_marina_integration_
 select is((select sent_notification_count from public.get_marina_integration_health('d1000000-0000-4000-8000-000000000001')), 7::bigint, 'tenant sent notification count includes deterministic pilot history');
 select is((select latest_notification_attempt_at from public.get_marina_integration_health('d1000000-0000-4000-8000-000000000001')), null::timestamptz, 'no notification attempt is reported when none exists');
 
-select set_config('request.jwt.claims', '{"sub":"c7100000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"c7100000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1"}', true);
 select throws_ok($$select * from public.get_marina_integration_health('d1000000-0000-4000-8000-000000000001')$$, '42501', 'Marina admin access is required.', 'marina staff cannot read integration health');
-select set_config('request.jwt.claims', '{"sub":"c7100000-0000-4000-8000-000000000003","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"c7100000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2"}', true);
 select throws_ok($$select * from public.get_marina_integration_health('d1000000-0000-4000-8000-000000000001')$$, '42501', 'Marina admin access is required.', 'another tenant admin cannot read integration health');
 select is((select stripe_webhook_event_count from public.get_marina_integration_health('e1000000-0000-4000-8000-000000000002')), 1::bigint, 'other admin sees only its own matched webhook activity');
 select is((select pending_notification_count from public.get_marina_integration_health('e1000000-0000-4000-8000-000000000002')), 0::bigint, 'other admin does not see first tenant notification queue');

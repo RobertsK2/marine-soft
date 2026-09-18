@@ -7,6 +7,8 @@ import {
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const LOCAL_TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const MAX_DIMENSION_M = 9999.99;
+const MAX_PUBLIC_STAY_NIGHTS = 365;
+const MAX_ADVANCE_DAYS = 730;
 
 function stringValue(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -105,6 +107,12 @@ export function validatePublicBookingSearch(
   }
   if (validDate(arrivalDate) && validDate(departureDate) && departureDate <= arrivalDate) {
     errors.departureDate = "Departure must be after arrival.";
+  }
+  if (validDate(arrivalDate) && validDate(departureDate) && stayNights(arrivalDate, departureDate) > MAX_PUBLIC_STAY_NIGHTS) {
+    errors.departureDate = "Stay cannot exceed 365 nights.";
+  }
+  if (validDate(arrivalDate) && stayNights(today, arrivalDate) > MAX_ADVANCE_DAYS) {
+    errors.arrivalDate = "Arrival cannot be more than two years ahead.";
   }
   if (!LOCAL_TIME.test(eta)) errors.eta = "Enter a valid ETA in marina local time.";
   if (!LOCAL_TIME.test(etd)) errors.etd = "Enter a valid ETD in marina local time.";

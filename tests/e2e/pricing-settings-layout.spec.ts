@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
@@ -12,6 +13,7 @@ test("pricing rows, percentage conversion, save version and responsive layout", 
   const result = await service.auth.admin.generateLink({ type: "magiclink", email: "admin-a@berthio.test" });
   if (result.error) throw new Error("Local test sign-in failed.");
   await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(result.data.properties.hashed_token)}&next=/dashboard/settings/pricing`);
+  await completeAdminMfa(page);
   await expect(page.getByRole("heading", { name: "Pricing", exact: true })).toBeVisible();
   await expect(page.locator(".pricing-config-form h2")).toHaveText(["Base Pricing", "Seasonal Pricing", "Mandatory Fees", "VAT & Tax"]);
   const payload = page.locator('input[name="configuration"]');

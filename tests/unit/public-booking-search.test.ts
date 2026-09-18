@@ -85,6 +85,13 @@ describe("Phase 2 public booking search", () => {
     if (!result.success) expect(result.formError).toContain("timezone");
   });
 
+  it("bounds public search dates before availability work", () => {
+    const longStay = validatePublicBookingSearch({ ...validInput, departureDate: "2027-09-01" }, "Europe/Riga", now);
+    const distantArrival = validatePublicBookingSearch({ ...validInput, arrivalDate: "2029-01-01", departureDate: "2029-01-04" }, "Europe/Riga", now);
+    expect(longStay.success).toBe(false);
+    expect(distantArrival.success).toBe(false);
+  });
+
   it("accepts an omitted vessel name and preserves invalid entered values", () => {
     const result = validatePublicBookingSearch(
       { ...validInput, vesselName: "" },

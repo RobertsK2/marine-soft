@@ -2,12 +2,11 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import {
-  resolveAuthorizationForUser,
-  resolveDashboardDestination,
-} from "@/lib/auth/authorization";
+import { resolveDashboardDestination } from "@/lib/auth/authorization";
+import { resolveAuthorizationForUser } from "@/lib/auth/authorization-tenant";
 import { captureServerError } from "@/lib/monitoring/server";
 import { createClient } from "@/lib/supabase/server";
+import { needsAdminMfa } from "@/lib/auth/mfa-policy";
 
 export type AuthActionState = {
   status: "idle" | "error" | "success";
@@ -64,6 +63,7 @@ export async function loginAction(
     return { status: "error", message: "Email or password is incorrect." };
   }
 
+  let mustVerifyMfa = false;
   try {
     const context = await resolveAuthorizationForUser(
       supabase,
@@ -78,6 +78,8 @@ export async function loginAction(
         message: "This account does not have an active marina membership.",
       };
     }
+    const { data: claims } = await supabase.auth.getClaims();
+    mustVerifyMfa = needsAdminMfa(context.role, claims?.claims?.aal);
   } catch (authorizationError) {
     await supabase.auth.signOut();
     captureServerError(authorizationError, { operation: "login_membership_resolution" });
@@ -87,6 +89,7 @@ export async function loginAction(
     };
   }
 
+  if (mustVerifyMfa) redirect(`/mfa?next=${encodeURIComponent(resolveDashboardDestination(value(formData, "next")))}`);
   redirect(resolveDashboardDestination(value(formData, "next")));
 }
 
@@ -135,6 +138,9 @@ export async function resetPasswordAction(
       message: "This reset session is invalid or expired. Request a new link.",
     };
   }
+
+  const { error: signOutError } = await supabase.auth.signOut();
+  if (signOutError) captureServerError(signOutError, { operation: "password_reset_sign_out" });
 
   redirect("/login?message=password-updated");
 }

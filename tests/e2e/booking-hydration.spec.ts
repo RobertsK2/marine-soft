@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 
 test("manual booking waits for hydration before accepting input", async ({ page }) => {
@@ -6,6 +7,7 @@ test("manual booking waits for hydration before accepting input", async ({ page 
   await page.getByLabel("Email").fill(process.env.E2E_MARINA_EMAIL!);
   await page.getByLabel("Password", { exact: true }).fill(process.env.E2E_MARINA_PASSWORD!);
   await page.getByRole("button", { name: "Sign In" }).click();
+  await completeAdminMfa(page);
   await expect(page).toHaveURL(/\/dashboard$/);
 
   let releaseScripts!: () => void;

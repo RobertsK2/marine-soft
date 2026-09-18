@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
@@ -13,6 +14,7 @@ test("add berth preserves validation, creation, audit and tenant isolation", asy
   let berthId: string | undefined;
   try {
     await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(data.properties.hashed_token)}&next=/dashboard/berths/new`);
+    await completeAdminMfa(page);
     await expect(page.getByRole("heading", { name: "Add Berth", exact: true })).toBeVisible();
     await expect(page.getByRole("textbox", { name: /notes/i })).toHaveCount(0);
     const submit = page.getByRole("button", { name: "Add Berth", exact: true });
@@ -63,6 +65,7 @@ test("add berth preserves validation, creation, audit and tenant isolation", asy
     if (other.error) throw new Error("Second tenant test sign-in failed.");
     await page.context().clearCookies();
     await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(other.data.properties.hashed_token)}&next=/dashboard`);
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto(`/dashboard/berths/${berthId}`);
     await expect(page.getByRole("heading", { name: "This page could not be found." })).toBeVisible();

@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
@@ -20,6 +21,7 @@ test.describe("booking detail workspace", () => {
     await page.getByLabel("Password", { exact: true }).fill(process.env.E2E_MARINA_PASSWORD!);
     await page.getByRole("button", { name: "Sign In" }).click();
     }
+    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto("/dashboard/bookings/da000000-0000-4000-8000-000000000002");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("BK-PILOT00002");

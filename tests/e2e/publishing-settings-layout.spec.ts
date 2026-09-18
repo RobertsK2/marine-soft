@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
@@ -16,6 +17,7 @@ test.describe("publishing settings", () => {
     const result = await localService().auth.admin.generateLink({ type: "magiclink", email });
     if (result.error) throw new Error("Local test sign-in failed.");
     await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(result.data.properties.hashed_token)}&next=/dashboard/settings/publishing`);
+    await completeAdminMfa(page);
     return result.data.user.id;
   }
 

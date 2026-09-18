@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/env";
-import {
-  resolveAuthCallbackDestination,
-  resolveAuthorizationForUser,
-} from "@/lib/auth/authorization";
+import { resolveAuthCallbackDestination } from "@/lib/auth/authorization";
+import { resolveAuthorizationForUser } from "@/lib/auth/authorization-tenant";
 import { captureServerError } from "@/lib/monitoring/server";
 import { createClient } from "@/lib/supabase/server";
+import { needsAdminMfa } from "@/lib/auth/mfa-policy";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -38,7 +37,18 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login?error=no-membership", applicationOrigin));
   }
 
+  const destination = resolveAuthCallbackDestination(next);
+  // Recovery is a scoped credential-change flow. Dashboard access still requires AAL2.
+  if (destination === "/reset-password") {
+    return NextResponse.redirect(new URL(destination, applicationOrigin));
+  }
+
+  const { data: claims } = await supabase.auth.getClaims();
+  if (needsAdminMfa(context.role, claims?.claims?.aal)) {
+    return NextResponse.redirect(new URL(`/mfa?next=${encodeURIComponent(destination)}`, applicationOrigin));
+  }
+
   return NextResponse.redirect(
-    new URL(resolveAuthCallbackDestination(next), applicationOrigin),
+    new URL(destination, applicationOrigin),
   );
 }

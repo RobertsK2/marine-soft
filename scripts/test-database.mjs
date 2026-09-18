@@ -36,6 +36,8 @@ let failed = false;
 try {
   console.log(`Isolated database: ${project} on local port 56322`);
   run(["db", "start"]);
+  run(["db", "lint", "--local", "--schema", "public,private", "--fail-on", "error"]);
+  run(["db", "advisors", "--local", "--type", "security", "--fail-on", "error"]);
   // Consecutive runs prove transactions do not leak state between DB suites.
   for (let attempt = 1; attempt <= 3; attempt++) {
     console.log(`Database verification ${attempt}/3 (no reset between runs)`);

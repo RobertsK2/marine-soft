@@ -9,6 +9,7 @@ export async function updateSession(request: NextRequest) {
 
   const { url, publishableKey } = getSupabaseEnv();
   const supabase = createServerClient<Database>(url, publishableKey, {
+    cookieOptions: { secure: process.env.NODE_ENV === "production" },
     cookies: {
       getAll() {
         return request.cookies.getAll();

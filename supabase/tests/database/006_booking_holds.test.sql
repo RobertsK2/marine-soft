@@ -71,9 +71,9 @@ values
   ('e0000000-0000-4000-8000-000000000002', '63000000-0000-4000-8000-000000000002', 'marina_staff');
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"63000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"63000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}', true);
 select ok((select count(*) > 0 from public.booking_holds), 'a marina member can inspect holds for operations');
-select set_config('request.jwt.claims', '{"sub":"63000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"63000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1"}', true);
 select is((select count(*)::integer from public.booking_holds), 0, 'another tenant cannot inspect Marina A holds');
 
 select * from finish();

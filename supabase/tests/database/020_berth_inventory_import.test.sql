@@ -28,7 +28,7 @@ select
   (select id from public.berths where marina_id = 'd1000000-0000-4000-8000-000000000001' and code = 'A-01') as stable_berth_id;
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"a2100000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"a2100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 
 select lives_ok(
   $$insert into public.berths(
@@ -124,7 +124,7 @@ select is(
   'a new row is not partially committed beside an existing-code conflict'
 );
 
-select set_config('request.jwt.claims', '{"sub":"a2100000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"a2100000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1"}', true);
 select throws_ok(
   $$insert into public.berths(marina_id, code, zone, max_length_m, max_beam_m, max_draft_m)
     values ('d1000000-0000-4000-8000-000000000001', 'CSV-STAFF', 'Pier', 10, 3, 2)$$,

@@ -6,5 +6,7 @@ import type { Database } from "@/types/database";
 
 export function createClient() {
   const { url, publishableKey } = getSupabaseEnv();
-  return createBrowserClient<Database>(url, publishableKey);
+  return createBrowserClient<Database>(url, publishableKey, {
+    cookieOptions: { secure: process.env.NODE_ENV === "production" },
+  });
 }

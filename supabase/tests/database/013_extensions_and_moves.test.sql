@@ -35,7 +35,7 @@ insert into public.bookings (
   ('a4100000-0000-4000-8000-000000000007','e1000000-0000-4000-8000-000000000002','2032-05-01','2032-05-03','14:00','10:00','Tenant B','tenant-b@example.test','+37121000007','Tenant B',8,2.8,1.4,'confirmed',null,null,null);
 
 set local role authenticated;
-select set_config('request.jwt.claims','{"sub":"a1400000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"a1400000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}',true);
 select is((select outcome from public.assign_booking_berth('a4100000-0000-4000-8000-000000000001','d5000000-0000-4000-8000-000000000001')),'assigned','same-berth fixture is assigned');
 select is((select outcome from public.assign_booking_berth('a4100000-0000-4000-8000-000000000002','d5000000-0000-4000-8000-000000000002')),'assigned','move fixture starts at A-02');
 select is((select outcome from public.assign_booking_berth('a4100000-0000-4000-8000-000000000003','d5000000-0000-4000-8000-000000000002')),'assigned','A-02 extension interval is occupied by another booking');

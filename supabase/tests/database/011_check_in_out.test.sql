@@ -47,7 +47,7 @@ select throws_ok(
 );
 
 set local role authenticated;
-select set_config('request.jwt.claims','{"sub":"91000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"91000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}',true);
 
 select is((select outcome from public.transition_booking_stay('9a200000-0000-4000-8000-000000000001','checked_in',false)),'assignment_required','normal check-in requires an assignment');
 select is((select status::text from public.bookings where id='9a200000-0000-4000-8000-000000000001'),'confirmed','rejected check-in leaves the booking confirmed');
@@ -74,7 +74,7 @@ select throws_ok(
   '23514',null,'cancellation cannot smuggle operational metadata'
 );
 set local role authenticated;
-select set_config('request.jwt.claims','{"sub":"91000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"91000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}',true);
 select results_eq(
   $$update public.bookings set status='cancelled' where id='9a200000-0000-4000-8000-000000000003' returning status::text$$,
   array['cancelled'::text],'confirmed cancellation behavior is preserved'
@@ -94,9 +94,9 @@ select throws_ok(
   '23514',null,'check-in assignment metadata remains immutable after check-out'
 );
 set local role authenticated;
-select set_config('request.jwt.claims','{"sub":"91000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"91000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}',true);
 
-select set_config('request.jwt.claims','{"sub":"92000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"92000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}',true);
 select is((select outcome from public.transition_booking_stay('9a200000-0000-4000-8000-000000000002','checked_out',false)),'not_found','another tenant cannot transition the booking');
 select is((select count(*)::integer from public.bookings where id='9a200000-0000-4000-8000-000000000002'),0,'booking RLS still hides another tenant row');
 

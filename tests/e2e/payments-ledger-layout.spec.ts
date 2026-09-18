@@ -1,3 +1,4 @@
+import { completeAdminMfa } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
@@ -10,6 +11,7 @@ test("payments ledger filters, pagination, booking routes and tenant isolation",
   const { data, error } = await service.auth.admin.generateLink({ type: "magiclink", email: "admin-a@berthio.test" });
   if (error) throw new Error("Local test sign-in failed.");
   await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(data.properties.hashed_token)}&next=/dashboard`);
+  await completeAdminMfa(page);
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.getByRole("navigation", { name: "Marina administration" }).getByRole("link", { name: "Payments", exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard\/payments$/);
@@ -45,6 +47,7 @@ test("payments ledger filters, pagination, booking routes and tenant isolation",
   if (other.error) throw new Error("Second tenant test sign-in failed.");
   await page.context().clearCookies();
   await page.goto(`/auth/confirm?type=magiclink&token_hash=${encodeURIComponent(other.data.properties.hashed_token)}&next=/dashboard/payments`);
+  await completeAdminMfa(page);
   await expect(page).toHaveURL(/\/dashboard\/payments$/);
   await expect(page.getByText("Recorded payments, outstanding guest balances, and checkout attempts for Marina B.")).toBeVisible();
   await page.getByRole("searchbox").fill(booking.reference);
