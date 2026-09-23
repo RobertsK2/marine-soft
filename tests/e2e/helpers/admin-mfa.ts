@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { expect, type Page } from "@playwright/test";
 
-function totp(secret: string) {
+export function totp(secret: string) {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
   let bits = 0;
   let value = 0;
@@ -39,9 +39,12 @@ export async function resetLocalAdminFactors() {
 }
 
 /** Complete the same UI enrollment and challenge required of a real admin. */
-export async function completeAdminMfa(page: Page) {
+export async function completeAdminMfa(
+  page: Page,
+  destination: RegExp = /\/dashboard(?:\/|$)/,
+) {
   await expect(page).toHaveURL(/\/(?:mfa\?next=|dashboard(?:\/|$))/);
-  if (!new URL(page.url()).pathname.startsWith("/mfa")) return; // Staff remains AAL1.
+  if (!new URL(page.url()).pathname.startsWith("/mfa")) return null; // Staff remains AAL1.
   await resetLocalAdminFactors();
   await page.reload();
   await page.getByRole("button", { name: "Set up authenticator" }).click();
@@ -51,5 +54,6 @@ export async function completeAdminMfa(page: Page) {
   while (Date.now() % 30_000 > 26_000) await new Promise((resolve) => setTimeout(resolve, 500));
   await page.getByLabel("Authenticator code").fill(totp(secret!));
   await page.getByRole("button", { name: "Verify and continue" }).click();
-  await expect(page).toHaveURL(/\/dashboard(?:\/|$)/);
+  await expect(page).toHaveURL(destination);
+  return secret!;
 }

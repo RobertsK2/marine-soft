@@ -38,11 +38,6 @@ export async function GET(request: Request) {
   }
 
   const destination = resolveAuthCallbackDestination(next);
-  // Recovery is a scoped credential-change flow. Dashboard access still requires AAL2.
-  if (destination === "/reset-password") {
-    return NextResponse.redirect(new URL(destination, applicationOrigin));
-  }
-
   const { data: claims } = await supabase.auth.getClaims();
   if (needsAdminMfa(context.role, claims?.claims?.aal)) {
     return NextResponse.redirect(new URL(`/mfa?next=${encodeURIComponent(destination)}`, applicationOrigin));

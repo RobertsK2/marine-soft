@@ -45,11 +45,6 @@ export async function GET(request: NextRequest) {
   }
 
   const destination = resolveAuthCallbackDestination(next);
-  // Only a verified recovery token may skip the dashboard MFA redirect.
-  if (type === "recovery" && destination === "/reset-password") {
-    return redirectWithCookies(new URL(destination, request.url));
-  }
-
   const { data: claims } = await supabase.auth.getClaims();
   if (needsAdminMfa(context.role, claims?.claims?.aal)) {
     return redirectWithCookies(new URL(`/mfa?next=${encodeURIComponent(destination)}`, request.url));

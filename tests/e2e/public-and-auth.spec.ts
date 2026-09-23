@@ -1,4 +1,4 @@
-import { completeAdminMfa } from "./helpers/admin-mfa";
+import { completeAdminMfa, totp } from "./helpers/admin-mfa";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
@@ -647,7 +647,8 @@ test.describe("local Supabase marina auth", () => {
     expect(href).toBeTruthy();
 
     await page.goto(href!);
-    await expect(page).toHaveURL("http://localhost:3000/reset-password");
+    await expect(page).toHaveURL(/\/mfa\?next=%2Freset-password$/);
+    await completeAdminMfa(page, /\/reset-password$/);
     await expect(page.getByRole("heading", { name: "Secure your account" })).toBeVisible();
 
     await page.getByLabel("New password", { exact: true }).fill(password!);
@@ -683,10 +684,22 @@ test.describe("local Supabase marina auth", () => {
         user_id: created.data.user!.id, role: "marina_admin", status: "active",
       });
       expect(membership.error).toBeNull();
+
+      await page.goto("/login");
+      await page.getByLabel("Work Email").fill(email);
+      await page.getByLabel("Password", { exact: true }).fill(process.env.E2E_RECOVERY_PASSWORD!);
+      await page.getByRole("button", { name: "Sign In", exact: true }).click();
+      const secret = await completeAdminMfa(page);
+      expect(secret).toMatch(/^[A-Z2-7]+$/);
+      await page.goto("/logout");
+
       const { data, error } = await service.auth.admin.generateLink({ type: "recovery", email });
       expect(error).toBeNull();
       if (!data.properties) throw new Error("Recovery link was not generated.");
       await page.goto(`http://localhost:3000/auth/confirm?type=recovery&token_hash=${encodeURIComponent(data.properties.hashed_token)}&next=/reset-password`);
+      await expect(page).toHaveURL(/\/mfa\?next=%2Freset-password$/);
+      await page.getByLabel("Authenticator code").fill(totp(secret!));
+      await page.getByRole("button", { name: "Verify and continue" }).click();
       await expect(page).toHaveURL(/\/reset-password$/);
       await expect(page.getByRole("heading", { name: "Secure your account" })).toBeVisible();
 
@@ -699,7 +712,8 @@ test.describe("local Supabase marina auth", () => {
       await page.getByLabel("Password", { exact: true }).fill(password);
       await page.getByRole("button", { name: "Sign In" }).click();
       await expect(page).toHaveURL(/\/mfa\?next=%2Fdashboard$/);
-      await completeAdminMfa(page);
+      await page.getByLabel("Authenticator code").fill(totp(secret!));
+      await page.getByRole("button", { name: "Verify and continue" }).click();
       await expect(page).toHaveURL(/\/dashboard$/);
     } finally {
       expect((await service.auth.admin.deleteUser(created.data.user!.id)).error).toBeNull();
