@@ -6,7 +6,7 @@ add a scheduler, provider account, backup service, or product feature.
 
 ## Environment separation
 
-Use separate Supabase, Stripe, Postmark, Sentry, and PostHog projects for staging
+Use separate Supabase, Stripe, Resend, Sentry, and PostHog projects for staging
 and production. Store server credentials in the deployment platform's secret
 store and restrict access to the application or scheduler that consumes them.
 Do not copy `.env.local` into a deployment or commit generated environment files.
@@ -22,9 +22,8 @@ Do not copy `.env.local` into a deployment or commit generated environment files
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Test publishable key | Live publishable key | Browser-safe |
 | `STRIPE_CONNECT_WEBHOOK_SECRET` | Staging endpoint secret | Production endpoint secret | Server secret |
 | `STRIPE_LOCAL_PLATFORM_FALLBACK` | `false` | `false` | Non-secret |
-| `POSTMARK_SERVER_TOKEN` | Staging/test server token | Production server token | Server secret |
-| `POSTMARK_FROM_EMAIL` | Verified staging sender | Verified production sender | Non-secret |
-| `POSTMARK_MESSAGE_STREAM` | Staging stream | Production transactional stream | Non-secret |
+| `RESEND_API_KEY` | Staging API key | Production API key | Server secret |
+| `EMAIL_FROM` | Verified staging sender | Verified production sender | Non-secret |
 | `NOTIFICATION_WORKER_SECRET` | Unique 32+ byte value | Different unique 32+ byte value | Server secret |
 | `NOTIFICATION_WORKER_SCHEDULED` | `true` only after readback | `true` only after readback | Non-secret declaration |
 | `NEXT_PUBLIC_SENTRY_DSN` | Staging Sentry project DSN | Production Sentry project DSN | Browser-safe DSN |
@@ -34,7 +33,7 @@ Do not copy `.env.local` into a deployment or commit generated environment files
 Before publishing, an administrator must review **Settings → Integrations** and
 **Settings → Publishing** in the target deployment. Production must report live
 Stripe mode, a real marina Connect account, a signed webhook, configured
-Postmark delivery, and a protected scheduled worker. A warning is not evidence
+Resend delivery, and a protected scheduled worker. A warning is not evidence
 that an external provider or scheduler was exercised.
 
 ## Provider readback
@@ -43,7 +42,7 @@ that an external provider or scheduler was exercised.
 2. Confirm the production webhook endpoint is enabled for the connected-account
    events used by Berthio. Send a provider test event and verify a matched event
    appears in tenant-scoped integration health without logging its signing secret.
-3. Confirm the Postmark sender and message stream are verified. Exercise delivery
+3. Confirm the Resend sender domain is verified. Exercise delivery
    with a non-customer pilot booking and verify a provider message ID is recorded.
 4. Configure the external scheduler to `POST` to `/api/notifications/process`
    with its bearer secret. Verify a successful invocation in scheduler logs and

@@ -19,7 +19,7 @@ const safeFields = new Set([
 
 export function safeAuditText(value: string) {
   return value
-    .replace(/\bPOSTMARK_API_TEST\b/g, "[redacted]")
+    .replace(/\bre_[A-Za-z0-9_-]{12,}\b/g, "[redacted]")
     .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "[redacted]")
     .replace(/\b(?:(?:sk|rk|pk)_(?:test|live)_|whsec_|acct_)[A-Za-z0-9_-]+\b/g, "[redacted]")
     .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[redacted]")

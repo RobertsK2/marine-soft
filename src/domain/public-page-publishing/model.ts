@@ -9,7 +9,7 @@ function integrationDetail(name: string, state: ReadinessState) {
 }
 
 export function integrationsAllowPublishing(status: IntegrationStatus, acceptsOnlinePayment = true) {
-  return [acceptsOnlinePayment ? status.stripe.state : "ready", status.postmark.state, status.worker.state]
+  return [acceptsOnlinePayment ? status.stripe.state : "ready", status.email.state, status.worker.state]
     .every((state) => state !== "not_ready");
 }
 
@@ -66,7 +66,7 @@ export function buildPublicationReadiness({
     },
     ...([
       ["stripe", "Stripe Connect", profile.acceptsOnlinePayment ? integrations.stripe.state : "ready"],
-      ["postmark", "Postmark", integrations.postmark.state],
+      ["email", "Resend", integrations.email.state],
       ["worker", "Notification worker", integrations.worker.state],
     ] as const).map(([key, label, state]) => ({
       key,

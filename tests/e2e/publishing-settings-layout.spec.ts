@@ -49,7 +49,7 @@ test.describe("publishing settings", () => {
       await expect(checklist.getByRole("listitem")).toHaveCount(6);
       await expect(checklist.getByRole("link")).toHaveText([
         "Marina Profile", "Accepted Payment Methods", "Pricing & Seasonal Rates",
-        "Payment Readiness (Stripe)", "Email Delivery (Postmark)", "Notification Worker & Scheduler",
+        "Payment Readiness (Stripe)", "Email Delivery (Resend)", "Notification Worker & Scheduler",
       ]);
       await expect(checklist.getByRole("button")).toHaveCount(0);
       for (const row of await checklist.getByRole("listitem").all()) {
@@ -59,7 +59,7 @@ test.describe("publishing settings", () => {
       await expect(page.getByRole("link", { name: "View Public Page" })).toHaveAttribute("href", "/marina/marina-a");
       await expect(page.getByRole("button", { name: "Copy URL" })).toHaveCount(0);
       await expect(page.locator("main code")).toContainText("/marina/marina-a");
-      await expect(page.locator("main")).not.toContainText(/(?:sk|rk)_(?:test|live)_|whsec_|acct_[A-Za-z0-9]+|POSTMARK_API_TEST/);
+      await expect(page.locator("main")).not.toContainText(/(?:sk|rk)_(?:test|live)_|whsec_|acct_[A-Za-z0-9]+|re_[A-Za-z0-9_-]{12,}/);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath("publishing-published.png"), fullPage: true });
       await stalePage.goto("/dashboard/settings/publishing");

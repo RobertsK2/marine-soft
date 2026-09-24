@@ -26,8 +26,8 @@ describe("admin audit table", () => {
     expect(safe.changes).toEqual([{ field: "Status", before: null, after: "confirmed" }]);
   });
   it("redacts identifiers and credential patterns embedded in recorded summaries", () => {
-    const safe = toAuditTableEvent({ ...event, summary: "Account acct_private123 token=private-value 12345678-1234-1234-1234-123456789abc" });
-    expect(safe.summary).toBe("Account [redacted] [redacted] [redacted]");
+    const safe = toAuditTableEvent({ ...event, summary: "Account acct_private123 token=private-value 12345678-1234-1234-1234-123456789abc re_privatevalue123" });
+    expect(safe.summary).toBe("Account [redacted] [redacted] [redacted] [redacted]");
   });
   it("combines search and filters without reordering equal-time events", () => {
     const first = toAuditTableEvent(event);

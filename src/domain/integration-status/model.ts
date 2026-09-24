@@ -90,13 +90,11 @@ export function buildIntegrationStatus({
     stripeChecks.push(check("Fallback guard", "not_ready", "The local fallback safety requirements are not satisfied."));
   }
 
-  const postmarkToken = value(environment, "POSTMARK_SERVER_TOKEN");
-  const postmarkFrom = value(environment, "POSTMARK_FROM_EMAIL");
-  const postmarkTestMode = postmarkToken === "POSTMARK_API_TEST";
-  const postmarkChecks = [
-    check("Server token", postmarkToken ? (postmarkTestMode ? "warning" : "ready") : "not_ready", postmarkToken ? (postmarkTestMode ? "Postmark test token detected; messages are not delivered." : "Server-side Postmark credential detected.") : "POSTMARK_SERVER_TOKEN is missing."),
-    check("Sender identity", postmarkFrom && /^(?:[^\r\n]*<[^\s<>@]+@[^\s<>@]+>|[^\s<>@]+@[^\s<>@]+)$/.test(postmarkFrom) ? "ready" : "not_ready", postmarkFrom ? "POSTMARK_FROM_EMAIL is not a valid sender address." : "POSTMARK_FROM_EMAIL is missing."),
-    check("Message stream", "ready", value(environment, "POSTMARK_MESSAGE_STREAM") ? "A message stream is configured." : "The existing outbound message-stream default is active."),
+  const resendKey = value(environment, "RESEND_API_KEY");
+  const emailFrom = value(environment, "EMAIL_FROM");
+  const resendChecks = [
+    check("API key", resendKey?.startsWith("re_") ? "ready" : "not_ready", resendKey ? "RESEND_API_KEY has an invalid shape." : "RESEND_API_KEY is missing."),
+    check("Sender identity", emailFrom && /^(?:[^\r\n]*<[^\s<>@]+@[^\s<>@]+>|[^\s<>@]+@[^\s<>@]+)$/.test(emailFrom) ? "ready" : "not_ready", emailFrom ? "EMAIL_FROM is not a valid sender address." : "EMAIL_FROM is missing."),
   ];
 
   const workerSecret = value(environment, "NOTIFICATION_WORKER_SECRET");
@@ -109,7 +107,7 @@ export function buildIntegrationStatus({
 
   return {
     stripe: readiness(stripeMode, stripeChecks, ["STRIPE_SECRET_KEY", "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "STRIPE_CONNECT_WEBHOOK_SECRET"], environment),
-    postmark: readiness(postmarkTestMode ? "Test delivery" : postmarkToken ? "Postmark delivery" : "Not configured", postmarkChecks, ["POSTMARK_SERVER_TOKEN", "POSTMARK_FROM_EMAIL"], environment),
+    email: readiness(resendKey ? "Resend delivery" : "Not configured", resendChecks, ["RESEND_API_KEY", "EMAIL_FROM"], environment),
     worker: readiness(schedulerDeclared ? "Protected and scheduled" : workerSecret ? "Protected, schedule unverified" : "Fail-closed", workerChecks, ["NOTIFICATION_WORKER_SECRET"], environment),
     health,
   };

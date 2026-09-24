@@ -14,7 +14,7 @@ export type PublicationProfile = {
 };
 
 export type PublicationReadinessItem = {
-  key: "profile" | "pricing" | "payments" | "stripe" | "postmark" | "worker";
+  key: "profile" | "pricing" | "payments" | "stripe" | "email" | "worker";
   label: string;
   state: ReadinessState;
   detail: string;

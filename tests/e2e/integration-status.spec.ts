@@ -36,11 +36,11 @@ test.describe("integration status admin", () => {
     await page.goto("/dashboard/settings/integrations");
     await expect(page.getByRole("heading", { name: "Integrations", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Stripe Payments" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Postmark / Email Delivery" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Resend / Email Delivery" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Notification Worker & Scheduler" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "System Diagnostics (Sentry)" })).toBeVisible();
     await expect(page.getByText("Configuration checks only; live service availability is not verified.")).toBeVisible();
-    await expect(page.locator("body")).not.toContainText(/(?:sk|rk)_(?:test|live)_|whsec_|acct_[A-Za-z0-9]+|POSTMARK_API_TEST/);
+    await expect(page.locator("body")).not.toContainText(/(?:sk|rk)_(?:test|live)_|whsec_|acct_[A-Za-z0-9]+|re_[A-Za-z0-9_-]{12,}/);
     await expect(page.getByText("Worker:", { exact: false })).toContainText("Scheduler:");
     await expect(page.getByText(/Matched webhooks|Open payments|Queued email|Sent email/)).toHaveCount(0);
     await expect(page.getByRole("button", { name: /Manage in Stripe|Test Delivery|Check Status|Diagnostics|Refresh Statuses/ })).toHaveCount(0);

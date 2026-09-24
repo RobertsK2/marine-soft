@@ -29,7 +29,7 @@ export type IntegrationHealth = {
 
 export type IntegrationStatus = {
   stripe: IntegrationReadiness;
-  postmark: IntegrationReadiness;
+  email: IntegrationReadiness;
   worker: IntegrationReadiness;
   health: IntegrationHealth;
 };

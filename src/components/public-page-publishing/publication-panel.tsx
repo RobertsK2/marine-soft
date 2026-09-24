@@ -28,7 +28,7 @@ const readinessPresentation = {
   payments: { name: "Accepted Payment Methods", icon: CreditCard },
   pricing: { name: "Pricing & Seasonal Rates", icon: CircleDollarSign },
   stripe: { name: "Payment Readiness (Stripe)", icon: CreditCard },
-  postmark: { name: "Email Delivery (Postmark)", icon: Mail },
+  email: { name: "Email Delivery (Resend)", icon: Mail },
   worker: { name: "Notification Worker & Scheduler", icon: Clock3 },
 };
 

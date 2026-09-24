@@ -18,7 +18,7 @@ function integrations(states: [ReadinessState, ReadinessState, ReadinessState]):
   const readiness = (state: ReadinessState) => ({ state, mode: "Test", checks: [], missingRequiredEnvironment: [] });
   return {
     stripe: readiness(states[0]),
-    postmark: readiness(states[1]),
+    email: readiness(states[1]),
     worker: readiness(states[2]),
     health: {
       stripeWebhookEventCount: 0, latestStripeWebhookAt: null, latestStripeWebhookOutcome: null,

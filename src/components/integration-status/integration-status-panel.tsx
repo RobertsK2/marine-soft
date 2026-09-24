@@ -49,9 +49,9 @@ export function IntegrationStatusPanel({ status, timezone, checkedAt, monitoring
         state={status.stripe.state}
         description={status.stripe.state === "ready" ? "Configured to accept guest card payments." : status.stripe.state === "warning" ? "Test payments only; live payment readiness is not confirmed." : "Payment setup is incomplete; payment readiness is not confirmed."}
         detail={status.stripe.mode} />
-      <IntegrationRow id="postmark" name="Postmark / Email Delivery" icon={<Mail size={20} />}
-        state={status.postmark.state}
-        description={status.postmark.state === "ready" ? "Configured to deliver transactional booking emails." : status.postmark.mode === "Test delivery" ? "Test delivery is enabled; booking emails are not delivered." : "Email setup is incomplete; booking email delivery is not ready."} />
+      <IntegrationRow id="email" name="Resend / Email Delivery" icon={<Mail size={20} />}
+        state={status.email.state}
+        description={status.email.state === "ready" ? "Configured to deliver transactional booking emails." : "Email setup is incomplete; booking email delivery is not ready."} />
       <IntegrationRow id="worker" name="Notification Worker & Scheduler" icon={<RefreshCw size={20} />}
         state={status.worker.state} description="Processes queued booking emails and scheduled notifications."
         detail={`Worker: ${workerProtection?.state === "ready" ? "configured" : workerProtection?.state === "warning" ? "protection needs attention" : "not ready"} · Scheduler: ${scheduler?.state === "ready" ? "declared configured" : "unverified"}`} />

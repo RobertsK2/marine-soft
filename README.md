@@ -12,14 +12,14 @@ Marina availability is constrained by dates and vessel dimensions, while the fin
 2. Berthio checks safe capacity, calculates the price, and protects checkout with a short-lived hold.
 3. Stripe Checkout and verified webhooks confirm online bookings; marina staff can also create operational bookings directly.
 4. Staff assign or reassign a compatible berth, then record check-in, check-out, extensions, cancellations, outages, and payment state.
-5. Append-only audit records and retry-safe Postmark delivery logs preserve the operational history.
+5. Append-only audit records and retry-safe Resend delivery logs preserve the operational history.
 
 ## Tech stack
 
 - Next.js 16 App Router, React 19, and TypeScript
 - Supabase Auth and PostgreSQL with tenant-scoped Row Level Security and pgTAP tests
 - Stripe Connect Checkout and webhook processing
-- Postmark transactional email with an outbox-style delivery worker
+- Resend transactional email with an outbox-style delivery worker
 - Vitest for unit tests and Playwright for browser tests
 
 ## Run locally
@@ -34,7 +34,7 @@ npm run supabase:reset
 npm run dev
 ```
 
-On PowerShell, use `Copy-Item .env.example .env.local` instead of `cp`. Review `.env.local` after Supabase starts and add environment-specific Stripe and Postmark credentials when testing those integrations. Never expose a Supabase secret/service-role key, Stripe secret, webhook secret, or Postmark token through a `NEXT_PUBLIC_` variable.
+On PowerShell, use `Copy-Item .env.example .env.local` instead of `cp`. Review `.env.local` after Supabase starts and add environment-specific Stripe and Resend credentials when testing those integrations. Never expose a Supabase secret/service-role key, Stripe secret, webhook secret, or Resend API key through a `NEXT_PUBLIC_` variable.
 
 Open [http://localhost:3000](http://localhost:3000). Local signup is disabled; `npm run test-users:setup` provisions the seeded test identities when authentication testing is needed.
 

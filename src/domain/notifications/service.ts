@@ -1,7 +1,7 @@
 import "server-only";
 import { captureServerError } from "@/lib/monitoring/server";
 import { createPrivilegedClient } from "@/lib/supabase/privileged";
-import { sendWithPostmark } from "@/domain/notifications/postmark";
+import { sendWithResend } from "@/domain/notifications/resend";
 import type {
   ClaimedNotification,
   NotificationBatchResult,
@@ -43,7 +43,7 @@ export async function processClaimedNotifications(
 
 export async function deliverOperationalNotifications(
   requestedLimit = 10,
-  transport: NotificationTransport = sendWithPostmark,
+  transport: NotificationTransport = sendWithResend,
 ): Promise<NotificationBatchResult> {
   const limit = Math.max(1, Math.min(50, Math.trunc(requestedLimit)));
   const supabase = createPrivilegedClient();

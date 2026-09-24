@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/monitoring/server", () => ({ captureServerError: vi.fn() }));
 
-import { sendWithPostmark } from "@/domain/notifications/postmark";
+import { sendWithResend } from "@/domain/notifications/resend";
 import { processClaimedNotifications } from "@/domain/notifications/service";
 import type { ClaimedNotification } from "@/domain/notifications/types";
 
@@ -23,19 +23,22 @@ const notification: ClaimedNotification = {
 
 describe("operational notification delivery", () => {
   beforeEach(() => {
-    process.env.POSTMARK_SERVER_TOKEN = "POSTMARK_API_TEST";
-    process.env.POSTMARK_FROM_EMAIL = "Berthio <bookings@example.test>";
+    process.env.RESEND_API_KEY = "re_test_key";
+    process.env.EMAIL_FROM = "Berthio <bookings@example.test>";
   });
 
-  it("submits a transactional Postmark message with a stable message ID", async () => {
-    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+  it("submits a transactional Resend message with an idempotency key", async () => {
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body));
-      expect(body.To).toBe("Guest script <guest@example.test>");
-      expect(body.Headers[0].Value).toContain(notification.id);
-      expect(body.Metadata["notification-id"]).toBe(notification.id);
-      return new Response(JSON.stringify({ ErrorCode: 0, Message: "OK", MessageID: "pm-1" }), { status: 200 });
+      expect(url).toBe("https://api.resend.com/emails");
+      expect(init?.headers).toMatchObject({ "Idempotency-Key": notification.id });
+      expect(body.from).toBe("Berthio <bookings@example.test>");
+      expect(body.to).toEqual(["guest@example.test"]);
+      expect(body.text).toBe(notification.text_body);
+      expect(body.tags).toEqual([{ name: "event_type", value: "booking_confirmation" }]);
+      return new Response(JSON.stringify({ id: "resend-1" }), { status: 200 });
     });
-    await expect(sendWithPostmark(notification, fetchMock)).resolves.toEqual({ messageId: "pm-1" });
+    await expect(sendWithResend(notification, fetchMock)).resolves.toEqual({ messageId: "resend-1" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -61,11 +64,11 @@ describe("operational notification delivery", () => {
     expect(complete).toHaveBeenCalledTimes(1);
   });
 
-  it("treats Postmark API error payloads as delivery failures", async () => {
+  it("treats Resend API error payloads as delivery failures", async () => {
     const fetchMock = vi.fn(async () => new Response(
-      JSON.stringify({ ErrorCode: 406, Message: "Inactive recipient" }),
+      JSON.stringify({ message: "Inactive recipient" }),
       { status: 422 },
     ));
-    await expect(sendWithPostmark(notification, fetchMock)).rejects.toThrow("Inactive recipient");
+    await expect(sendWithResend(notification, fetchMock)).rejects.toThrow("Inactive recipient");
   });
 });
