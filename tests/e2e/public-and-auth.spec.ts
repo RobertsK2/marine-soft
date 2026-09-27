@@ -36,9 +36,9 @@ test.describe("public marina page", () => {
   });
 
   test("booking search validates and preserves a clean timezone-aware request", async ({ page }, testInfo) => {
-    // The asserted tariff is the seeded September high-season tariff.
-    const arrival = new Date("2026-09-25T00:00:00Z");
-    const departure = new Date("2026-09-28T00:00:00Z");
+    // The asserted tariff is the seeded 2028 pilot-season tariff.
+    const arrival = new Date("2028-09-25T00:00:00Z");
+    const departure = new Date("2028-09-28T00:00:00Z");
     const isoDate = (value: Date) => value.toISOString().slice(0, 10);
 
     await page.goto("/marina/marina-a#booking-entry");
@@ -60,7 +60,7 @@ test.describe("public marina page", () => {
     await expect(page.getByRole("status")).toContainText("No booking has been created");
     const quote = page.locator("[data-price-total-minor='15344']");
     await expect(quote).toHaveAccessibleName("Price breakdown");
-    await expect(quote).toContainText("Baltic high season");
+    await expect(quote).toContainText("Pilot season");
     await expect(quote).toContainText("Harbour administration");
     await expect(quote).toContainText("Tax / VAT 21%");
     await expect(quote).toContainText("€153.44");
