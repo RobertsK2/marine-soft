@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 import { securityHeaders } from "./src/lib/security/headers";
 
 const securityHeaderEnvironment = {
@@ -18,4 +19,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  release: {
+    name: process.env.VERCEL_GIT_COMMIT_SHA?.trim() || undefined,
+  },
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
+  telemetry: false,
+});
