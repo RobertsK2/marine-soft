@@ -15,6 +15,16 @@ export async function register() {
       process.env._sentryRelease
       || process.env.VERCEL_GIT_COMMIT_SHA?.trim()
       || process.env.SENTRY_RELEASE?.trim(),
+    beforeSend(event) {
+      delete event.user;
+      if (event.request) {
+        delete event.request.headers;
+        delete event.request.cookies;
+        delete event.request.data;
+        delete event.request.query_string;
+      }
+      return event;
+    },
     sendDefaultPii: false,
     tracesSampleRate: 0.1,
   });
