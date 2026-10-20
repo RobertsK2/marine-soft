@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     ? authorization.slice("Bearer ".length)
     : null;
 
-  if (!matchesVerificationSecret(suppliedSecret, expectedSecret)) {
+  if (!expectedSecret || !matchesVerificationSecret(suppliedSecret, expectedSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
