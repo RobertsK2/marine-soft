@@ -18,10 +18,14 @@ values ('df100000-0000-4000-8000-000000000001','d0000000-0000-4000-8000-00000000
 on conflict (organization_id,user_id) do nothing;
 
 insert into public.pricing_seasons(id,marina_id,name,starts_on,ends_on)
-values ('d6000000-0000-4000-8000-000000000004','d1000000-0000-4000-8000-000000000001','Pilot season','2028-01-01','2029-01-01')
+values
+  ('d6000000-0000-4000-8000-000000000004','d1000000-0000-4000-8000-000000000001','Pilot season','2028-01-01','2028-10-01'),
+  ('d6000000-0000-4000-8000-000000000005','d1000000-0000-4000-8000-000000000001','Pilot autumn season','2028-10-01','2029-01-01')
 on conflict (id) do nothing;
 insert into public.pricing_season_meter_rates(season_id,marina_id,nightly_rate_per_meter_minor)
-values ('d6000000-0000-4000-8000-000000000004','d1000000-0000-4000-8000-000000000001',300)
+values
+  ('d6000000-0000-4000-8000-000000000004','d1000000-0000-4000-8000-000000000001',300),
+  ('d6000000-0000-4000-8000-000000000005','d1000000-0000-4000-8000-000000000001',220)
 on conflict (season_id) do nothing;
 
 with scenarios(id,reference,arrival_date,departure_date,eta,etd,customer_name,customer_email,customer_phone,vessel_name,
