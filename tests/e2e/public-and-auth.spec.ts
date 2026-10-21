@@ -99,8 +99,8 @@ test.describe("public marina page", () => {
 
   test("public pricing applies each seasonal nightly rate across a boundary", async ({ page }) => {
     const query = new URLSearchParams({
-      arrivalDate: "2026-09-30",
-      departureDate: "2026-10-02",
+      arrivalDate: "2028-09-30",
+      departureDate: "2028-10-02",
       eta: "14:30",
       etd: "10:00",
       priceTotalMinor: "1",
@@ -113,8 +113,8 @@ test.describe("public marina page", () => {
 
     await page.goto(`/marina/marina-a?${query.toString()}#booking-entry`);
     const quote = page.locator("[data-price-total-minor='9272']");
-    await expect(quote).toContainText("Baltic high season");
-    await expect(quote).toContainText("Baltic autumn season");
+    await expect(quote).toContainText("Pilot season");
+    await expect(quote).toContainText("Pilot autumn season");
     await expect(quote).toContainText("€92.72");
     await expect(page.locator("[data-booking-id], [data-hold-id]")).toHaveCount(0);
   });
