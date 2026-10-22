@@ -29,7 +29,9 @@ insert into public.bookings(
   customer_phone, vessel_name, vessel_length_m, vessel_beam_m, vessel_draft_m, status
 ) values (
   'a9200000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000001',
-  current_date + 1, current_date + 3, '13:00', '10:00', 'Notify Guest',
+  (statement_timestamp() at time zone 'Europe/Riga')::date + 1,
+  (statement_timestamp() at time zone 'Europe/Riga')::date + 3,
+  '13:00', '10:00', 'Notify Guest',
   'notify-guest@example.test', '+37125000009', 'Messenger', 8, 2.8, 1.4, 'confirmed'
 );
 set local role authenticated;
