@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(28);
+select plan(35);
 
 select is(enum_range(null::public.booking_source)::text,'{manual,online}','online source is constrained');
 select is(enum_range(null::public.booking_hold_status)::text,'{active,released,expired,consumed}','holds have a terminal consumed state');
@@ -29,11 +29,26 @@ select is((select customer_snapshot->>'phone' from public.bookings where booking
 select is((select vessel_snapshot->>'name' from public.bookings where booking_payment_id=(select payment_id from phase7_payment)),'Snapshot Vessel','vessel snapshot comes from the hold');
 select is((select price_snapshot->>'totalMinor' from public.bookings where booking_payment_id=(select payment_id from phase7_payment)),'12345','price snapshot comes from the payment ledger');
 select is((select status::text from public.booking_holds where public_token=(select hold_token from phase7_hold)),'consumed','confirmed hold is consumed');
+create temporary table phase7_before_duplicate as
+select to_jsonb(events) as event_row, to_jsonb(payments) as payment_row,
+  to_jsonb(bookings) as booking_row, to_jsonb(holds) as hold_row
+from public.stripe_webhook_events events
+join public.booking_payments payments on payments.id=(select payment_id from phase7_payment)
+join public.bookings bookings on bookings.booking_payment_id=payments.id
+join public.booking_holds holds on holds.id=payments.hold_id
+where events.stripe_event_id='evt_phase7_paid';
 select is(public.process_stripe_checkout_event(
   'evt_phase7_paid','checkout.session.completed','acct_testmarinaa','cs_test_phase7','pi_phase7','paid',12345,'eur',(select hold_token from phase7_hold),
   'Grace Hopper','grace@example.test','+371 2000 0000'
 ),'duplicate','same event delivery is idempotent');
 select is((select outcome from public.stripe_webhook_events where stripe_event_id='evt_phase7_paid'),'confirmed','duplicate delivery preserves the original confirmation audit outcome');
+select is((select to_jsonb(events) from public.stripe_webhook_events events where stripe_event_id='evt_phase7_paid'),(select event_row from phase7_before_duplicate),'duplicate delivery preserves the complete webhook audit row');
+select is((select to_jsonb(payments) from public.booking_payments payments where id=(select payment_id from phase7_payment)),(select payment_row from phase7_before_duplicate),'duplicate delivery preserves the complete payment row');
+select is((select to_jsonb(bookings) from public.bookings bookings where booking_payment_id=(select payment_id from phase7_payment)),(select booking_row from phase7_before_duplicate),'duplicate delivery preserves the complete booking row');
+select is((select to_jsonb(holds) from public.booking_holds holds where id=(select hold_id from phase7_payment)),(select hold_row from phase7_before_duplicate),'duplicate delivery preserves the complete hold row');
+select is((select count(*)::integer from public.stripe_webhook_events where stripe_event_id='evt_phase7_paid'),1,'duplicate delivery creates no webhook row');
+select is((select count(*)::integer from public.booking_payments where id=(select payment_id from phase7_payment)),1,'duplicate delivery creates no payment row');
+select is((select count(*)::integer from public.bookings where booking_payment_id=(select payment_id from phase7_payment)),1,'duplicate delivery creates no booking row');
 select is(public.process_stripe_checkout_event(
   'evt_phase7_paid_again','checkout.session.async_payment_succeeded','acct_testmarinaa','cs_test_phase7','pi_phase7','paid',12345,'eur',(select hold_token from phase7_hold),
   'Grace Hopper','grace@example.test','+371 2000 0000'
