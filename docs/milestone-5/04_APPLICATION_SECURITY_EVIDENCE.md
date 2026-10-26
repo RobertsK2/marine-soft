@@ -232,6 +232,228 @@ exception is asserted and Task 5 has not been started.
 on hosted deployment verification.** The code is ready for review; this report
 does not claim production readiness. No automatic merge was performed.
 
+## Hosted staging recheck — 2026-10-13
+
+Target: `https://berthio-staging.vercel.app`, checked without credentials from
+repository `main` at `e23163d1c033c88fa4d4c8fbb07aa3fb01b150c6`.
+
+### Verified
+
+- The Vercel staging application is reachable over HTTPS with a valid certificate.
+- `/`, `/login`, `/mfa`, `/dashboard`, `/marina/marina-a`, and the notification
+  worker endpoint return the configured CSP, HSTS (`max-age=31536000`),
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`,
+  and clickjacking protection.
+- The CSP names the documented staging Supabase ref
+  `adbjelqixteggaoekqvj`, the configured Sentry ingestion origin, Stripe API,
+  Stripe.js, and Stripe Checkout. PostHog is not enabled in the deployed CSP.
+- Unauthenticated `/dashboard` redirects to `/login?next=%2Fdashboard`.
+- An unauthorized `POST /api/notifications/process` returns HTTP 401.
+- GitHub Actions run 36344683883 is green for the exact repository SHA above;
+  verify, concurrency, E2E, and aggregate release-gate jobs all passed.
+
+### Failed
+
+- `adbjelqixteggaoekqvj.supabase.co` returns DNS `NXDOMAIN` from the verification
+  host. The Vercel application still references that project in its CSP.
+- `/marina/marina-a` returns an HTTP 200 streaming shell containing server-render
+  error digests instead of the marina booking page. This is consistent with the
+  unavailable configured Supabase project and is a core staging smoke-test failure.
+
+### Blocked / unverified
+
+- No authenticated provider-dashboard or CLI credentials are available in this
+  checkout. Hosted migration history, schema/advisors, Auth URL settings, TOTP
+  enablement, AAL1/AAL2 behavior, admin/staff flows, cross-tenant reads, and
+  authenticated route smoke tests cannot be rechecked.
+- Real browser CSP behavior with Supabase Auth, Stripe Checkout, and Sentry is not
+  verified. Header allowlists alone do not prove successful provider requests.
+- Sentry is configured by origin, but no controlled event/readback was performed.
+
+**Status on 2026-10-13: FAIL / blocked.** The deployed headers pass inspection,
+but the unavailable staging Supabase dependency prevents the required hosted MFA,
+authorization, provider, and CSP verification.
+
+## Reactivation recheck — 2026-10-15
+
+At 13:18 UTC, Supabase project `adbjelqixteggaoekqvj` resolved to Cloudflare
+addresses again. HTTPS certificate validation passed. `/auth/v1/health` and
+`/rest/v1/` reached the expected project gateway and returned HTTP 401 for a
+missing API key; the Auth response identified the expected `sb-project-ref`.
+This verifies endpoint recovery but is not an authenticated Auth health check.
+
+`/marina/marina-a` now returns HTTP 200, renders `Marina A | Berthio` with
+booking content, and has no server-render error digest. `/login` returns HTTP
+200, unauthenticated `/dashboard` returns HTTP 307 to the expected login URL,
+and the notification worker rejects an unauthenticated POST with HTTP 401.
+
+The Vercel staging deployment remains reachable by valid HTTPS. Its CSP still
+targets the expected Supabase HTTPS/WebSocket origins and allowlists the configured
+Sentry ingestion origin, Stripe API, Stripe.js, and Stripe Checkout. HSTS,
+nosniff, frame denial, referrer policy, and permissions policy remain present.
+Unauthenticated dashboard redirect and notification-worker rejection still pass.
+Stripe.js returns HTTP 200 over valid TLS. Stripe API and the configured Sentry
+ingestion origin are reachable over valid TLS with expected unauthenticated root
+responses. This verifies allowlist/origin compatibility only; no Checkout or
+controlled Sentry event was completed.
+
+Supabase CLI 2.113.0 runs from a temporary directory, but no Supabase access token,
+linked-project metadata, database password, Vercel session, or staging test login
+is available. Current hosted migration history, schema lint, security/performance
+advisors, RLS/policy catalog, Auth/TOTP settings, AAL1/AAL2 enforcement,
+authenticated routes, and tenant isolation could not be rechecked. The 2026-09-27
+backup/restore evidence records all 29 migrations, 24 RLS-enabled public tables,
+and 46 policies on this project, but does not establish its state after
+reactivation.
+
+At 13:25 UTC, the one-time verification completed, CLI 2.113.0 authenticated, and
+the repository linked to `adbjelqixteggaoekqvj`. The CLI stored its token in the
+user profile outside the repository. Linking and read-only checks used the CLI
+login role without requiring the database password; no secret was logged or stored
+in the repository.
+
+Current hosted verification then passed all 29 migration versions, schema lint for
+`public,private`, 24 of 24 public tables with RLS, and an exact 46-policy name match
+against repository migrations. There were no missing or extra policies. The three
+RLS tables without policies are the intended server-only/deny-by-default tables:
+`guest_booking_access_grants`, `public_availability_rate_limits`, and
+`stripe_webhook_events`.
+
+Live transaction-local authorization checks passed: admin AAL1 saw neither its own
+nor another tenant; admin AAL2 saw its own tenant only; staff AAL1 saw its own
+tenant only. All transactions rolled back. This verifies hosted database AAL and
+tenant enforcement, but not browser login or authenticated dashboard routes.
+
+Hosted security advisors reported 6 WARN and 3 INFO. Three authenticated
+security-definer RPC warnings were reviewed as intentional guarded API entry
+points: live catalog checks confirm anonymous execution is denied, authenticated
+execution is granted, the search path is empty, and each has an internal
+tenant-admin guard. The current membership helper requires AAL2 for admins.
+Remaining WARN items are
+leaked-password protection disabled plus public/anonymous and authenticated execute
+grants on provider-installed `public.rls_auto_enable()`. The latter backs the
+enabled `ensure_rls` event trigger and is absent from repository migrations. No
+privileges or Auth configuration were changed. Performance advisors reported 48
+INFO items: 12 unindexed foreign keys and 36 unused indexes.
+
+**Status before advisor hardening: PARTIAL.** Public headers, endpoint recovery, data-backed
+public rendering, provider-origin reachability, hosted schema/RLS, and database
+AAL/tenant behavior are verified. Six security advisor warnings need disposition;
+real browser CSP behavior, Auth MFA, and dashboard routes still require staging
+account and Vercel/provider access.
+
+## Security advisor hardening — 2026-10-15
+
+`public.rls_auto_enable()` and the `ensure_rls` event trigger match Supabase's
+documented optional auto-RLS template. Live metadata shows `postgres` ownership,
+no extension membership, no repository or hosted migration record, and one event
+trigger dependency covering table-creation commands. This is project-level
+Supabase template configuration installed outside the repository, not an internal
+`supabase_admin` trigger.
+
+A rollback-only hosted proof revoked `PUBLIC`, `anon`, and `authenticated` execute,
+created a probe table, confirmed `ensure_rls` still enabled RLS, and rolled back.
+Migration `20261015133429_harden_rls_auto_enable_execute.sql` then applied the same
+conditional revoke. A post-migration rollback probe passed and left no table.
+All 30 migration versions match hosted staging. The two auto-RLS execution
+warnings are resolved while the trigger remains enabled and functional.
+
+The security-advisor rerun reports 4 WARN and 3 INFO. The three guarded,
+authenticated-only security-definer RPC warnings are accepted because their live
+grants, empty search paths, tenant-admin guards, and AAL2 database behavior were
+verified. The three no-policy INFO entries are accepted for server-only tables
+that intentionally deny API roles by default. Leaked-password protection is the
+only remaining actionable WARN. A scoped Management API read confirmed it is
+disabled. Enabling it returned HTTP 402 because the current project plan does not
+include the feature; a follow-up read confirmed no change. The Keychain token and
+API responses stayed in permission-restricted temporary files, were never printed,
+and were deleted immediately after verification.
+
+### Controlled-pilot exception: leaked-password protection — 2026-10-17
+
+Supabase Pro is not required by the M5.4 acceptance criteria. The criterion is no
+unresolved critical/high security issue; leaked-password protection is a WARN, and
+the project rejects enablement on its current plan with HTTP 402. This warning is
+accepted for the controlled pilot rather than represented as resolved.
+
+- Owner: Roberts.
+- Impact: Auth cannot reject a password solely because it appears in the
+  HaveIBeenPwned corpus.
+- Mitigation: marina admins require hosted database-enforced AAL2; tenant/RLS
+  checks pass; staging users remain limited to pilot/test accounts; hosted
+  enrollment, challenge, and session behavior were verified below. Lost-factor
+  recovery remains restricted to the documented trusted-operator process.
+- Review: enable the protection when staging moves to Pro, and reassess no later
+  than 2026-11-17 or before expanding beyond the controlled pilot, whichever is
+  earlier.
+
+### Hosted browser authorization verification — 2026-10-17
+
+- `admin-a@berthio.test` completed hosted TOTP enrollment, then a fresh password
+  login and authenticator challenge produced an `aal2` session. Overview,
+  Bookings, Berths, Berth Map, Payments, Settings, and Audit routes loaded for
+  Marina A. A refresh retained AAL2 and route access.
+- `staff-a@berthio.test` logged in at `aal1`, loaded the shared Marina A routes,
+  had no Settings navigation entry, and received the application 404 response for
+  Settings, Integrations, Audit, berth import, and add-berth admin routes.
+- `admin-b@berthio.test` completed hosted TOTP enrollment and reached `aal2`.
+  Its dashboard, booking, berth, map, payment, and settings routes resolved only
+  Marina B. Refresh retained its AAL2 session.
+- Each account was logged out. Direct requests to protected routes then returned
+  to login. Rendered UI and captured application/Supabase Auth/REST document,
+  fetch, and XHR responses contained no other target tenant name or account email.
+- The run recorded zero CSP/Auth browser-console errors and zero unexpected
+  application/Auth network responses. Expected staff 404 responses were excluded.
+  Credentials, factor secrets, tokens, cookies, and browser profiles were not
+  recorded in evidence and the temporary profiles were removed after the run.
+
+**Current M5.4 status remains PARTIAL.** Database permission hardening, advisor
+disposition, hosted Auth MFA, role checks, tenant isolation, session behavior, and
+Supabase Auth CSP behavior are verified. Real Stripe and Sentry browser/provider
+CSP behavior remains open.
+
+### Vercel/provider configuration evidence — 2026-10-17
+
+- Supabase Auth Site URL and its sole redirect wildcard exactly match
+  `https://berthio-staging.vercel.app`; no local or production-like Auth redirect
+  was present. Hosted Auth/REST traffic confirms the deployed public Supabase URL
+  and publishable key target staging project `adbjelqixteggaoekqvj`.
+- The authenticated Integration Settings page reports Stripe `Test Connect` but
+  `Not ready`, Resend `Ready`, notification worker protection configured with the
+  scheduler unverified, and Sentry configured. No Auth or CSP browser errors were
+  recorded during authenticated navigation.
+- The Stripe mode proves local fallback is not requested and test-mode credentials
+  are in use, but the aggregate status does not identify every individual failed
+  check. Resend readiness verifies configuration shape only. Sentry environment,
+  release, event ingestion, Resend delivery, and scheduler invocation still need
+  provider readback or controlled end-to-end evidence.
+- Authenticated Vercel inspection on 2026-10-18 confirmed project
+  `berthio-staging` in workspace `kruminsrrk-1088s-projects`. Its dedicated staging
+  domain is served from the Vercel Production target; all project variables are
+  Production-only, with no Preview/Development values or custom Staging environment.
+- `NEXT_PUBLIC_SITE_URL` exactly matches staging, `SUPABASE_SECRET_KEY` is the only
+  privileged Supabase variable, local Stripe fallback is explicitly false, and the
+  Stripe keys are test mode. No production Supabase URL or live Stripe key was
+  found. Resend and Sentry provider ownership still requires provider readback.
+- Sentry environment variables say `staging`, but current server code explicitly
+  uses `VERCEL_ENV`/`NODE_ENV` and client code sets no environment; this staging
+  project deploys through the Vercel Production target. Effective Sentry environment
+  and release tags therefore remain an open verification/configuration issue.
+- The project is now connected to `RobertsK2/marine-soft`. Production deployment
+  `26Gr1qkd1hVVveVkzbmAkaxpPZ7N` is Ready and Current, records branch `main` and
+  SHA `e23163d1c033c88fa4d4c8fbb07aa3fb01b150c6`, and owns the canonical staging
+  alias. Local `HEAD` and `origin/main` match that SHA exactly.
+- The existing staging Supabase URL was confirmed unchanged. Missing
+  `NOTIFICATION_WORKER_SCHEDULED=false` was safely added; no redeployment was
+  triggered.
+
+The subsequent Git deployment includes the current environment configuration.
+Canonical staging smoke checks pass for the home, login, Marina A, MFA,
+unauthenticated dashboard redirect, and unauthorized notification-worker routes.
+All checked responses retain HTTPS, HSTS, and CSP, with no application error
+digest. Deployment traceability is now verified; Stripe, Resend/scheduler, and
+Sentry provider end-to-end evidence remains open.
+
 ## Task 4 changed files
 
 Includes the uncommitted Task 4 implementation present at the start of this continuation.
