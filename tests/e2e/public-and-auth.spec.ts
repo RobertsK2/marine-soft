@@ -699,7 +699,7 @@ test.describe("local Supabase marina auth", () => {
       await page.goto(`http://localhost:3000/auth/confirm?type=recovery&token_hash=${encodeURIComponent(data.properties.hashed_token)}&next=/reset-password`);
       await expect(page).toHaveURL(/\/mfa\?next=%2Freset-password$/);
       await page.getByLabel("Authenticator code").fill(totp(secret!));
-      await page.getByRole("button", { name: "Verify and continue" }).click();
+      await page.getByRole("button", { name: "Verify" }).click();
       await expect(page).toHaveURL(/\/reset-password$/);
       await expect(page.getByRole("heading", { name: "Secure your account" })).toBeVisible();
 
@@ -713,7 +713,7 @@ test.describe("local Supabase marina auth", () => {
       await page.getByRole("button", { name: "Sign In" }).click();
       await expect(page).toHaveURL(/\/mfa\?next=%2Fdashboard$/);
       await page.getByLabel("Authenticator code").fill(totp(secret!));
-      await page.getByRole("button", { name: "Verify and continue" }).click();
+      await page.getByRole("button", { name: "Verify" }).click();
       await expect(page).toHaveURL(/\/dashboard$/);
     } finally {
       expect((await service.auth.admin.deleteUser(created.data.user!.id)).error).toBeNull();

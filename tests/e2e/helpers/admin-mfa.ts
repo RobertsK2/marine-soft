@@ -47,13 +47,13 @@ export async function completeAdminMfa(
   if (!new URL(page.url()).pathname.startsWith("/mfa")) return null; // Staff remains AAL1.
   await resetLocalAdminFactors();
   await page.reload();
-  await page.getByRole("button", { name: "Set up authenticator" }).click();
+  await expect(page.getByRole("button", { name: "Enable two-factor" })).toBeVisible();
   const secret = (await page.locator("main code").textContent())?.trim();
   expect(secret).toMatch(/^[A-Z2-7]+$/);
   // Avoid enrolling in the last seconds of a TOTP window.
   while (Date.now() % 30_000 > 26_000) await new Promise((resolve) => setTimeout(resolve, 500));
   await page.getByLabel("Authenticator code").fill(totp(secret!));
-  await page.getByRole("button", { name: "Verify and continue" }).click();
+  await page.getByRole("button", { name: "Enable two-factor" }).click();
   await expect(page).toHaveURL(destination);
   return secret!;
 }
