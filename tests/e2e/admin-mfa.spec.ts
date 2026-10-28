@@ -29,11 +29,13 @@ test("marina admin enrolls MFA before dashboard access and keeps AAL2 after refr
   await expect(page).toHaveURL(/\/mfa\?/);
   await page.goto("/dashboard/settings/pricing");
   await expect(page).toHaveURL(/\/mfa\?next=%2Fdashboard%2Fsettings%2Fpricing/);
-  await page.getByRole("button", { name: "Set up authenticator" }).click();
+  await expect(page.getByRole("heading", { name: "Set up two-factor authentication" })).toBeVisible();
+  await expect(page.getByAltText("Authenticator setup QR code")).toBeVisible();
   const secret = (await page.locator("main code").textContent())!.trim();
   expect(secret).toMatch(/^[A-Z2-7]+$/);
-  await page.getByLabel("Authenticator code").fill(totp(secret));
-  await page.getByRole("button", { name: "Verify and continue" }).click();
+  const codeInput = page.getByLabel("Authenticator code");
+  await codeInput.fill(totp(secret));
+  await codeInput.press("Enter");
   await expect(page).toHaveURL(/\/dashboard\/settings\/pricing$/);
   await page.reload();
   await expect(page.getByRole("heading", { name: /Pricing/i }).first()).toBeVisible();

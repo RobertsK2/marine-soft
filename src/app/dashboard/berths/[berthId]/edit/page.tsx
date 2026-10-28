@@ -5,6 +5,8 @@ import { BerthForm } from "@/components/berths/berth-form";
 import { getBerth } from "@/domain/berths/repository";
 import { requireMarinaMembership } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import shellStyles from "../../../overview.module.css";
+import styles from "./edit-berth.module.css";
 
 export default async function EditBerthPage({
   params,
@@ -22,6 +24,7 @@ export default async function EditBerthPage({
 
   return (
     <AppShell
+      className={`${shellStyles.overview} ${styles.edit}`}
       context={context}
       description="Update physical limits, assignment priority, zone, and operating status."
       title={`Edit ${berth.code}`}

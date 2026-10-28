@@ -1,0 +1,83 @@
+.page {
+  --mfa-ink: #151d32;
+  --mfa-muted: #596174;
+  --mfa-blue: #0750ed;
+  --mfa-box: #f0f2ff;
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: 56px 1fr auto;
+  background: #f9f8ff;
+  color: var(--mfa-ink);
+  font-family: Inter, "Source Sans Pro", "Helvetica Now Text", sans-serif;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(20px, 3.75vw, 48px);
+  border-bottom: 1px solid #f0eff6;
+  background: #fbfaff;
+}
+
+.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--mfa-ink); }
+.brandMark, .accountIcon { display: inline-grid; flex: 0 0 auto; place-items: center; color: #fff; background: var(--mfa-blue); }
+.brandMark { width: 32px; height: 32px; border-radius: 4px; }
+.brandName { font-size: 16px; font-weight: 700; letter-spacing: -.35px; }
+.brandSubtitle { color: #53596a; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.accountIcon { width: 32px; height: 32px; border-radius: 50%; }
+
+.main { display: grid; place-items: center; padding: 32px 20px; }
+.flow { width: min(100%, 480px); }
+.back { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 16px; color: #42495a; font-size: 14px; }
+.back span { font-size: 19px; line-height: 1; }
+.back:hover, .copyButton:hover, .signOut button:hover { color: var(--mfa-blue); }
+.card { width: 100%; border: 1px solid #eeedf4; border-radius: 9px; padding: 40px; background: #fff; }
+
+.content { display: grid; gap: 0; }
+.title { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.8px; line-height: 1.24; }
+.identity { margin: 6px 0 0; color: var(--mfa-ink); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.description { margin: 16px 0 0; color: var(--mfa-muted); font-size: 14px; line-height: 1.55; }
+.qr { display: block; width: 140px; height: 140px; margin: 28px auto 16px; object-fit: contain; }
+.manualKey { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 0 0 36px; color: var(--mfa-muted); font-size: 12px; }
+.manualKey code { color: var(--mfa-ink); font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: .04em; overflow-wrap: anywhere; }
+.copyButton { display: inline-flex; align-items: center; gap: 5px; border: 0; padding: 4px; background: transparent; color: var(--mfa-muted); font-size: 12px; cursor: pointer; }
+.visuallyHidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); border: 0; }
+.codeField { display: grid; gap: 8px; margin: 0; }
+.codeLabel { color: var(--mfa-muted); font-size: 14px; }
+.codeSlots { position: relative; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: clamp(10px, 2.1vw, 26px); }
+.codeSlot { display: grid; aspect-ratio: .9; place-items: center; border: 1px solid transparent; border-radius: 4px; background: var(--mfa-box); color: var(--mfa-ink); font-size: 22px; font-weight: 600; }
+.codeSlots:focus-within .codeSlot { border-color: #8ea9f3; }
+.codeInput { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: .01; cursor: text; }
+.codeSlots:focus-within { outline: 2px solid var(--mfa-blue); outline-offset: 3px; border-radius: 4px; }
+.submit { width: 100%; min-height: 44px; margin-top: 24px; border: 0; border-radius: 8px; background: var(--mfa-blue); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+.submit:hover:not(:disabled) { background: #0644ce; }
+.submit:disabled { background: #879fd3; cursor: wait; }
+.message { margin: 14px 0 0; color: #a02f42; font-size: 13px; line-height: 1.5; }
+.status { margin: 12px 0 0; color: #286747; font-size: 12px; }
+.help { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 44px 0 0; color: var(--mfa-muted); font-size: 12px; line-height: 1.5; }
+.help a { flex: 0 0 auto; color: var(--mfa-blue); }
+.loading { margin: 0; color: var(--mfa-muted); font-size: 14px; }
+.signOut { display: flex; justify-content: center; padding: 0 20px 28px; }
+.signOut button { border: 0; padding: 4px 8px; background: transparent; color: #464b5b; font-size: 13px; cursor: pointer; }
+.page a:focus-visible, .page button:focus-visible, .page input:focus-visible { outline: 2px solid var(--mfa-blue); outline-offset: 3px; }
+
+@media (max-width: 560px) {
+  .header { padding-inline: 16px; }
+  .brandSubtitle { display: none; }
+  .main { padding: 24px 16px; }
+  .flow { width: min(100%, 480px); }
+  .card { padding: 30px 24px; border-radius: 8px; }
+  .title { font-size: 25px; }
+  .codeSlots { gap: 9px; }
+  .codeSlot { font-size: 19px; }
+  .help { align-items: flex-start; margin-top: 30px; }
+}
+
+@media (max-width: 360px) {
+  .brand { gap: 7px; }
+  .brandName { font-size: 15px; }
+  .card { padding-inline: 18px; }
+  .codeSlots { gap: 6px; }
+  .manualKey { gap: 5px; }
+}

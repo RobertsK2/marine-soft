@@ -1,0 +1,20 @@
+.edit :global(.app-placeholder > h1) { font-family: inherit; font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -.6px; text-transform: none; }
+.edit :global(.app-placeholder > p) { color: #586d8c; font-family: inherit; font-size: 14px; }
+.edit :global(.berth-form) { gap: 20px; margin-top: 28px; }
+.edit :global(.berth-form .form-section) { border: 1px solid #e0e7f0; border-radius: 14px; padding: 24px; background: white; }
+.edit :global(.berth-form .form-section-heading) { border-color: #edf1f6; }
+.edit :global(.berth-form .form-section-heading > span) { border-color: #e0e7f0; border-radius: 8px; color: #0750ed; font-family: inherit; }
+.edit :global(.berth-form .form-section-heading h2) { font-family: inherit; font-size: 18px; font-weight: 600; text-transform: none; }
+.edit :global(.berth-form .form-section-heading p) { color: #627796; font-size: 13px; }
+.edit :global(.berth-form .form-field label) { color: #526989; font-family: inherit; font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.edit :global(.berth-form .form-field input), .edit :global(.berth-form .form-field select) { min-height: 38px; border: 1px solid #e0e7f0; border-radius: 8px; background: white; color: var(--navy); font-family: inherit; font-size: 14px; }
+.edit :global(.berth-form .form-field :is(input, select)[aria-invalid=true]) { border-color: #bd596b; }
+.edit :global(.berth-form .form-field :is(input, select):focus-visible) { outline: 2px solid #0750ed; outline-offset: 3px; }
+.edit :global(.berth-form .field-help) { color: #627796; font-family: inherit; font-size: 12px; }
+.edit :global(.berth-form .checkbox-field) { border-color: #e0e7f0; border-radius: 8px; background: white; }
+.edit :global(.berth-form .checkbox-field input) { accent-color: #0750ed; }
+.edit :global(.berth-form .checkbox-field span) { color: #627796; font-size: 13px; }
+.edit :global(.berth-form .checkbox-field strong) { color: var(--navy); font-family: inherit; font-size: 14px; letter-spacing: 0; text-transform: none; }
+@media (max-width: 760px) {
+  .edit :global(.berth-form .form-section) { padding: 16px; }
+}
