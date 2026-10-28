@@ -1,6 +1,7 @@
 "use client";
 
 import { Anchor, Banknote, CalendarDays, LayoutDashboard, LogOut, Map, Rows3, Settings } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -29,10 +30,7 @@ function AdminSidebar({ context }: { context: SidebarContext }) {
   return (
       <header className="app-bar">
         <Link className="brand" href="/dashboard" aria-label="Go to Overview">
-          <span className="brand-mark">
-            <Anchor size={18} aria-hidden="true" />
-          </span>
-          Berthio
+          <Image className={shellStyles.sidebarLogo} src="/brand/berthio_horizontal.svg" alt="Berthio" width={160} height={50} unoptimized />
         </Link>
         <nav aria-label="Marina administration" className="app-nav">
           <Link href="/dashboard" aria-current={activePage === "overview" ? "page" : undefined}>

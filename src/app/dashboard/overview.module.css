@@ -7,8 +7,8 @@
   color: var(--navy);
 }
 .overview :global(.app-bar) { position: sticky; top: 0; height: 100dvh; min-height: 0; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 30px; overflow-y: auto; padding: 30px 15px 16px; border: 0; background: #0750ed; color: white; }
-.overview :global(.brand) { padding: 0 8px; font-size: 30px; letter-spacing: -.8px; color: white; }
-.overview :global(.brand-mark) { background: transparent; color: white; border: 0; }
+.overview :global(.brand) { padding: 0 14px; color: white; }
+.sidebarLogo { display: block; width: 160px; max-width: 100%; height: auto; }
 .overview :global(.app-nav) { display: flex; flex-direction: column; gap: 7px; width: 100%; }
 .overview :global(.app-nav a) { min-height: 47px; padding: 12px 14px; border: 0; border-radius: 9px; font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none; gap: 12px; }
 .overview :global(.app-nav a:hover), .overview :global(.app-nav a[aria-current=page]) { background: #ffffff20; box-shadow: none; }
