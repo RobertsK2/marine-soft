@@ -1,13 +1,13 @@
-.shell :global(.app-placeholder) { padding: 0 40px 56px; }
-.breadcrumb { display: flex; align-items: center; gap: 12px; min-height: 80px; margin: 0 -40px; padding: 0 40px; border-bottom: 1px solid #e0e7f0; background: white; font-size: 14px; }
+.shell :global(.app-placeholder) { padding: 0 32px 40px; }
+.breadcrumb { display: flex; align-items: center; gap: 12px; min-height: 80px; margin: 0 -32px; padding: 0 32px; border-bottom: 1px solid #e0e7f0; background: white; font-size: 15px; }
 .breadcrumb a { color: #607593; }
 .breadcrumb span { color: #bbc7d7; }
 .back { display: inline-flex; margin-top: 28px; color: #0750ed; font-size: 13px; }
 .back:hover { text-decoration: underline; }
 .heading { margin: 18px 0 28px; }
 .heading.heading h1 { margin: 0; font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -.6px; text-transform: none; }
-.heading p { margin: 10px 0 0; color: #607593; font-size: 15px; }
-.shell :global(.pricing-config-form) { display: grid; gap: 0; margin: 0; border: 1px solid #dfe6f0; border-radius: 14px; overflow: hidden; background: white; }
+.heading p { margin: 10px 0 0; color: #586d8c; font-size: 14px; }
+.shell :global(.pricing-config-form) { display: grid; gap: 0; margin: 0; border: 1px solid #e0e7f0; border-radius: 14px; overflow: hidden; background: white; }
 .shell :global(.form-section) { position: relative; padding: 30px; border: 0; border-bottom: 1px solid #edf1f6; }
 .shell :global(.form-section-heading) { display: block; padding: 0; border: 0; }
 .shell :global(.form-section-heading > span) { display: none; }
@@ -31,7 +31,7 @@
 .shell :global(.berth-form-grid) { padding: 18px; border-top: 1px solid #e1e8f1; gap: 16px; }
 .shell :global(.form-field) { display: grid; align-content: start; gap: 7px; min-width: 0; }
 .shell :global(.form-field label) { font-size: 12px; color: #53647a; font-weight: 500; }
-.shell :global(.form-field input) { width: 100%; min-width: 0; min-height: 42px; border: 1px solid #cbd7e6; border-radius: 7px; background: white; padding: 9px 12px; font: inherit; font-size: 13px; }
+.shell :global(.form-field input) { width: 100%; min-width: 0; min-height: 42px; border: 1px solid #cbd7e6; border-radius: 8px; background: white; padding: 9px 12px; font: inherit; font-size: 13px; }
 .shell :global(.form-field input:disabled) { background: #f1f4f8; color: #607593; }
 .shell :global(.form-field input:focus-visible) { outline: 2px solid #c6d7ff; border-color: #0750ed; }
 .shell :global(.pricing-add) { position: absolute; top: 25px; right: 20px; border: 0; color: #0750ed; background: transparent; font-size: 13px; }
@@ -53,12 +53,12 @@
 .note strong { color: #53647a; font-weight: 500; }
 .note p { margin: 5px 0 0; line-height: 1.6; }
 .shell :global(.form-actions) { display: flex; flex-direction: row; justify-content: flex-end; gap: 12px; margin: 0; padding: 22px 30px; border-top: 1px solid #edf1f6; background: #f8fafc; }
-.shell :global(.form-actions .button) { width: auto; min-height: 42px; padding: 10px 22px; border-radius: 7px; font-size: 13px; }
+.shell :global(.form-actions .button) { width: auto; min-height: 42px; padding: 10px 22px; border-radius: 8px; font-size: 14px; }
 .shell :global(.form-actions .button-primary) { border: 0; background: #0750ed; color: white; }
 .shell :global(.form-actions .button-quiet) { border: 1px solid #dfe6f0; background: white; color: #53647a; }
 @media (max-width: 760px) {
   .shell :global(.app-placeholder) { padding: 0 16px 30px; }
-  .breadcrumb { margin: 0 -16px; padding: 0 16px; min-height: 62px; font-size: 12px; }
+  .breadcrumb { margin: 0 -16px; padding: 0 16px; min-height: 60px; }
   .heading.heading h1 { font-size: 26px; }
   .heading p { font-size: 13px; }
   .shell :global(.form-section) { padding: 22px 18px; }
