@@ -692,6 +692,7 @@ test.describe("local Supabase marina auth", () => {
       const secret = await completeAdminMfa(page);
       expect(secret).toMatch(/^[A-Z2-7]+$/);
       await page.goto("/logout");
+      await expect(page).toHaveURL(/\/login$/);
 
       const { data, error } = await service.auth.admin.generateLink({ type: "recovery", email });
       expect(error).toBeNull();
