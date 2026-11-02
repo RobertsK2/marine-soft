@@ -14,7 +14,16 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/(.*)", headers: securityHeaders(securityHeaderEnvironment) }];
+    return [
+      { source: "/(.*)", headers: securityHeaders(securityHeaderEnvironment) },
+      {
+        source: "/marina/:slug/checkout/return/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
+    ];
   },
 };
 
