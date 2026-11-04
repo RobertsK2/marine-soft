@@ -78,10 +78,9 @@ function DateField({ name, label, values, minDate, error, onValue }: {
     <label htmlFor={`public-${name}`}>{label}</label>
     <Popover.Root open={open} onOpenChange={changeOpen}>
       <div ref={anchor} className={styles.inputWrap}>
-        <input ref={input} id={`public-${name}`} name={name} type="date" required min={minDate} defaultValue={value} onChange={(event) => onValue(name, event.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? errorId : undefined} aria-haspopup="dialog"
-          onPointerDown={(event) => { if (event.button === 0) event.preventDefault(); }}
+        <input ref={input} id={`public-${name}`} name={name} type="text" inputMode="none" placeholder="YYYY-MM-DD" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" required min={minDate} defaultValue={value} onChange={(event) => onValue(name, event.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? errorId : undefined} aria-haspopup="dialog"
           onClick={(event) => { event.preventDefault(); trigger.current?.click(); }}
-          onKeyDown={(event) => { if (event.altKey && event.key === "ArrowDown") { event.preventDefault(); trigger.current?.click(); } }} />
+          onKeyDown={(event) => { if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") { event.preventDefault(); trigger.current?.click(); } }} />
         <Popover.Trigger ref={trigger} className={styles.trigger} aria-label={`Choose ${label.toLowerCase()}`}><CalendarDays size={18} aria-hidden="true" /></Popover.Trigger>
       </div>
       <Popover.Portal>

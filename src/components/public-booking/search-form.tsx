@@ -85,12 +85,6 @@ export function SearchForm({ action, children, resultAttempt, reviewAvailable }:
     }
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    // Mobile collects dates only. Keep the existing server validation and
-    // submit explicit estimated times, preserving any previously entered times.
-    if (window.matchMedia(MOBILE_QUERY).matches) {
-      if (!data.get("eta")) data.set("eta", "14:00");
-      if (!data.get("etd")) data.set("etd", "10:00");
-    }
     const query = new URLSearchParams();
     for (const field of BOOKING_SEARCH_FIELDS) query.set(field, String(data.get(field) ?? ""));
     // Rechecking identical details still refreshes capacity and resets errors.
@@ -99,6 +93,7 @@ export function SearchForm({ action, children, resultAttempt, reviewAvailable }:
     if (!window.matchMedia(MOBILE_QUERY).matches) sessionStorage.setItem(DESKTOP_SCROLL_ATTEMPT, searchAttempt);
     startTransition(() => router.push(`${action.split("#")[0]}?${query}#booking-entry`, { scroll: false }));
   }}>
+    <input type="hidden" name="searchAttempt" value={resultAttempt || "submitted"} />
     <div className={styles.mobileStep}>
       {review ? <EditSearchButton onEdit={() => { edited.current = true; setReview(false); }} /> : null}
       <p>Step {review ? "2" : "1"} of 2</p>

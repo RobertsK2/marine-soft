@@ -89,8 +89,7 @@
   .editSearch:focus-visible { outline: 2px solid var(--berthio-blue); outline-offset: 2px; }
   .searchForm { gap: 16px; }
   .searchForm[data-mobile-step="review"] .searchSurface,
-  .searchForm[data-mobile-step="search"] .result[data-availability="available"],
-  .searchForm .timeGrid { display: none; }
+  .searchForm[data-mobile-step="search"] .result[data-availability="available"] { display: none; }
   .page:has(.searchForm[data-mobile-step="review"]) .hero,
   .page:has(.searchForm[data-mobile-step="review"]) .trust { display: none; }
   .header { gap: 14px; padding: 16px 20px; }
@@ -123,3 +122,7 @@
 .dimensionGrid :global(.form-field) > label { min-height: 18px; }
 .contact { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .contact a { color: var(--berthio-blue); text-decoration: underline; }
+
+@media (max-width: 360px) {
+  .dateGrid { grid-template-columns: minmax(0, 1fr); }
+}

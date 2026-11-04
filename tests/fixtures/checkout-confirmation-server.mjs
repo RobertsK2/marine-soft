@@ -14,7 +14,7 @@ const server = http.createServer((req, res) => {
   let data = [];
   if (url.pathname === "/rest/v1/marinas") {
     const slug = url.searchParams.get("slug");
-    data = slug === "eq.test-harbour" ? [marina] : slug === "eq.no-contact" ? [{ ...marina, slug: "no-contact", contact_email: null, contact_phone: null, website_url: null }] : [];
+    data = slug === "eq.test-harbour" ? [marina] : slug === "eq.marina-a" ? [{ ...marina, slug: "marina-a" }] : slug === "eq.no-contact" ? [{ ...marina, slug: "no-contact", contact_email: null, contact_phone: null, website_url: null }] : [];
   } else if (url.pathname === "/rest/v1/booking_payments") {
     const session = url.searchParams.get("stripe_checkout_session_id")?.replace(/^eq\./, "");
     if (url.searchParams.get("marina_id") !== `eq.${marinaId}`) { res.writeHead(403); return res.end('{}'); }

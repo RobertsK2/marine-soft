@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test.skip(!process.env.BERTHIO_CONFIRMATION_FIXTURES, "Requires isolated confirmation fixtures.");
-const bookingUrl = "/marina/test-harbour";
+const bookingUrl = "/marina/marina-a";
 const query = new URLSearchParams({ arrivalDate: "2027-05-24", departureDate: "2027-05-28", eta: "14:00", etd: "10:00", vesselLengthM: "11.5", vesselBeamM: "3.8", vesselDraftM: "1.6", vesselName: "UI test vessel" });
 const blue = "rgb(7, 80, 237)";
 test.beforeEach(async ({ page }) => {
@@ -12,7 +12,9 @@ test("guest controls: blue actions, empty times and aligned mobile dimensions", 
   await page.goto(bookingUrl);
   const check = page.getByRole("button", { name: "Check Availability", exact: true });
   await expect(check).toHaveCSS("background-color", blue);
-  if (info.project.name === "desktop") {
+  await expect(page.locator(".field-error, [aria-invalid=true]")).toHaveCount(0);
+  for (const label of ["Length", "Beam", "Draft"]) await expect(page.getByLabel(label, { exact: true })).toBeVisible();
+  {
     for (const name of ["eta", "etd"]) {
       const field = page.locator(`[name="${name}"]`);
       const hint = page.locator(`#public-${name}-hint`);
@@ -21,12 +23,18 @@ test("guest controls: blue actions, empty times and aligned mobile dimensions", 
       await field.fill("14:00");
       await expect(hint).toHaveCount(0);
       await page.locator("form").first().evaluate((form: HTMLFormElement) => form.reset());
+      await page.locator("header").first().click();
       await expect(hint).toBeVisible();
       await field.fill("");
+      await expect(field).toBeFocused();
+      await expect(hint).toBeHidden(); // Leave room for editing the time segments.
+      await page.locator("header").first().click();
       await expect(hint).toBeVisible();
     }
   }
-  await page.locator("header").first().click();
+  await page.reload();
+  await expect(check).toBeVisible();
+  await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
   await page.screenshot({ path: info.outputPath("booking-controls.png"), fullPage: true });
   for (const width of [320, 375, 390]) {
     await page.setViewportSize({ width, height: 844 });
@@ -36,13 +44,14 @@ test("guest controls: blue actions, empty times and aligned mobile dimensions", 
     expect(new Set(boxes.map(box => box!.height)).size).toBe(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await expect(check).toHaveCSS("background-color", blue);
+    await page.screenshot({ path: info.outputPath(`initial-${width}.png`), fullPage: true });
   }
-  for (const name of ["arrivalDate", "departureDate", "vesselLengthM", "vesselBeamM", "vesselDraftM"]) {
+  for (const name of ["arrivalDate", "departureDate", "vesselLengthM", "vesselBeamM", "vesselDraftM", "eta", "etd"]) {
     await page.locator(`[name="${name}"]`).fill(query.get(name)!);
   }
   let release!: () => void;
   const held = new Promise<void>(resolve => { release = resolve; });
-  await page.route("**/marina/test-harbour?**", async route => { await held; await route.continue(); });
+  await page.route("**/marina/marina-a?**", async route => { await held; await route.continue(); });
   try {
     await check.click();
     const loading = page.getByRole("button", { name: "Checking availability…", exact: true });
@@ -52,13 +61,15 @@ test("guest controls: blue actions, empty times and aligned mobile dimensions", 
   await expect(page.getByRole("button", { name: "Continue to Payment", exact: true })).toBeVisible();
 });
 
-test("floating calendars keep native values, range state, keyboard and dismissal behavior", async ({ page }, info) => {
+test("floating calendars keep ISO values, range state, keyboard and dismissal behavior", async ({ page }, info) => {
   await page.goto(`${bookingUrl}?${query}`);
   if (info.project.name === "mobile") await page.getByRole("button", { name: "Back / Edit Search" }).click();
   const arrival = page.getByRole("button", { name: "Choose arrival date", exact: true });
+  await expect(page.locator('input[type="date"]')).toHaveCount(0);
   await page.locator('[name="arrivalDate"]').click();
   const calendar = page.getByRole("dialog", { name: /^Arrival date calendar/ });
   await expect(calendar).toBeVisible();
+  await page.screenshot({ path: info.outputPath("calendar-open.png"), fullPage: true });
   await expect(calendar.locator('[data-range="true"]')).toHaveCount(3);
   const selected = calendar.locator('[data-date="2027-05-24"]');
   await expect(selected).toBeFocused();
@@ -133,4 +144,26 @@ test("login uses the current official SVG without changing authentication", asyn
   await page.getByRole("button", { name: "Hide password" }).click();
   await expect(page.locator("#password")).toHaveAttribute("type", "password");
   await page.screenshot({ path: info.outputPath("login.png"), fullPage: true });
+});
+
+
+test("prefilled links stay clean; submitted errors preserve constraints without hidden time errors", async ({ page }) => {
+  await page.goto(`${bookingUrl}?arrivalDate=&vesselLengthM=`);
+  await expect(page.locator(".field-error, [aria-invalid=true]")).toHaveCount(0);
+  for (const name of ["eta", "etd"]) await expect(page.locator(`#public-${name}-hint`)).toBeVisible();
+  await page.getByRole("button", { name: "Check Availability", exact: true }).click();
+  await expect(page.locator("#public-vesselLengthM-error")).toHaveText("Enter a measurement.");
+  await expect(page.locator("#public-eta-error, #public-etd-error")).toHaveCount(0);
+  await expect(page.getByText("Arrival or departure time is invalid", { exact: false })).toHaveCount(0);
+  await expect(page.locator('[data-availability]')).toHaveCount(0);
+  const invalid = new URLSearchParams(query);
+  invalid.set("eta", "25:99");
+  invalid.set("vesselLengthM", "0");
+  invalid.set("departureDate", invalid.get("arrivalDate")!);
+  invalid.set("searchAttempt", "regression-invalid");
+  await page.goto(`${bookingUrl}?${invalid}`);
+  await expect(page.locator("#public-vesselLengthM-error")).toHaveText("Use 0.01–9999.99 m.");
+  await expect(page.locator("#public-eta-error")).toHaveText("Enter a valid time (HH:MM).");
+  await expect(page.locator("#public-departureDate-error")).toHaveText("Departure must be after arrival.");
+  await expect(page.locator('[data-availability]')).toHaveCount(0);
 });

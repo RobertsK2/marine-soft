@@ -1,6 +1,5 @@
 .inputWrap { position: relative; min-width: 0; }
 .inputWrap input { padding-right: 40px !important; }
-.inputWrap input::-webkit-calendar-picker-indicator { display: none; }
 .trigger { position: absolute; inset: 1px 1px 1px auto; display: grid; place-items: center; width: 38px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--berthio-blue); cursor: pointer; }
 .trigger:hover { background: #eaf1ff; }
 .positioner { z-index: 80; }

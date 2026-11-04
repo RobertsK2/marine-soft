@@ -28,7 +28,7 @@ export function BookingSearchForm({
   acceptsOnlinePayment,
   acceptsPayAtMarina,
   availabilityError,
-  errors,
+  errors: serverErrors,
   formError,
   marinaName,
   contactPhone,
@@ -60,6 +60,16 @@ export function BookingSearchForm({
   resultAttempt?: string;
   values: FormValues;
 }) {
+  // Presentation only: server validation continues to reject every invalid value.
+  // Empty times use the inline hint rather than a duplicate error paragraph.
+  const errors = { ...serverErrors };
+  for (const name of ["eta", "etd"] as const) {
+    if (!values[name]) delete errors[name];
+    else if (errors[name]) errors[name] = "Enter a valid time (HH:MM).";
+  }
+  for (const name of ["vesselLengthM", "vesselBeamM", "vesselDraftM"] as const) {
+    if (errors[name]) errors[name] = values[name] ? "Use 0.01–9999.99 m." : "Enter a measurement.";
+  }
   return (
     <SearchForm action={`/marina/${encodeURIComponent(marinaSlug)}#booking-entry`} resultAttempt={resultAttempt} reviewAvailable={Boolean(request && availability?.available)}>
       <section className={styles.searchSurface} aria-label="Dates and vessel">
@@ -76,7 +86,7 @@ export function BookingSearchForm({
           {([ ["vesselLengthM", "Length"], ["vesselBeamM", "Beam"], ["vesselDraftM", "Draft"] ] as const).map(([name, label]) => (
             <div className="form-field" key={name}>
               <label htmlFor={`public-${name}`}>{label}</label>
-              <div className={styles.dimensionInput}><input aria-describedby={describedBy(errors, name)} aria-invalid={Boolean(errors[name])} defaultValue={values[name]} id={`public-${name}`} aria-label={name === "vesselLengthM" ? "Length Overall (LOA)" : name === "vesselBeamM" ? "Beam (Width)" : "Draft (Depth)"} inputMode="decimal" max="9999.99" min="0.01" name={name} required step="0.01" type="number" /><span aria-hidden="true">m</span></div>
+              <div className={styles.dimensionInput}><input aria-describedby={describedBy(errors, name)} aria-invalid={Boolean(errors[name])} defaultValue={values[name]} id={`public-${name}`} aria-label={label} inputMode="decimal" max="9999.99" min="0.01" name={name} required step="0.01" type="number" /><span aria-hidden="true">m</span></div>
               <FieldError id={`public-${name}-error`} message={errors[name]} />
             </div>
           ))}
@@ -89,7 +99,6 @@ export function BookingSearchForm({
           <p>Times are local to the marina.<br />{marinaTimezone}</p>
         </div>
         {formError ? <p className="form-message form-error" role="alert">{formError}</p> : null}
-        {errors.eta || errors.etd ? <p className={styles.mobileOnly} role="alert">Arrival or departure time is invalid. Check availability again to use estimated times.</p> : null}
       </section>
       {availabilityError ? <div className={styles.result} role="alert"><h2>Availability could not be checked</h2><p>{availabilityError}</p></div> : null}
       {request && availability ? (

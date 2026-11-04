@@ -22,9 +22,9 @@ async function fillSearch(page: import("@playwright/test").Page, length = "9.5")
   await page.getByLabel("Arrival date", { exact: true }).fill("2026-12-14");
   await page.getByLabel("Departure date", { exact: true }).fill("2026-12-17");
   await page.getByLabel("Vessel name").fill("Desktop Scroll Test");
-  await page.getByLabel("Length Overall (LOA)").fill(length);
-  await page.getByLabel("Beam (Width)").fill("3.1");
-  await page.getByLabel("Draft (Depth)").fill("1.7");
+  await page.getByLabel("Length").fill(length);
+  await page.getByLabel("Beam").fill("3.1");
+  await page.getByLabel("Draft").fill("1.7");
   await page.getByLabel("ETA", { exact: false }).fill("14:00");
   await page.getByLabel("ETD", { exact: false }).fill("10:00");
 }

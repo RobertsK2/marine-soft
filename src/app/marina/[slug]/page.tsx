@@ -52,8 +52,11 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
     ? validatePublicBookingSearch(query, marina.timezone)
     : null;
   const minArrivalDate = marinaDateKey(new Date(), marina.timezone) ?? "";
-  const errors = validation && !validation.success ? validation.errors : {};
-  const formError = validation && !validation.success ? validation.formError : undefined;
+  // Prefilled/shared URLs are not form submissions. Keep validation for all
+  // availability requests, but reveal field feedback only after a search.
+  const showErrors = typeof query.searchAttempt === "string" && Boolean(query.searchAttempt);
+  const errors = showErrors && validation && !validation.success ? validation.errors : {};
+  const formError = showErrors && validation && !validation.success ? validation.formError : undefined;
   const searchRequest = validation?.success ? validation.data : null;
   let availability: PublicAvailabilityResult | null = null;
   let availabilityError: string | undefined;
