@@ -7,16 +7,14 @@ export function LoginSurface({ children }: { children: ReactNode }) {
   return <div className={styles.page}>
     <header className={styles.header}>
       <Link className={styles.brand} href="/" aria-label="Berthio home">
-        <Image src="/brand/berthio-mark.svg" alt="" width={32} height={40} priority />
-        <span>Berthio</span>
+        <Image src="/brand/berthio_horizontal.svg" alt="Berthio" width={176} height={55} priority />
       </Link>
     </header>
     <main className={styles.main}>
       <div className={styles.surface}>
       <aside className={styles.brandPanel} aria-label="About Berthio">
         <Link className={styles.brand} href="/" aria-label="Berthio home">
-          <Image src="/brand/berthio-mark.svg" alt="" width={32} height={40} priority />
-          <span>Berthio</span>
+          <Image src="/brand/berthio_horizontal.svg" alt="Berthio" width={176} height={55} priority />
         </Link>
         <div className={styles.brandCopy}>
           <h2>Marina operations,<br />in one place.</h2>
@@ -25,7 +23,6 @@ export function LoginSurface({ children }: { children: ReactNode }) {
       </aside>
       <section className={styles.card} aria-labelledby="auth-title">
         <div className={styles.intro}>
-          <span className={styles.mark}><Image src="/brand/berthio-mark.svg" alt="" width={32} height={40} priority /></span>
           <h1 id="auth-title">Sign in to Berthio</h1>
           <p>Access your marina operational workspace.</p>
         </div>

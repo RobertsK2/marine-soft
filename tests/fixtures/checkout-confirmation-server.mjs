@@ -13,7 +13,8 @@ const server = http.createServer((req, res) => {
   }
   let data = [];
   if (url.pathname === "/rest/v1/marinas") {
-    data = url.searchParams.get("slug") === "eq.test-harbour" ? [marina] : [];
+    const slug = url.searchParams.get("slug");
+    data = slug === "eq.test-harbour" ? [marina] : slug === "eq.no-contact" ? [{ ...marina, slug: "no-contact", contact_email: null, contact_phone: null, website_url: null }] : [];
   } else if (url.pathname === "/rest/v1/booking_payments") {
     const session = url.searchParams.get("stripe_checkout_session_id")?.replace(/^eq\./, "");
     if (url.searchParams.get("marina_id") !== `eq.${marinaId}`) { res.writeHead(403); return res.end('{}'); }
@@ -22,12 +23,22 @@ const server = http.createServer((req, res) => {
     const payment = url.searchParams.get("booking_payment_id");
     if (url.searchParams.get("marina_id") !== `eq.${marinaId}`) { res.writeHead(403); return res.end('{}'); }
     if (["eq.cs_test_paid", "eq.cs_test_cancelled"].includes(payment)) data = [{ id: "20000000-0000-4000-8000-000000000001", reference: "BK-TEST-8492", arrival_date: "2027-05-24", departure_date: "2027-05-28", eta: "12:00:00", etd: "11:00:00", vessel_name: "Jūras vējš IV", vessel_length_m: 11.5, vessel_beam_m: 3.8, vessel_draft_m: 1.6, status: payment === "eq.cs_test_cancelled" ? "cancelled" : "confirmed" }];
+  } else if (url.pathname === "/rest/v1/berths") {
+    data = [{ id: "40000000-0000-4000-8000-000000000001", marina_id: marinaId, code: "T1", priority: 1, status: "available", allow_smaller_vessels: true, max_length_m: 30, max_beam_m: 8, max_draft_m: 5 }];
+  } else if (url.pathname === "/rest/v1/marina_pricing_configs") {
+    data = [{ currency: "EUR", model: "per_meter", tax_behavior: "exclusive", tax_rate_bps: 2100 }];
+  } else if (url.pathname === "/rest/v1/pricing_seasons") {
+    data = [{ id: "season-fixture", name: "Test season", starts_on: "2026-01-01", ends_on: "2029-12-31" }];
+  } else if (url.pathname === "/rest/v1/pricing_season_meter_rates") {
+    data = [{ season_id: "season-fixture", nightly_rate_per_meter_minor: 300 }];
+  } else if (url.pathname === "/rest/v1/rpc/allow_public_availability_check") {
+    data = true;
   } else if (url.pathname === "/rest/v1/rpc/ensure_guest_booking_access") {
     data = [{ grant_id: "30000000-0000-4000-8000-000000000001", expires_at: "2030-01-01T00:00:00Z" }];
-  } else if (!["/rest/v1/booking_berth_assignments", "/rest/v1/notification_outbox"].includes(url.pathname)) {
+  } else if (!["/rest/v1/booking_berth_assignments", "/rest/v1/notification_outbox", "/rest/v1/booking_holds", "/rest/v1/pricing_season_length_rates", "/rest/v1/marina_mandatory_fees"].includes(url.pathname)) {
     res.writeHead(404); return res.end('{}');
   }
-  res.writeHead(200, { "Content-Type": "application/json" });
+  res.writeHead(200, { "Content-Type": "application/json", ...(Array.isArray(data) ? { "Content-Range": `0-${Math.max(0, data.length - 1)}/${data.length}` } : {}) });
   res.end(JSON.stringify(data));
 });
 await new Promise(resolve => server.listen(54329, "127.0.0.1", resolve));

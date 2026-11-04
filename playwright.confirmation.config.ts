@@ -4,7 +4,7 @@ process.env.BERTHIO_CONFIRMATION_FIXTURES = "1";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: "checkout-confirmation.spec.ts",
+  testMatch: ["checkout-confirmation.spec.ts", "guest-booking-refinements.spec.ts"],
   workers: 1,
   retries: 0,
   reporter: "list",

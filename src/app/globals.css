@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
 :root {
+  --berthio-blue: #0750ed;
+  --berthio-blue-hover: #0645ce;
+  --berthio-blue-active: #053baa;
+  --berthio-blue-disabled: #6f8fc9;
   --navy: #0A192F;
   --cream: #F4F1EA;
   --orange: #FF6B35;
@@ -798,3 +802,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
   html { scroll-behavior: auto; }
   .spin { animation: none; }
 }
+
+.guest-booking-page .button-primary { background: var(--berthio-blue); border-color: var(--berthio-blue); color: white; }
+.guest-booking-page .button-primary:hover:not(:disabled) { background: var(--berthio-blue-hover); border-color: var(--berthio-blue-hover); }
+.guest-booking-page :is(button, a, input):focus-visible { outline-color: var(--berthio-blue); }
+.guest-booking-page .button-primary:active:not(:disabled) { background: var(--berthio-blue-active); border-color: var(--berthio-blue-active); }
+.guest-booking-page .button-primary:disabled { background: var(--berthio-blue-disabled); border-color: var(--berthio-blue-disabled); opacity: 1; }

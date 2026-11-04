@@ -1,13 +1,12 @@
 .page { min-height: 100svh; display: grid; grid-template-rows: auto 1fr auto; background: #f7f9fc; color: #172238; }
 .header { padding: 20px 24px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: #172238; font-size: 18px; font-weight: 700; letter-spacing: -.5px; }
-.brand img, .mark img { display: block; object-fit: contain; }
+.brand img { display: block; object-fit: contain; }
 .main { display: grid; place-items: center; padding: 32px 24px; }
 .surface { display: contents; }
 .brandPanel { display: none; }
 .card { width: min(100%, 500px); padding: 32px; border: 1px solid #dfe7f2; border-radius: 18px; background: white; box-shadow: 0 5px 22px #152d5010; }
 .intro { text-align: center; margin-bottom: 32px; }
-.mark { display: inline-grid; place-items: center; width: 48px; height: 48px; margin-bottom: 18px; border: 1px solid #dce7ff; border-radius: 12px; background: #f0f5ff; }
 .intro h1 { margin: 0; color: #172238; font-family: inherit; font-size: 25px; line-height: 1.25; font-weight: 700; letter-spacing: -.8px; }
 .intro p { margin: 9px 0 0; color: #657b9c; font-size: 14px; line-height: 1.5; }
 .form { display: grid; gap: 24px; }
@@ -53,7 +52,6 @@
   .inputWrap > svg { top: 19px; }
   .reveal { top: 5px; }
   .form :global(.auth-submit) { min-height: 56px; font-size: 16px; }
-  .mark { display: none; }
 }
 @media (max-width: 560px) {
   .header { padding: 16px 20px; }
@@ -63,3 +61,8 @@
   .footer { padding: 20px; }
 }
 @media (max-width: 380px) { .main { padding-inline: 0; } .card { border-inline: 0; border-radius: 0; } }
+
+.brand { padding: 8px 14px; border-radius: 8px; background: var(--berthio-blue); }
+.brand img { width: 176px; height: auto; }
+
+@media (max-width: 650px) { .brand img { width: 144px; } }

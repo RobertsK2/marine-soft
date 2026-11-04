@@ -1,0 +1,6 @@
+.field { position: relative; min-width: 0; }
+.hint { position: absolute; inset: 0 auto 0 12px; display: inline-flex; align-items: center; gap: 7px; color: #40516a; font: 12px/1.3 Arial, Helvetica, sans-serif; pointer-events: none; }
+.hint > span { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--berthio-blue, #0750ed); color: white; font-size: 12px; font-weight: 700; }
+.field[data-empty="true"]:not(:focus-within) input { color: transparent; }
+.field[data-empty="true"]:not(:focus-within) input::-webkit-datetime-edit { opacity: 0; }
+.field[data-empty="true"]:focus-within .hint { left: auto; right: 36px; gap: 5px; font-size: 11px; }

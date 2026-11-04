@@ -110,6 +110,7 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
           formError={formError}
           holdIdempotencyKey={randomUUID()}
           marinaName={marina.name}
+          contactPhone={marina.contactPhone}
           marinaSlug={marina.slug}
           marinaTimezone={marina.timezone}
           minArrivalDate={minArrivalDate}
