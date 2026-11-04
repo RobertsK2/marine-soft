@@ -8,15 +8,17 @@ test("mobile search stays inline when unavailable, then opens compact review and
   const check = page.getByRole("button", { name: "Check Availability", exact: true });
   const pay = page.getByRole("button", { name: "Continue to Payment", exact: true });
   await expect(searchHeading).toBeVisible();
-  await expect(page.locator('form input:visible')).toHaveCount(6);
-  await expect(page.getByLabel("ETA", { exact: false })).toBeHidden();
+  await expect(page.locator('form input:visible')).toHaveCount(8);
+  await expect(page.getByLabel("ETA", { exact: false })).toBeVisible();
   await expect(pay).toHaveCount(0);
   await page.getByLabel("Arrival date", { exact: true }).fill("2026-12-14");
   await page.getByLabel("Departure date", { exact: true }).fill("2026-12-17");
+  await page.getByLabel("ETA", { exact: false }).fill("14:00");
+  await page.getByLabel("ETD", { exact: false }).fill("10:00");
   await page.getByLabel("Vessel name").fill("Mobile Aurora");
-  await page.getByLabel("Length Overall (LOA)").fill("99");
-  await page.getByLabel("Beam (Width)").fill("3.1");
-  await page.getByLabel("Draft (Depth)").fill("1.7");
+  await page.getByLabel("Length").fill("99");
+  await page.getByLabel("Beam").fill("3.1");
+  await page.getByLabel("Draft").fill("1.7");
   await check.click();
   await expect(page.locator('[data-availability="no_suitable_berth"]')).toBeVisible();
   expect(new URL(page.url()).pathname).toBe("/marina/marina-a");
@@ -25,7 +27,7 @@ test("mobile search stays inline when unavailable, then opens compact review and
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByLabel("Vessel name")).toHaveValue("Mobile Aurora");
 
-  await page.getByLabel("Length Overall (LOA)").fill("9.5");
+  await page.getByLabel("Length").fill("9.5");
   // Hold the search response to verify the availability submission state.
   let deliver!: () => void;
   const delivery = new Promise<void>((resolve) => { deliver = resolve; });
@@ -60,9 +62,9 @@ test("mobile search stays inline when unavailable, then opens compact review and
   await expect(page.getByLabel("Arrival date", { exact: true })).toHaveValue("2026-12-14");
   await expect(page.getByLabel("Departure date", { exact: true })).toHaveValue("2026-12-17");
   await expect(page.getByLabel("Vessel name")).toHaveValue("Mobile Aurora");
-  await expect(page.getByLabel("Length Overall (LOA)")).toHaveValue("9.5");
-  await expect(page.getByLabel("Beam (Width)")).toHaveValue("3.1");
-  await expect(page.getByLabel("Draft (Depth)")).toHaveValue("1.7");
+  await expect(page.getByLabel("Length")).toHaveValue("9.5");
+  await expect(page.getByLabel("Beam")).toHaveValue("3.1");
+  await expect(page.getByLabel("Draft")).toHaveValue("1.7");
   expect(await page.locator('[name="holdIdempotencyKey"]').inputValue()).toBe(attempt);
   await page.getByLabel("Vessel name").fill("Edited Aurora");
   await check.click();

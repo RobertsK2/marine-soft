@@ -15,14 +15,12 @@ test("public booking search, fit errors, one payment CTA and stale-result protec
   await expect(page.locator('[aria-invalid="true"]').first()).toBeVisible();
   await page.getByLabel("Arrival date", { exact: true }).fill("2026-12-14");
   await page.getByLabel("Departure date", { exact: true }).fill("2026-12-17");
-  if (testInfo.project.name === "chromium") {
-    await page.getByLabel("ETA", { exact: false }).fill("14:30");
-    await page.getByLabel("ETD", { exact: false }).fill("10:00");
-  }
+  await page.getByLabel("ETA", { exact: false }).fill("14:30");
+  await page.getByLabel("ETD", { exact: false }).fill("10:00");
   await page.getByLabel("Vessel name").fill("Layout Aurora");
-  await page.getByLabel("Length Overall (LOA)").fill("9.5");
-  await page.getByLabel("Beam (Width)").fill("3.1");
-  await page.getByLabel("Draft (Depth)").fill("1.7");
+  await page.getByLabel("Length").fill("9.5");
+  await page.getByLabel("Beam").fill("3.1");
+  await page.getByLabel("Draft").fill("1.7");
   await page.getByRole("button", { name: "Check Availability", exact: true }).click();
   await expect(page.locator('[data-availability="available"]')).toBeVisible();
   await expect(page.locator('[data-availability="available"]')).toContainText("No booking has been created.");
@@ -43,7 +41,7 @@ test("public booking search, fit errors, one payment CTA and stale-result protec
   await expect(page.locator('[data-hold-token]')).toHaveCount(0);
   await expect(page.getByRole("button", { name: /hold|reserve|pay.*stripe/i })).toHaveCount(0);
   if (testInfo.project.name === "mobile") await page.getByRole("button", { name: "Back / Edit Search" }).click();
-  await page.getByLabel("Length Overall (LOA)").fill("99");
+  await page.getByLabel("Length").fill("99");
   await expect(cta).toBeHidden();
   await expect(page.getByText("Details changed. Please check availability again.")).toBeVisible();
   await page.getByRole("button", { name: "Check Availability", exact: true }).click();

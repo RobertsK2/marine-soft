@@ -2,8 +2,8 @@
 import type { CSSProperties } from "react";
 import { randomUUID } from "node:crypto";
 import type { Metadata } from "next";
-import { Anchor, Clock3, LockKeyhole, Mail } from "lucide-react";
-import Link from "next/link";
+import { Anchor, Clock3, LockKeyhole } from "lucide-react";
+import { GuestHeader, GuestFooter } from "@/components/public-booking/guest-chrome";
 import styles from "@/components/public-booking/guest-booking.module.css";
 import { notFound } from "next/navigation";
 import { BookingSearchForm } from "@/components/public-booking/booking-search-form";
@@ -13,7 +13,6 @@ import {
   marinaDateKey,
   validatePublicBookingSearch,
 } from "@/domain/public-booking/validation";
-import { marinaInitials } from "@/domain/public-marinas/model";
 import { getPublicMarinaBySlug } from "@/domain/public-marinas/repository";
 import { getPublicAvailability, PublicAvailabilityRateLimitError } from "@/domain/public-availability/service";
 import type { PublicAvailabilityResult } from "@/domain/public-availability/types";
@@ -53,8 +52,11 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
     ? validatePublicBookingSearch(query, marina.timezone)
     : null;
   const minArrivalDate = marinaDateKey(new Date(), marina.timezone) ?? "";
-  const errors = validation && !validation.success ? validation.errors : {};
-  const formError = validation && !validation.success ? validation.formError : undefined;
+  // Prefilled/shared URLs are not form submissions. Keep validation for all
+  // availability requests, but reveal field feedback only after a search.
+  const showErrors = typeof query.searchAttempt === "string" && Boolean(query.searchAttempt);
+  const errors = showErrors && validation && !validation.success ? validation.errors : {};
+  const formError = showErrors && validation && !validation.success ? validation.formError : undefined;
   const searchRequest = validation?.success ? validation.data : null;
   let availability: PublicAvailabilityResult | null = null;
   let availabilityError: string | undefined;
@@ -94,13 +96,7 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
 
   return (
     <main className={styles.page} style={brandStyle}>
-      <header className={styles.header}>
-        <a className={styles.identity} href="#marina-overview" aria-label={`${marina.name} overview`}>
-          {marina.logoUrl ? <img alt={`${marina.name} logo`} src={marina.logoUrl} /> : <span aria-hidden="true">{marinaInitials(marina.name)}</span>}
-          <strong>{marina.name}</strong>
-        </a>
-        <span className={styles.powered}>Powered by <strong>Berthio</strong></span>
-      </header>
+      <GuestHeader marina={marina} overviewHref="#marina-overview" />
       <div className={styles.content}>
         <section className={`${styles.hero} ${marina.coverImageUrl ? styles.hasCover : ""}`} id="marina-overview">
           {marina.coverImageUrl ? <img alt={`${marina.name} harbour`} src={marina.coverImageUrl} /> : null}
@@ -117,6 +113,7 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
           formError={formError}
           holdIdempotencyKey={randomUUID()}
           marinaName={marina.name}
+          contactPhone={marina.contactPhone}
           marinaSlug={marina.slug}
           marinaTimezone={marina.timezone}
           minArrivalDate={minArrivalDate}
@@ -134,13 +131,7 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
         </div>
         {(marina.publicText || marina.localText) ? <details className={styles.marinaInfo}><summary>About {marina.name}</summary>{marina.publicText ? <p>{marina.publicText}</p> : null}{marina.localText ? <p>{marina.localText}</p> : null}</details> : null}
       </div>
-      <footer className={styles.footer}>
-        <span>{marina.name}</span><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link>
-        {marina.contactEmail ? <a href={`mailto:${marina.contactEmail}`}><Mail size={14} aria-hidden="true" /> Contact</a> : null}
-        {marina.contactPhone ? <a href={`tel:${marina.contactPhone}`}>{marina.contactPhone}</a> : null}
-        {marina.websiteUrl ? <a href={marina.websiteUrl}>Marina website</a> : null}
-        <span className={styles.powered}>Powered by <strong>Berthio</strong></span>
-      </footer>
+      <GuestFooter marina={marina} />
     </main>
   );
 }

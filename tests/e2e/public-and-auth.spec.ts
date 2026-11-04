@@ -44,14 +44,12 @@ test.describe("public marina page", () => {
     await page.goto("/marina/marina-a#booking-entry");
     await page.getByLabel("Arrival date").fill(isoDate(arrival));
     await page.getByLabel("Departure date").fill(isoDate(departure));
-    if (testInfo.project.name === "chromium") {
-      await page.getByLabel("ETA").fill("14:30");
-      await page.getByLabel("ETD").fill("10:00");
-    }
+    await page.getByLabel("ETA").fill("14:30");
+    await page.getByLabel("ETD").fill("10:00");
     await page.getByLabel("Vessel name").fill("Test Aurora");
-    await page.getByLabel("Length Overall (LOA)").fill("12.5");
-    await page.getByLabel("Beam (Width)").fill("3.8");
-    await page.getByLabel("Draft (Depth)").fill("2.1");
+    await page.getByLabel("Length").fill("12.5");
+    await page.getByLabel("Beam").fill("3.8");
+    await page.getByLabel("Draft").fill("2.1");
     await page.getByRole("button", { name: "Check Availability" }).click();
 
     await expect(page).toHaveURL(/arrivalDate=.*&departureDate=.*&eta=14%3A(?:30|00)/);
@@ -257,22 +255,20 @@ test.describe("public marina page", () => {
     }
   });
 
-  test("booking search reports invalid stay and dimensions without losing input", async ({ page }, testInfo) => {
+  test("booking search reports invalid stay and dimensions without losing input", async ({ page }) => {
     const today = new Date();
     const arrival = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 20));
     const isoDate = arrival.toISOString().slice(0, 10);
 
     await page.goto(
-      `/marina/marina-a?arrivalDate=${isoDate}&departureDate=${isoDate}&eta=25%3A00&etd=10%3A00&vesselName=Kept+Name&vesselLengthM=0&vesselBeamM=3.8&vesselDraftM=2.1#booking-entry`,
+      `/marina/marina-a?arrivalDate=${isoDate}&departureDate=${isoDate}&eta=25%3A00&etd=10%3A00&vesselName=Kept+Name&vesselLengthM=0&vesselBeamM=3.8&vesselDraftM=2.1&searchAttempt=invalid-search#booking-entry`,
     );
 
     await expect(page.getByText("Departure must be after arrival.")).toBeVisible();
-    await expect(page.getByText(testInfo.project.name === "mobile"
-      ? "Arrival or departure time is invalid. Check availability again to use estimated times."
-      : "Enter a valid ETA in marina local time.")).toBeVisible();
-    await expect(page.getByText(/Vessel length must be between/)).toBeVisible();
+    await expect(page.getByText("Enter a valid time (HH:MM).")).toBeVisible();
+    await expect(page.getByText("Use 0.01–9999.99 m.")).toBeVisible();
     await expect(page.getByLabel("Vessel name")).toHaveValue("Kept Name");
-    await expect(page.getByLabel("Length Overall (LOA)")).toHaveValue("0");
+    await expect(page.getByLabel("Length")).toHaveValue("0");
     await expect(page.locator("[data-search-ready='true']")).toHaveCount(0);
   });
 });

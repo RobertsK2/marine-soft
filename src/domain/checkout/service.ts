@@ -6,6 +6,7 @@ import { createPrivilegedClient } from "@/lib/supabase/privileged";
 import { getStripe } from "@/lib/stripe/server";
 import { buildCheckoutSessionParams, LOCAL_PLATFORM_ACCOUNT_MARKER } from "@/domain/checkout/model";
 import { issueGuestManagementUrl } from "@/domain/guest-access/service";
+import { checkoutPaymentState } from "@/domain/checkout/confirmation";
 
 export class CheckoutServiceError extends Error {
   constructor(message: string, options?: ErrorOptions) { super(message, options); this.name = "CheckoutServiceError"; }
@@ -79,14 +80,15 @@ export async function getCheckoutReturnStatus(marinaSlug: string, sessionId: str
   const { data: marina, error: marinaError } = await supabase.from("marinas").select("id, name").eq("slug", marinaSlug).eq("is_public", true).maybeSingle();
   if (marinaError || !marina) return null;
   const { data, error } = await supabase.from("booking_payments")
-    .select("id, status, amount_total_minor, currency, paid_at")
+    .select("id, status, amount_total_minor, currency, paid_at, price_snapshot")
     .eq("marina_id", marina.id).eq("stripe_checkout_session_id", sessionId).maybeSingle();
   if (error || !data) return null;
   const { data: booking, error: bookingError } = await supabase.from("bookings")
     .select("id, reference, arrival_date, departure_date, eta, etd, vessel_name, vessel_length_m, vessel_beam_m, vessel_draft_m, status")
     .eq("marina_id", marina.id).eq("booking_payment_id", data.id).maybeSingle();
   if (bookingError) throw new CheckoutServiceError("Unable to load booking confirmation.", { cause: bookingError });
-  const guestManagementUrl = booking
+  const status = checkoutPaymentState(data.status, booking?.status);
+  const guestManagementUrl = booking && status === "paid"
     ? await issueGuestManagementUrl(booking.id).catch(() => null)
     : null;
   const confirmation = booking ? {
@@ -102,12 +104,19 @@ export async function getCheckoutReturnStatus(marinaSlug: string, sessionId: str
     vesselDraftM: booking.vessel_draft_m,
     status: booking.status,
   } : null;
+  const [assignment, notification] = booking && status === "paid" ? await Promise.all([
+    supabase.from("booking_berth_assignments").select("id").eq("marina_id", marina.id).eq("booking_id", booking.id).is("ended_at", null).limit(1),
+    supabase.from("notification_outbox").select("sent_at").eq("marina_id", marina.id).eq("booking_id", booking.id).eq("event_type", "booking_confirmation").eq("status", "sent").limit(1),
+  ]) : [null, null];
   return {
-    status: data.status === "paid" && confirmation ? "paid" as const : data.status === "pending" || data.status === "paid" ? "processing" as const : "failed" as const,
+    status,
     amountTotalMinor: data.amount_total_minor,
     currency: data.currency,
     paidAt: data.paid_at,
     confirmation,
     guestManagementUrl,
+    priceSnapshot: data.price_snapshot,
+    berthAssignment: assignment?.error ? "unknown" as const : assignment?.data?.length ? "assigned" as const : "on_arrival" as const,
+    emailSent: !notification?.error && Boolean(notification?.data?.[0]?.sent_at),
   };
 }

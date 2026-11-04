@@ -1,4 +1,6 @@
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, Phone, XCircle } from "lucide-react";
+import { GuestTimeInput } from "./guest-time-input";
+import { BookingDateFields } from "./booking-date-fields";
 import { AvailabilitySubmitButton, SearchForm } from "./search-form";
 import styles from "./guest-booking.module.css";
 import type {
@@ -26,9 +28,10 @@ export function BookingSearchForm({
   acceptsOnlinePayment,
   acceptsPayAtMarina,
   availabilityError,
-  errors,
+  errors: serverErrors,
   formError,
   marinaName,
+  contactPhone,
   marinaSlug,
   marinaTimezone,
   minArrivalDate,
@@ -46,6 +49,7 @@ export function BookingSearchForm({
   errors: BookingSearchFieldErrors;
   formError?: string;
   marinaName: string;
+  contactPhone?: string | null;
   marinaSlug: string;
   marinaTimezone: string;
   minArrivalDate: string;
@@ -56,18 +60,22 @@ export function BookingSearchForm({
   resultAttempt?: string;
   values: FormValues;
 }) {
+  // Presentation only: server validation continues to reject every invalid value.
+  // Empty times use the inline hint rather than a duplicate error paragraph.
+  const errors = { ...serverErrors };
+  for (const name of ["eta", "etd"] as const) {
+    if (!values[name]) delete errors[name];
+    else if (errors[name]) errors[name] = "Enter a valid time (HH:MM).";
+  }
+  for (const name of ["vesselLengthM", "vesselBeamM", "vesselDraftM"] as const) {
+    if (errors[name]) errors[name] = values[name] ? "Use 0.01–9999.99 m." : "Enter a measurement.";
+  }
   return (
     <SearchForm action={`/marina/${encodeURIComponent(marinaSlug)}#booking-entry`} resultAttempt={resultAttempt} reviewAvailable={Boolean(request && availability?.available)}>
       <section className={styles.searchSurface} aria-label="Dates and vessel">
         <h2 className="sr-only">Check availability at {marinaName}</h2>
         <div className={styles.dateGrid}>
-          {([ ["arrivalDate", "Arrival date"], ["departureDate", "Departure date"] ] as const).map(([name, label]) => (
-            <div className="form-field" key={name}>
-              <label htmlFor={`public-${name}`}>{label}</label>
-              <input aria-describedby={describedBy(errors, name)} aria-invalid={Boolean(errors[name])} defaultValue={values[name]} id={`public-${name}`} min={minArrivalDate} name={name} required type="date" />
-              <FieldError id={`public-${name}-error`} message={errors[name]} />
-            </div>
-          ))}
+          <BookingDateFields arrivalDate={values.arrivalDate} departureDate={values.departureDate} minDate={minArrivalDate} errors={errors} />
           <div className="form-field">
             <label htmlFor="public-vesselName">Vessel name <small>Optional</small></label>
             <input aria-describedby={describedBy(errors, "vesselName")} aria-invalid={Boolean(errors.vesselName)} defaultValue={values.vesselName} id="public-vesselName" maxLength={120} name="vesselName" />
@@ -75,10 +83,10 @@ export function BookingSearchForm({
           </div>
         </div>
         <div className={styles.dimensionGrid}>
-          {([ ["vesselLengthM", "Length Overall (LOA)"], ["vesselBeamM", "Beam (Width)"], ["vesselDraftM", "Draft (Depth)"] ] as const).map(([name, label]) => (
+          {([ ["vesselLengthM", "Length"], ["vesselBeamM", "Beam"], ["vesselDraftM", "Draft"] ] as const).map(([name, label]) => (
             <div className="form-field" key={name}>
               <label htmlFor={`public-${name}`}>{label}</label>
-              <div className={styles.dimensionInput}><input aria-describedby={describedBy(errors, name)} aria-invalid={Boolean(errors[name])} defaultValue={values[name]} id={`public-${name}`} inputMode="decimal" max="9999.99" min="0.01" name={name} required step="0.01" type="number" /><span aria-hidden="true">m</span></div>
+              <div className={styles.dimensionInput}><input aria-describedby={describedBy(errors, name)} aria-invalid={Boolean(errors[name])} defaultValue={values[name]} id={`public-${name}`} aria-label={label} inputMode="decimal" max="9999.99" min="0.01" name={name} required step="0.01" type="number" /><span aria-hidden="true">m</span></div>
               <FieldError id={`public-${name}-error`} message={errors[name]} />
             </div>
           ))}
@@ -86,12 +94,11 @@ export function BookingSearchForm({
         </div>
         <div className={styles.timeGrid}>
           {([ ["eta", "ETA"], ["etd", "ETD"] ] as const).map(([name, label]) => (
-            <div className="form-field" key={name}><label htmlFor={`public-${name}`}>{label} <small>{name === "eta" ? "Arrival time" : "Departure time"}</small></label><input aria-describedby={describedBy(errors, name)} aria-invalid={Boolean(errors[name])} defaultValue={values[name]} id={`public-${name}`} name={name} required type="time" /><FieldError id={`public-${name}-error`} message={errors[name]} /></div>
+            <div className="form-field" key={name}><label htmlFor={`public-${name}`}>{label} <small>{name === "eta" ? "Arrival time" : "Departure time"}</small></label><GuestTimeInput aria-describedby={describedBy(errors, name)} aria-invalid={Boolean(errors[name])} defaultValue={values[name]} id={`public-${name}`} name={name} required /><FieldError id={`public-${name}-error`} message={errors[name]} /></div>
           ))}
           <p>Times are local to the marina.<br />{marinaTimezone}</p>
         </div>
         {formError ? <p className="form-message form-error" role="alert">{formError}</p> : null}
-        {errors.eta || errors.etd ? <p className={styles.mobileOnly} role="alert">Arrival or departure time is invalid. Check availability again to use estimated times.</p> : null}
       </section>
       {availabilityError ? <div className={styles.result} role="alert"><h2>Availability could not be checked</h2><p>{availabilityError}</p></div> : null}
       {request && availability ? (
@@ -106,6 +113,7 @@ export function BookingSearchForm({
           </div>
           {availability.available ? <PriceQuote error={priceError} quote={priceQuote} paymentRequired={!acceptsPayAtMarina} /> : null}
           {availability.available ? <p className={styles.mobileOnly}>Estimated arrival {request.eta}, departure {request.etd}. Times are local to {marinaTimezone}.</p> : null}
+          {contactPhone ? <p className={styles.contact}><Phone size={15} aria-hidden="true" /> Marina assistance: <a href={`tel:${contactPhone}`}>{contactPhone}</a></p> : null}
           {availability.available && priceQuote ? <HoldControl idempotencyKey={holdIdempotencyKey} marinaSlug={marinaSlug} online={acceptsOnlinePayment} atMarina={acceptsPayAtMarina} /> : null}
         </section>
       ) : null}
