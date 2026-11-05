@@ -8,13 +8,12 @@ test("mobile search stays inline when unavailable, then opens compact review and
   const check = page.getByRole("button", { name: "Check Availability", exact: true });
   const pay = page.getByRole("button", { name: "Continue to Payment", exact: true });
   await expect(searchHeading).toBeVisible();
-  await expect(page.locator('form input:visible')).toHaveCount(8);
-  await expect(page.getByLabel("ETA", { exact: false })).toBeVisible();
+  await expect(page.locator('form input:visible')).toHaveCount(6);
+  await expect(page.getByRole("radio", { name: "Not sure yet" })).toBeChecked();
   await expect(pay).toHaveCount(0);
   await page.getByLabel("Arrival date", { exact: true }).fill("2026-12-14");
   await page.getByLabel("Departure date", { exact: true }).fill("2026-12-17");
-  await page.getByLabel("ETA", { exact: false }).fill("14:00");
-  await page.getByLabel("ETD", { exact: false }).fill("10:00");
+  await page.getByRole("radio", { name: /Afternoon/ }).check();
   await page.getByLabel("Vessel name").fill("Mobile Aurora");
   await page.getByLabel("Length").fill("99");
   await page.getByLabel("Beam").fill("3.1");
@@ -50,7 +49,7 @@ test("mobile search stays inline when unavailable, then opens compact review and
   await expect(review).toContainText("Mandatory fees");
   await expect(review).toContainText("Tax / VAT 21%");
   await expect(review).toContainText("Total");
-  await expect(review).toContainText("Estimated arrival 14:00, departure 10:00");
+  await expect(review).toContainText("Arrival preference: afternoon");
   await expect(pay).toBeInViewport();
   await expect(page.locator('[data-hold-token]')).toHaveCount(0);
   const attempt = await page.locator('[name="holdIdempotencyKey"]').inputValue();

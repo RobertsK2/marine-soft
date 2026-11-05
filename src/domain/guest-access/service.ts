@@ -76,7 +76,7 @@ export async function loadGuestBooking(token: string): Promise<GuestBooking | nu
   };
 }
 
-export async function updateGuestBookingTimes(token: string, eta: string, etd: string) {
+export async function updateGuestBookingTimes(token: string, eta: string | null, etd: string | null) {
   const payload = verifyGuestAccessToken(token);
   if (!payload) return false;
   const { data, error } = await createPrivilegedClient().rpc("update_guest_booking_times", {

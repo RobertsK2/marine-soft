@@ -2,40 +2,23 @@ import { expect, test } from "@playwright/test";
 
 test.skip(!process.env.BERTHIO_CONFIRMATION_FIXTURES, "Requires isolated confirmation fixtures.");
 const bookingUrl = "/marina/marina-a";
-const query = new URLSearchParams({ arrivalDate: "2027-05-24", departureDate: "2027-05-28", eta: "14:00", etd: "10:00", vesselLengthM: "11.5", vesselBeamM: "3.8", vesselDraftM: "1.6", vesselName: "UI test vessel" });
+const query = new URLSearchParams({ arrivalDate: "2027-05-24", departureDate: "2027-05-28", etaWindow: "unsure", vesselLengthM: "11.5", vesselBeamM: "3.8", vesselDraftM: "1.6", vesselName: "UI test vessel" });
 const blue = "rgb(7, 80, 237)";
 test.beforeEach(async ({ page }) => {
   await page.route("https://fixture.berthio.test/harbour.svg", route => route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="280"><rect width="1000" height="280" fill="#698ca2"/></svg>' }));
 });
 
-test("guest controls: blue actions, empty times and aligned mobile dimensions", async ({ page }, info) => {
+test("clean guest search has optional arrival windows, no public time fields, and aligned mobile dimensions", async ({ page }, info) => {
   await page.goto(bookingUrl);
   const check = page.getByRole("button", { name: "Check Availability", exact: true });
   await expect(check).toHaveCSS("background-color", blue);
   await expect(page.locator(".field-error, [aria-invalid=true]")).toHaveCount(0);
+  await expect(page.locator('[name="eta"], [name="etd"]')).toHaveCount(0);
+  await expect(page.getByRole("group", { name: /Estimated arrival time \(ETA\)/ })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Not sure yet" })).toBeChecked();
   for (const label of ["Length", "Beam", "Draft"]) await expect(page.getByLabel(label, { exact: true })).toBeVisible();
-  {
-    for (const name of ["eta", "etd"]) {
-      const field = page.locator(`[name="${name}"]`);
-      const hint = page.locator(`#public-${name}-hint`);
-      await expect(hint).toBeVisible();
-      await expect(field).toHaveAttribute("aria-describedby", `public-${name}-hint`);
-      await field.fill("14:00");
-      await expect(hint).toHaveCount(0);
-      await page.locator("form").first().evaluate((form: HTMLFormElement) => form.reset());
-      await page.locator("header").first().click();
-      await expect(hint).toBeVisible();
-      await field.fill("");
-      await expect(field).toBeFocused();
-      await expect(hint).toBeHidden(); // Leave room for editing the time segments.
-      await page.locator("header").first().click();
-      await expect(hint).toBeVisible();
-    }
-  }
-  await page.reload();
-  await expect(check).toBeVisible();
   await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
-  await page.screenshot({ path: info.outputPath("booking-controls.png"), fullPage: true });
+  await page.screenshot({ path: info.outputPath("clean-booking-desktop-or-mobile.png"), fullPage: true });
   for (const width of [320, 375, 390]) {
     await page.setViewportSize({ width, height: 844 });
     const boxes = await Promise.all(["vesselLengthM", "vesselBeamM", "vesselDraftM"].map(name => page.locator(`[name="${name}"]`).boundingBox()));
@@ -44,11 +27,12 @@ test("guest controls: blue actions, empty times and aligned mobile dimensions", 
     expect(new Set(boxes.map(box => box!.height)).size).toBe(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await expect(check).toHaveCSS("background-color", blue);
-    await page.screenshot({ path: info.outputPath(`initial-${width}.png`), fullPage: true });
+    await page.screenshot({ path: info.outputPath(`clean-${width}.png`), fullPage: true });
   }
-  for (const name of ["arrivalDate", "departureDate", "vesselLengthM", "vesselBeamM", "vesselDraftM", "eta", "etd"]) {
+  for (const name of ["arrivalDate", "departureDate", "vesselLengthM", "vesselBeamM", "vesselDraftM"]) {
     await page.locator(`[name="${name}"]`).fill(query.get(name)!);
   }
+  await page.getByRole("radio", { name: /Morning/ }).check();
   let release!: () => void;
   const held = new Promise<void>(resolve => { release = resolve; });
   await page.route("**/marina/marina-a?**", async route => { await held; await route.continue(); });
@@ -58,6 +42,9 @@ test("guest controls: blue actions, empty times and aligned mobile dimensions", 
     await expect(loading).toBeDisabled();
     await expect(loading).toHaveCSS("background-color", "rgb(111, 143, 201)");
   } finally { release(); }
+  await expect(page).toHaveURL(/etaWindow=morning/);
+  expect(new URL(page.url()).searchParams.has("eta")).toBe(false);
+  expect(new URL(page.url()).searchParams.has("etd")).toBe(false);
   await expect(page.getByRole("button", { name: "Continue to Payment", exact: true })).toBeVisible();
 });
 
@@ -147,23 +134,22 @@ test("login uses the current official SVG without changing authentication", asyn
 });
 
 
-test("prefilled links stay clean; submitted errors preserve constraints without hidden time errors", async ({ page }) => {
+test("prefilled links stay clean; submitted errors keep required date and dimension checks", async ({ page }) => {
   await page.goto(`${bookingUrl}?arrivalDate=&vesselLengthM=`);
   await expect(page.locator(".field-error, [aria-invalid=true]")).toHaveCount(0);
-  for (const name of ["eta", "etd"]) await expect(page.locator(`#public-${name}-hint`)).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Not sure yet" })).toBeChecked();
   await page.getByRole("button", { name: "Check Availability", exact: true }).click();
   await expect(page.locator("#public-vesselLengthM-error")).toHaveText("Enter a measurement.");
-  await expect(page.locator("#public-eta-error, #public-etd-error")).toHaveCount(0);
-  await expect(page.getByText("Arrival or departure time is invalid", { exact: false })).toHaveCount(0);
   await expect(page.locator('[data-availability]')).toHaveCount(0);
+  await expect(page.locator('#public-etaWindow-error')).toHaveCount(0);
   const invalid = new URLSearchParams(query);
-  invalid.set("eta", "25:99");
+  invalid.set("etaWindow", "invalid");
   invalid.set("vesselLengthM", "0");
   invalid.set("departureDate", invalid.get("arrivalDate")!);
   invalid.set("searchAttempt", "regression-invalid");
   await page.goto(`${bookingUrl}?${invalid}`);
   await expect(page.locator("#public-vesselLengthM-error")).toHaveText("Use 0.01–9999.99 m.");
-  await expect(page.locator("#public-eta-error")).toHaveText("Enter a valid time (HH:MM).");
+  await expect(page.locator("#public-etaWindow-error")).toHaveText("Choose an arrival window or select Not sure yet.");
   await expect(page.locator("#public-departureDate-error")).toHaveText("Departure must be after arrival.");
   await expect(page.locator('[data-availability]')).toHaveCount(0);
 });

@@ -61,6 +61,7 @@ describe("guest booking access", () => {
   it("allows only validated ETA and ETD values", async () => {
     expect(validateGuestTimes({ eta: "24:00", etd: "09:00" })).toMatchObject({ success: false });
     expect(validateGuestTimes({ eta: "16:15", etd: "08:45" })).toEqual({ success: true, data: { eta: "16:15", etd: "08:45" } });
+    expect(validateGuestTimes({ eta: "16:15", etd: "" })).toEqual({ success: true, data: { eta: "16:15", etd: null } });
     const token = createGuestAccessToken(grantId, expiresAt);
     mocks.rpc.mockResolvedValue({ data: true, error: null });
     expect(await updateGuestBookingTimes(token, "16:15", "08:45")).toBe(true);

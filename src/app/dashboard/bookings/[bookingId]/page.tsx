@@ -14,6 +14,7 @@ import { BookingPaymentBalanceForm } from "@/components/bookings/booking-payment
 import { getBookingBerthAssignmentState } from "@/domain/berth-assignments/repository";
 import { listBookingAuditEvents } from "@/domain/audit-log/repository";
 import { bookingNights, formatBookingDate, formatBookingTime, formatVesselName } from "@/domain/bookings/formatting";
+import { arrivalWindowLabel } from "@/domain/public-booking/types";
 import { getBooking, getBookingPaymentBalance, listBookingPriceAdjustments } from "@/domain/bookings/repository";
 import { requireMarinaMembership } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -71,13 +72,13 @@ export default async function BookingDetailPage({
           <section className={styles.berthSummary} aria-label="Berth summary"><span className={styles.berthCode}>{assignment.current?.berthCode ?? <Anchor size={26} aria-hidden="true" />}</span><div><h2>{assignment.current ? `Berth ${assignment.current.berthCode}` : "No berth assigned"}</h2><p>{currentBerth ? `${currentBerth.zone} / ${currentBerth.maxLengthM} m max length / ${currentBerth.maxDraftM} m max draft` : assignment.current ? "Current physical berth assignment" : "Capacity booking / physical assignment pending"}</p>{hasPlannedMove ? <p>{assignment.plannedMoves.length} planned berth move(s) - see assignment schedule</p> : null}</div></section>
           <section className={styles.stay} aria-label="Stay window">
             <div><span>Stay duration</span><strong>{bookingNights(booking.arrival_date, booking.departure_date)} nights</strong><p>{formatBookingDate(booking.arrival_date)} to {formatBookingDate(booking.departure_date)}</p></div>
-            <div><span>Arrival / ETA</span><strong>{formatBookingDate(booking.arrival_date)}</strong><p>{formatBookingTime(booking.eta)} / {context.timezone}</p></div>
+            <div><span>Arrival / ETA</span><strong>{formatBookingDate(booking.arrival_date)}</strong><p>{booking.eta ? formatBookingTime(booking.eta) : arrivalWindowLabel(booking.eta_window)} / {context.timezone}</p></div>
             <div><span>Departure / ETD</span><strong>{formatBookingDate(booking.departure_date)}</strong><p>{formatBookingTime(booking.etd)} / {context.timezone}</p></div>
           </section>
           <section className={styles.progression}><h2>Arrival & departure progression</h2><div>
             <article><small>01 / Booking</small><strong>{booking.status === "cancelled" ? "Cancelled" : "Confirmed stay"}</strong><p>{booking.source === "online" ? "Online" : "Manual"}</p></article>
-            <article data-complete={Boolean(booking.actual_check_in_at)}><small>02 / Arrival</small><strong>{booking.actual_check_in_at ? "Checked in" : "Not checked in"}</strong><p>{actualTime(booking.actual_check_in_at) ?? `Scheduled ${formatBookingTime(booking.eta)}`}</p></article>
-            <article data-complete={Boolean(booking.actual_check_out_at)}><small>03 / Departure</small><strong>{booking.actual_check_out_at ? "Checked out" : "Not checked out"}</strong><p>{actualTime(booking.actual_check_out_at) ?? `Scheduled ${formatBookingTime(booking.etd)}`}</p></article>
+            <article data-complete={Boolean(booking.actual_check_in_at)}><small>02 / Arrival</small><strong>{booking.actual_check_in_at ? "Checked in" : "Not checked in"}</strong><p>{actualTime(booking.actual_check_in_at) ?? (booking.eta ? `Scheduled ${formatBookingTime(booking.eta)}` : `Arrival preference: ${arrivalWindowLabel(booking.eta_window)}`)}</p></article>
+            <article data-complete={Boolean(booking.actual_check_out_at)}><small>03 / Departure</small><strong>{booking.actual_check_out_at ? "Checked out" : "Not checked out"}</strong><p>{actualTime(booking.actual_check_out_at) ?? (booking.etd ? `Scheduled ${formatBookingTime(booking.etd)}` : "Departure time not specified")}</p></article>
           </div></section>
           <section className={styles.guest}><h2>Guest & vessel specifications</h2><div>
             <div><strong>{booking.customer_name}</strong><p>{booking.customer_email}</p><p>{booking.customer_phone}</p></div>

@@ -15,8 +15,7 @@ test("public booking search, fit errors, one payment CTA and stale-result protec
   await expect(page.locator('[aria-invalid="true"]').first()).toBeVisible();
   await page.getByLabel("Arrival date", { exact: true }).fill("2026-12-14");
   await page.getByLabel("Departure date", { exact: true }).fill("2026-12-17");
-  await page.getByLabel("ETA", { exact: false }).fill("14:30");
-  await page.getByLabel("ETD", { exact: false }).fill("10:00");
+  await page.getByRole("radio", { name: /Afternoon/ }).check();
   await page.getByLabel("Vessel name").fill("Layout Aurora");
   await page.getByLabel("Length").fill("9.5");
   await page.getByLabel("Beam").fill("3.1");

@@ -84,7 +84,7 @@ export async function getCheckoutReturnStatus(marinaSlug: string, sessionId: str
     .eq("marina_id", marina.id).eq("stripe_checkout_session_id", sessionId).maybeSingle();
   if (error || !data) return null;
   const { data: booking, error: bookingError } = await supabase.from("bookings")
-    .select("id, reference, arrival_date, departure_date, eta, etd, vessel_name, vessel_length_m, vessel_beam_m, vessel_draft_m, status")
+    .select("id, reference, arrival_date, departure_date, eta, etd, eta_window, vessel_name, vessel_length_m, vessel_beam_m, vessel_draft_m, status")
     .eq("marina_id", marina.id).eq("booking_payment_id", data.id).maybeSingle();
   if (bookingError) throw new CheckoutServiceError("Unable to load booking confirmation.", { cause: bookingError });
   const status = checkoutPaymentState(data.status, booking?.status);
@@ -98,6 +98,7 @@ export async function getCheckoutReturnStatus(marinaSlug: string, sessionId: str
     departureDate: booking.departure_date,
     eta: booking.eta,
     etd: booking.etd,
+    etaWindow: booking.eta_window,
     vesselName: booking.vessel_name,
     vesselLengthM: booking.vessel_length_m,
     vesselBeamM: booking.vessel_beam_m,

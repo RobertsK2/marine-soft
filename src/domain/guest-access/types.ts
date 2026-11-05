@@ -5,8 +5,8 @@ export type GuestBooking = {
   marinaName: string;
   arrivalDate: string;
   departureDate: string;
-  eta: string;
-  etd: string;
+  eta: string | null;
+  etd: string | null;
   vesselName: string | null;
   vesselLengthM: number;
   vesselBeamM: number;

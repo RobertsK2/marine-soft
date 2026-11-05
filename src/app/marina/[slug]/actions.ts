@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createPublicBookingHold, confirmPublicPayAtMarinaBooking } from "@/domain/booking-holds/service";
-import { validateBookingInput } from "@/domain/bookings/validation";
+import { validateBookingCustomer } from "@/domain/bookings/validation";
 import { issueGuestManagementUrl } from "@/domain/guest-access/service";
 import { getBookingHoldRequester } from "@/domain/booking-holds/requester";
 import { createCheckoutForHold } from "@/domain/checkout/service";
@@ -41,7 +41,7 @@ export async function startBookingCheckoutAction(
     // expiry and capacity under its marina lock before creating or reusing a hold.
     const requester = await getBookingHoldRequester();
     if (method === "marina") {
-      const customer = validateBookingInput(Object.fromEntries(formData));
+      const customer = validateBookingCustomer(Object.fromEntries(formData));
       if (!customer.success) return { status: "error", message: "Enter your contact details to confirm the booking.", fieldErrors: customer.errors };
       const result = await confirmPublicPayAtMarinaBooking(marinaSlug, idempotencyKey, validation.data, requester, {
         customerName: customer.data.customerName,

@@ -416,11 +416,6 @@ export async function updateBookingDetailsAction(
     return { status: "error", message: "The booking version is invalid. Refresh and try again." };
   }
 
-  const validation = validateBookingInput(formValues(formData));
-  if (!validation.success) {
-    return { status: "error", fieldErrors: validation.errors };
-  }
-
   const context = await getAuthorizationContext();
   if (!context) return { status: "error", message: "Marina access is required." };
 
@@ -428,6 +423,8 @@ export async function updateBookingDetailsAction(
     const privileged = createPrivilegedClient();
     const current = await getBooking(privileged, context.marinaId, bookingId);
     if (!current) return { status: "error", message: "Booking not found for this marina." };
+    const validation = validateBookingInput(formValues(formData), { optionalTimes: current.source === "online" });
+    if (!validation.success) return { status: "error", fieldErrors: validation.errors };
     const { count: activeSegmentCount, error: segmentError } = await privileged
       .from("booking_berth_assignments")
       .select("id", { count: "exact", head: true })

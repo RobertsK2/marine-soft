@@ -10,8 +10,7 @@ const now = new Date("2026-08-22T21:30:00Z");
 const validInput = {
   arrivalDate: "2026-08-24",
   departureDate: "2026-08-27",
-  eta: "14:30",
-  etd: "10:00",
+  etaWindow: "unsure",
   vesselLengthM: "12.50",
   vesselBeamM: "3.8",
   vesselDraftM: "2.10",
@@ -25,8 +24,9 @@ describe("Phase 2 public booking search", () => {
       data: {
         arrivalDate: "2026-08-24",
         departureDate: "2026-08-27",
-        eta: "14:30",
-        etd: "10:00",
+        eta: null,
+        etd: null,
+        etaWindow: null,
         marinaTimezone: "Europe/Riga",
         stayNights: 3,
         vesselBeamM: 3.8,
@@ -52,8 +52,7 @@ describe("Phase 2 public booking search", () => {
 
   it.each([
     ["arrivalDate", "2026-02-30"],
-    ["eta", "24:00"],
-    ["etd", "9:30"],
+    ["etaWindow", "after-midnight"],
     ["vesselLengthM", "0"],
     ["vesselBeamM", "-2"],
     ["vesselDraftM", "0.001"],
@@ -105,5 +104,12 @@ describe("Phase 2 public booking search", () => {
       .toBe("bad");
     expect(hasBookingSearchParams({ utm_source: "marina" })).toBe(false);
     expect(hasBookingSearchParams({ arrivalDate: "" })).toBe(true);
+  });
+
+  it("preserves an arrival window without inventing exact ETA or ETD", () => {
+    const result = validatePublicBookingSearch({ ...validInput, etaWindow: "evening", eta: "14:00", etd: "10:00" }, "Europe/Riga", now);
+    expect(result).toMatchObject({ success: true, data: { etaWindow: "evening", eta: null, etd: null } });
+    const withoutPreference = validatePublicBookingSearch({ ...validInput, etaWindow: "" }, "Europe/Riga", now);
+    expect(withoutPreference).toMatchObject({ success: true, data: { etaWindow: null, eta: null, etd: null } });
   });
 });

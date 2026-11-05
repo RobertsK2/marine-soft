@@ -25,8 +25,7 @@ async function fillSearch(page: import("@playwright/test").Page, length = "9.5")
   await page.getByLabel("Length").fill(length);
   await page.getByLabel("Beam").fill("3.1");
   await page.getByLabel("Draft").fill("1.7");
-  await page.getByLabel("ETA", { exact: false }).fill("14:00");
-  await page.getByLabel("ETD", { exact: false }).fill("10:00");
+  await page.getByRole("radio", { name: /Afternoon/ }).check();
 }
 
 test("desktop scrolls to each newly rendered successful result and respects reduced motion", async ({ page }, testInfo) => {

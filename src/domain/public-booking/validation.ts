@@ -1,11 +1,12 @@
 import {
   BOOKING_SEARCH_FIELDS,
+  ETA_WINDOWS,
+  type EtaWindow,
   type BookingSearchFieldErrors,
   type BookingSearchValidation,
 } from "@/domain/public-booking/types";
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
-const LOCAL_TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const MAX_DIMENSION_M = 9999.99;
 const MAX_PUBLIC_STAY_NIGHTS = 365;
 const MAX_ADVANCE_DAYS = 730;
@@ -86,7 +87,7 @@ export function validatePublicBookingSearch(
 ): BookingSearchValidation {
   const errors: BookingSearchFieldErrors = {};
   const formValues = bookingSearchFormValues(values);
-  const { arrivalDate, departureDate, eta, etd, vesselName } = formValues;
+  const { arrivalDate, departureDate, etaWindow, vesselName } = formValues;
   const today = marinaDateKey(now, marinaTimezone);
 
   if (!today) {
@@ -114,8 +115,9 @@ export function validatePublicBookingSearch(
   if (validDate(arrivalDate) && stayNights(today, arrivalDate) > MAX_ADVANCE_DAYS) {
     errors.arrivalDate = "Arrival cannot be more than two years ahead.";
   }
-  if (!LOCAL_TIME.test(eta)) errors.eta = "Enter a valid ETA in marina local time.";
-  if (!LOCAL_TIME.test(etd)) errors.etd = "Enter a valid ETD in marina local time.";
+  if (etaWindow && !(ETA_WINDOWS as readonly string[]).includes(etaWindow)) {
+    errors.etaWindow = "Choose an arrival window or select Not sure yet.";
+  }
   if (vesselName.length > 120) {
     errors.vesselName = "Vessel name must be 120 characters or fewer.";
   }
@@ -146,8 +148,9 @@ export function validatePublicBookingSearch(
     data: {
       arrivalDate,
       departureDate,
-      eta,
-      etd,
+      eta: null,
+      etd: null,
+      etaWindow: etaWindow && etaWindow !== "unsure" ? etaWindow as EtaWindow : null,
       marinaTimezone,
       stayNights: stayNights(arrivalDate, departureDate),
       vesselBeamM,

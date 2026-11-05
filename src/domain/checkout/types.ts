@@ -9,8 +9,9 @@ export type CheckoutReturnStatus = {
     marinaName: string;
     arrivalDate: string;
     departureDate: string;
-    eta: string;
-    etd: string;
+    eta: string | null;
+    etd: string | null;
+    etaWindow: "morning" | "afternoon" | "evening" | null;
     vesselName: string | null;
     vesselLengthM: number;
     vesselBeamM: number;

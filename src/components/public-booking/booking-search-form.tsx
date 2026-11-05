@@ -1,5 +1,4 @@
-import { CheckCircle2, Phone, XCircle } from "lucide-react";
-import { GuestTimeInput } from "./guest-time-input";
+import { CheckCircle2, Info, Phone, XCircle } from "lucide-react";
 import { BookingDateFields } from "./booking-date-fields";
 import { AvailabilitySubmitButton, SearchForm } from "./search-form";
 import styles from "./guest-booking.module.css";
@@ -33,7 +32,6 @@ export function BookingSearchForm({
   marinaName,
   contactPhone,
   marinaSlug,
-  marinaTimezone,
   minArrivalDate,
   priceError,
   priceQuote,
@@ -51,7 +49,6 @@ export function BookingSearchForm({
   marinaName: string;
   contactPhone?: string | null;
   marinaSlug: string;
-  marinaTimezone: string;
   minArrivalDate: string;
   priceError?: string;
   priceQuote: PublicPriceQuote | null;
@@ -61,12 +58,7 @@ export function BookingSearchForm({
   values: FormValues;
 }) {
   // Presentation only: server validation continues to reject every invalid value.
-  // Empty times use the inline hint rather than a duplicate error paragraph.
   const errors = { ...serverErrors };
-  for (const name of ["eta", "etd"] as const) {
-    if (!values[name]) delete errors[name];
-    else if (errors[name]) errors[name] = "Enter a valid time (HH:MM).";
-  }
   for (const name of ["vesselLengthM", "vesselBeamM", "vesselDraftM"] as const) {
     if (errors[name]) errors[name] = values[name] ? "Use 0.01–9999.99 m." : "Enter a measurement.";
   }
@@ -85,19 +77,26 @@ export function BookingSearchForm({
         <div className={styles.dimensionGrid}>
           {([ ["vesselLengthM", "Length"], ["vesselBeamM", "Beam"], ["vesselDraftM", "Draft"] ] as const).map(([name, label]) => (
             <div className="form-field" key={name}>
-              <label htmlFor={`public-${name}`}>{label}</label>
+              <label htmlFor={`public-${name}`}>{label} <span className={styles.required} aria-hidden="true">*</span></label>
               <div className={styles.dimensionInput}><input aria-describedby={describedBy(errors, name)} aria-invalid={Boolean(errors[name])} defaultValue={values[name]} id={`public-${name}`} aria-label={label} inputMode="decimal" max="9999.99" min="0.01" name={name} required step="0.01" type="number" /><span aria-hidden="true">m</span></div>
               <FieldError id={`public-${name}-error`} message={errors[name]} />
             </div>
           ))}
           <AvailabilitySubmitButton className={`button ${availability?.available && priceQuote ? "button-secondary" : "button-primary"} ${styles.checkButton}`} />
         </div>
-        <div className={styles.timeGrid}>
-          {([ ["eta", "ETA"], ["etd", "ETD"] ] as const).map(([name, label]) => (
-            <div className="form-field" key={name}><label htmlFor={`public-${name}`}>{label} <small>{name === "eta" ? "Arrival time" : "Departure time"}</small></label><GuestTimeInput aria-describedby={describedBy(errors, name)} aria-invalid={Boolean(errors[name])} defaultValue={values[name]} id={`public-${name}`} name={name} required /><FieldError id={`public-${name}-error`} message={errors[name]} /></div>
-          ))}
-          <p>Times are local to the marina.<br />{marinaTimezone}</p>
-        </div>
+        <fieldset className={styles.etaSelection} aria-describedby="public-eta-help">
+          <legend>Estimated arrival time (ETA) <span>Optional</span></legend>
+          <div className={styles.etaChoices}>
+            {([ ["unsure", "Not sure yet", ""], ["morning", "Morning", "06:00–12:00"], ["afternoon", "Afternoon", "12:00–18:00"], ["evening", "Evening", "18:00–24:00"] ] as const).map(([value, label, interval]) => (
+              <label className={styles.etaChoice} key={value}>
+                <input type="radio" name="etaWindow" value={value} defaultChecked={(values.etaWindow || "unsure") === value} />
+                <span><strong>{label}</strong>{interval ? <small>{interval}</small> : null}</span>
+              </label>
+            ))}
+          </div>
+          <p id="public-eta-help"><Info size={15} aria-hidden="true" /> You can update your estimated arrival time later.</p>
+          <FieldError id="public-etaWindow-error" message={errors.etaWindow} />
+        </fieldset>
         {formError ? <p className="form-message form-error" role="alert">{formError}</p> : null}
       </section>
       {availabilityError ? <div className={styles.result} role="alert"><h2>Availability could not be checked</h2><p>{availabilityError}</p></div> : null}
@@ -112,7 +111,7 @@ export function BookingSearchForm({
             <small>No booking has been created. The marina assigns your berth.</small>
           </div>
           {availability.available ? <PriceQuote error={priceError} quote={priceQuote} paymentRequired={!acceptsPayAtMarina} /> : null}
-          {availability.available ? <p className={styles.mobileOnly}>Estimated arrival {request.eta}, departure {request.etd}. Times are local to {marinaTimezone}.</p> : null}
+          {availability.available && request.etaWindow ? <p className={styles.mobileOnly}>Arrival preference: {request.etaWindow}. Exact arrival time can be updated later.</p> : null}
           {contactPhone ? <p className={styles.contact}><Phone size={15} aria-hidden="true" /> Marina assistance: <a href={`tel:${contactPhone}`}>{contactPhone}</a></p> : null}
           {availability.available && priceQuote ? <HoldControl idempotencyKey={holdIdempotencyKey} marinaSlug={marinaSlug} online={acceptsOnlinePayment} atMarina={acceptsPayAtMarina} /> : null}
         </section>

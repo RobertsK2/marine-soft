@@ -1,37 +1,49 @@
 .page { min-height: 100vh; background: #f7f9fb; color: #101828; font-family: Arial, Helvetica, sans-serif; }
 .page.page h1, .page.page h2, .page.page h3 { font-family: inherit; font-weight: 600; text-transform: none; letter-spacing: -.35px; }
-.header { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 72px; padding: 14px max(24px, calc((100% - 880px) / 2)); background: white; border-bottom: 1px solid #e6ebf1; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 80px; padding: 14px max(32px, calc((100% - 1280px) / 2)); background: white; border-bottom: 1px solid #e6ebf1; }
 .identity { display: flex; align-items: center; gap: 12px; font-size: 16px; }
 .identity img, .identity > span { width: 36px; height: 36px; border-radius: 7px; object-fit: contain; }
 .identity > span { display: grid; place-items: center; background: var(--berthio-blue); color: white; font-size: 12px; }
 .powered { color: #6e7d91; font-size: 11px; white-space: nowrap; }
 .powered strong { margin-left: 5px; color: #234b8e; font-weight: 500; }
-.content { width: min(880px, calc(100% - 48px)); margin: 48px auto 56px; }
-.hero { position: relative; overflow: hidden; min-height: 150px; display: flex; align-items: center; padding: 28px; margin-bottom: 28px; border-radius: 15px; background: #eaf0f7; }
+.content { width: min(1280px, calc(100% - 64px)); margin: 42px auto 56px; }
+.hero { position: relative; overflow: hidden; min-height: 180px; display: flex; align-items: center; padding: 38px; margin-bottom: 24px; border-radius: 18px; background: #eaf0f7; }
 .hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .hero > div { position: relative; }
 .hero.hasCover > div { padding: 16px 20px; border-radius: 8px; color: white; background: #101828cc; }
-.hero.hero h1 { font-size: 26px; line-height: 1.2; margin: 0; }
-.hero p { font-size: 14px; margin: 9px 0 0; }
+.hero.hero h1 { font-size: 34px; line-height: 1.2; margin: 0; }
+.hero p { font-size: 17px; margin: 10px 0 0; }
 .searchForm { display: grid; gap: 24px; }
 .mobileStep, .mobileOnly { display: none; }
-.searchSurface, .result { padding: 30px; border: 1px solid #dfe6ed; border-radius: 16px; background: white; box-shadow: 0 2px 4px #10182804; min-width: 0; }
-.dateGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.dimensionGrid { display: grid; grid-template-columns: 1.1fr 1fr .8fr 1.5fr; gap: 16px; align-items: start; margin-top: 24px; }
-.timeGrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 22px; padding-top: 18px; border-top: 1px solid #edf0f4; }
-.timeGrid p { margin: 22px 0 0; color: #708095; font-size: 12px; }
+.searchSurface, .result { padding: 36px 40px; border: 1px solid #dfe6ed; border-radius: 20px; background: white; box-shadow: 0 2px 8px #10182808; min-width: 0; }
+.dateGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.dimensionGrid { display: grid; grid-template-columns: 1fr 1fr 1fr 1.45fr; gap: 26px; align-items: start; margin-top: 32px; }
+.etaSelection { min-width: 0; margin: 32px 0 0; padding: 24px 0 0; border: 0; border-top: 1px solid #e6ebf1; }
+.etaSelection legend { float: left; width: 100%; margin-bottom: 16px; color: #101828; font-size: 16px; font-weight: 600; }
+.etaSelection legend span { display: inline-block; margin-left: 8px; padding: 3px 9px; border-radius: 999px; background: #f1f4f8; color: #718096; font-size: 11px; font-weight: 500; }
+.etaChoices { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; clear: both; }
+.etaChoice { display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 70px; padding: 12px 16px; border: 1px solid #d8dfe7; border-radius: 12px; background: #fff; cursor: pointer; }
+.etaChoice:has(input:checked) { border-color: var(--berthio-blue); background: #f2f6ff; }
+.etaChoice:focus-within { outline: 2px solid var(--berthio-blue); outline-offset: 2px; }
+.etaChoice input { flex: none; width: 17px; height: 17px; margin: 0; accent-color: var(--berthio-blue); }
+.etaChoice strong, .etaChoice small { display: block; }
+.etaChoice strong { color: #101828; font-size: 14px; font-weight: 600; }
+.etaChoice:has(input:checked) strong { color: var(--berthio-blue); }
+.etaChoice small { margin-top: 3px; color: #718096; font-size: 12px; white-space: nowrap; }
+.etaSelection > p { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; color: #718096; font-size: 13px; }
 .page :global(.form-field) { min-width: 0; display: grid; gap: 7px; align-content: start; }
-.page :global(.form-field label) { display: flex; justify-content: space-between; gap: 6px; font-family: inherit; font-size: 12px; font-weight: 400; letter-spacing: 0; text-transform: none; color: #101828; }
-.page :global(.form-field label small) { font-size: 10px; color: #7b8798; }
-.page :global(.form-field input) { width: 100%; min-width: 0; height: 44px; border: 1px solid #d8dfe7; border-radius: 10px; padding: 10px 12px; background: #fafbfd; color: #101828; font-family: inherit; font-size: 14px; }
+.page :global(.form-field label) { display: flex; justify-content: flex-start; align-items: center; gap: 6px; font-family: inherit; font-size: 15px; font-weight: 500; letter-spacing: 0; text-transform: none; color: #101828; }
+.page :global(.form-field label small) { margin-left: auto; font-size: 11px; color: #7b8798; }
+.page .required { margin-left: -3px; color: #d63239; }
+.page :global(.form-field input) { width: 100%; min-width: 0; height: 56px; border: 1px solid #d8dfe7; border-radius: 12px; padding: 12px 14px; background: #fafbfd; color: #101828; font-family: inherit; font-size: 16px; }
 .page :global(.form-field input:focus-visible) { outline: 2px solid #b9ceff; outline-offset: 2px; border-color: var(--berthio-blue); }
 .dimensionInput { position: relative; }
 .page .dimensionInput input { padding-right: 30px; }
-.dimensionInput > span { position: absolute; top: 12px; right: 12px; font-size: 13px; color: #7b8798; pointer-events: none; }
+.dimensionInput > span { position: absolute; top: 19px; right: 14px; font-size: 14px; color: #7b8798; pointer-events: none; }
 .page :global(.button) { min-height: 46px; border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; }
 .page :global(.button-primary) { background: var(--berthio-blue); border: 1px solid #0046d7; color: white; }
 .page :global(.button-primary:hover) { background: var(--berthio-blue-hover); }
-.page .checkButton { background: var(--berthio-blue); border-color: var(--berthio-blue); color: white; width: 100%; margin-top: 24px; padding: 10px 12px; }
+.page .checkButton { background: var(--berthio-blue); border-color: var(--berthio-blue); color: white; width: 100%; min-height: 56px; margin-top: 27px; padding: 10px 12px; font-size: 16px; }
 .result.result h2 { font-size: 21px; margin: 15px 0 7px; line-height: 1.3; }
 .result p { margin: 7px 0; font-size: 14px; color: #53647a; }
 .result small { font-size: 11px; color: #718096; }
@@ -69,7 +81,7 @@
 .trust svg { flex-shrink: 0; }
 .marinaInfo { margin-top: 24px; font-size: 12px; color: #63758c; }
 .marinaInfo summary { cursor: pointer; }
-.footer { display: flex; align-items: center; flex-wrap: wrap; gap: 20px; padding: 25px max(24px, calc((100% - 880px) / 2)); border-top: 1px solid #e6ebf1; background: #fcfdfe; color: #718096; font-size: 11px; }
+.footer { display: flex; align-items: center; flex-wrap: wrap; gap: 20px; padding: 25px max(32px, calc((100% - 1280px) / 2)); border-top: 1px solid #e6ebf1; background: #fcfdfe; color: #718096; font-size: 11px; }
 .footer a { display: inline-flex; align-items: center; gap: 6px; }
 .footer .powered { margin-left: auto; }
 .skeleton { display: grid; gap: 18px; padding: 30px; border: 1px solid #dfe6ed; border-radius: 16px; background: white; color: #53647a; font-size: 14px; }
@@ -96,16 +108,24 @@
   .identity { font-size: 14px; }
   .header .powered { font-size: 10px; white-space: normal; }
   .content { width: calc(100% - 32px); margin-top: 24px; }
-  .hero { padding: 20px; }
+  .hero { min-height: 150px; padding: 20px; }
   .hero.hero h1 { font-size: 23px; }
-  .searchSurface, .result { padding: 16px; border-radius: 4px; }
-  .dateGrid, .dimensionGrid, .timeGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
-  .dateGrid > :last-child, .timeGrid > :last-child { grid-column: 1 / -1; }
-  .timeGrid p { margin: 0; }
+  .searchSurface, .result { padding: 16px; border-radius: 14px; }
+  .dateGrid, .dimensionGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+  .dateGrid > :last-child { grid-column: 1 / -1; }
   .dimensionGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 16px; }
-  .page .checkButton { grid-column: 1 / -1; margin-top: 4px; min-height: 46px; font-size: 14px; background: var(--berthio-blue); border: 1px solid var(--berthio-blue); border-radius: 2px; color: white; font-weight: 700; }
+  .etaSelection { margin-top: 22px; padding-top: 18px; }
+  .etaSelection legend { font-size: 13px; }
+  .etaSelection legend span { margin-left: 4px; font-size: 10px; }
+  .etaChoices { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .etaChoice { min-height: 62px; gap: 8px; padding: 9px; }
+  .etaChoice strong { font-size: 12px; }
+  .etaChoice small { font-size: 11px; }
+  .page .checkButton { grid-column: 1 / -1; margin-top: 4px; min-height: 50px; font-size: 14px; background: var(--berthio-blue); border: 1px solid var(--berthio-blue); border-radius: 10px; color: white; font-weight: 700; }
   .page .checkButton:disabled { background: var(--berthio-blue-disabled); border-color: var(--berthio-blue-disabled); color: white; opacity: 1; }
-  .page :global(.form-field input) { font-size: 16px; border-radius: 2px; }
+  .page :global(.form-field input) { height: 48px; font-size: 16px; border-radius: 10px; }
+  .dimensionInput > span { top: 15px; }
+  .page :global(.form-field label) { font-size: 13px; }
   .page :global(.public-price-quote) { margin-top: 12px; padding-top: 12px; }
   .page :global(.public-price-lines > div) { padding: 5px 0; }
   .page :global(.public-hold-control) { margin-top: 12px; padding-top: 12px; }
@@ -125,4 +145,6 @@
 
 @media (max-width: 360px) {
   .dateGrid { grid-template-columns: minmax(0, 1fr); }
+  .etaChoice { gap: 7px; }
+  .etaChoice small { font-size: 10px; }
 }

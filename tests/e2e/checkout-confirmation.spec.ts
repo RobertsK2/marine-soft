@@ -52,6 +52,24 @@ test("paid booking: responsive layout, copy, real PDF, and refresh", async ({ pa
   await expect(page.locator("aside a").last()).toHaveAttribute("href", "tel:+37120000000");
 });
 
+test("a selected arrival window survives checkout without invented exact times", async ({ page, request }) => {
+  await page.goto(`${path}?session_id=cs_test_paid_morning`);
+  await expect(page.getByRole("heading", { name: "Your berth is booked!" })).toBeVisible();
+  await expect(page.getByText("Morning (06:00–12:00)")).toBeVisible();
+  await expect(page.getByText("Not specified", { exact: true })).toBeVisible();
+  const response = await request.get(`${path}/confirmation?session_id=cs_test_paid_morning`);
+  expect(response.status()).toBe(200);
+  const pdf = await PDFDocument.load(await response.body());
+  expect(pdf.getPageCount()).toBe(1);
+});
+
+test("unknown exact times and no arrival preference remain explicitly unspecified", async ({ page, request }) => {
+  await page.goto(`${path}?session_id=cs_test_paid_unspecified`);
+  await expect(page.getByRole("heading", { name: "Your berth is booked!" })).toBeVisible();
+  await expect(page.getByText("Not specified", { exact: true })).toHaveCount(2);
+  expect((await request.get(`${path}/confirmation?session_id=cs_test_paid_unspecified`)).status()).toBe(200);
+});
+
 test("pending, failed, cancelled and inaccessible bookings never show paid confirmation", async ({ page, request }) => {
   for (const [session, heading] of [["pending", "Confirming your booking..."], ["failed", "Payment was not completed"], ["cancelled", "This booking is cancelled"]]) {
     await page.goto(`${path}?session_id=cs_test_${session}`);

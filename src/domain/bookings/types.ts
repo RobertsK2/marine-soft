@@ -14,8 +14,8 @@ export type BookingPriceAdjustment = Database["public"]["Tables"]["booking_price
 export type BookingInput = {
   arrivalDate: string;
   departureDate: string;
-  eta: string;
-  etd: string;
+  eta: string | null;
+  etd: string | null;
   customerName: string;
   customerEmail: string;
   customerPhone: string;

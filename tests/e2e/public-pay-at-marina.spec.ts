@@ -34,7 +34,7 @@ test("pay-at-marina-only confirms once with the full balance outstanding", async
   let holdId: string | undefined;
   await setMethods(db, false, true);
   try {
-    const query = new URLSearchParams({ arrivalDate: "2026-12-08", departureDate: "2026-12-10", eta: "14:30", etd: "10:00", vesselLengthM: "9.5", vesselBeamM: "3.1", vesselDraftM: "1.7", vesselName });
+    const query = new URLSearchParams({ arrivalDate: "2026-12-08", departureDate: "2026-12-10", etaWindow: "unsure", vesselLengthM: "9.5", vesselBeamM: "3.1", vesselDraftM: "1.7", vesselName });
     await page.goto(`/marina/marina-a?${query}#booking-entry`);
     await expect(page.getByRole("heading", { name: "Review Booking" })).toBeVisible();
     await expect(page.getByLabel("Booking information")).toContainText("Pay at the marina after booking");
@@ -66,19 +66,25 @@ test("pay-at-marina-only confirms once with the full balance outstanding", async
     await expect(page.getByRole("heading", { name: "Booking confirmed" })).toBeVisible();
     await expect(page.getByText(`Due at marina · €${(quotedTotal / 100).toFixed(2)}`)).toBeVisible();
 
-    const bookings = await db.from("bookings").select("id, booking_hold_id, booking_payment_id, status, price_total_minor, customer_snapshot").eq("vessel_name", vesselName);
+    const bookings = await db.from("bookings").select("id, booking_hold_id, booking_payment_id, status, price_total_minor, eta, etd, eta_window, customer_snapshot").eq("vessel_name", vesselName);
     expect(bookings.error).toBeNull();
     expect(bookings.data).toHaveLength(1);
     bookingId = bookings.data![0].id;
     holdId = bookings.data![0].booking_hold_id;
-    expect(bookings.data![0]).toMatchObject({ status: "confirmed", booking_payment_id: null, price_total_minor: quotedTotal });
+    expect(bookings.data![0]).toMatchObject({ status: "confirmed", booking_payment_id: null, price_total_minor: quotedTotal, eta: null, etd: null, eta_window: null });
     expect((bookings.data![0].customer_snapshot as { source?: string }).source).toBe("public_pay_at_marina");
     const holds = await db.from("booking_holds").select("id, status").eq("idempotency_key", attempt);
     expect(holds.error).toBeNull();
     expect(holds.data).toEqual([{ id: holdId, status: "consumed" }]);
-    const balances = await db.from("booking_payment_balances").select("state, collection_method, total_due_minor, paid_minor, balance_due_minor").eq("booking_id", bookingId);
+    const balances = await db.from("booking_payment_balances").select("state, collection_method, total_due_minor, paid_minor, balance_due_minor, due_at").eq("booking_id", bookingId);
     expect(balances.error).toBeNull();
-    expect(balances.data).toEqual([{ state: "balance_due", collection_method: "on_site", total_due_minor: quotedTotal, paid_minor: 0, balance_due_minor: quotedTotal }]);
+    expect(balances.data).toEqual([{ state: "balance_due", collection_method: "on_site", total_due_minor: quotedTotal, paid_minor: 0, balance_due_minor: quotedTotal, due_at: null }]);
+    const etaUpdate = await db.from("bookings").update({ eta: "14:30" }).eq("id", bookingId).select("eta, etd").single();
+    expect(etaUpdate.error).toBeNull();
+    expect(etaUpdate.data).toMatchObject({ eta: "14:30:00", etd: null });
+    const datedBalance = await db.from("booking_payment_balances").select("due_at").eq("booking_id", bookingId).single();
+    expect(datedBalance.error).toBeNull();
+    expect(datedBalance.data?.due_at).not.toBeNull();
     const stripeRows = await db.from("booking_payments").select("id").eq("hold_id", holdId);
     expect(stripeRows.error).toBeNull();
     expect(stripeRows.data).toEqual([]);
@@ -93,7 +99,7 @@ test("both methods show a two-option choice that defaults to Pay now", async ({ 
   const db = localDatabase();
   await setMethods(db, true, true);
   try {
-    const query = new URLSearchParams({ arrivalDate: "2026-12-11", departureDate: "2026-12-13", eta: "14:30", etd: "10:00", vesselLengthM: "9.5", vesselBeamM: "3.1", vesselDraftM: "1.7", vesselName: "Payment choice E2E" });
+    const query = new URLSearchParams({ arrivalDate: "2026-12-11", departureDate: "2026-12-13", etaWindow: "unsure", vesselLengthM: "9.5", vesselBeamM: "3.1", vesselDraftM: "1.7", vesselName: "Payment choice E2E" });
     await page.goto(`/marina/marina-a?${query}#booking-entry`);
     const methods = page.getByRole("group", { name: "Payment method" });
     await expect(methods).toBeVisible();

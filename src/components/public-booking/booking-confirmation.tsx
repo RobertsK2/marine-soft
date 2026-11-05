@@ -4,6 +4,7 @@ import type { getCheckoutReturnStatus } from "@/domain/checkout/service";
 import type { PublicMarina } from "@/domain/public-marinas/types";
 import { berthAssignmentLabel, confirmationDateRange, confirmationMoney, confirmationPriceLines } from "@/domain/checkout/confirmation";
 import { bookingNights, formatBookingTime, formatVesselName } from "@/domain/bookings/formatting";
+import { arrivalWindowLabel } from "@/domain/public-booking/types";
 import { GuestFooter, GuestHeader } from "./guest-chrome";
 import { CopyReference } from "./copy-reference";
 import styles from "./booking-confirmation.module.css";
@@ -43,7 +44,7 @@ export function BookingConfirmation({ payment, marina, sessionId }: { payment: C
           <header className={styles.dossierHeading}><Ship size={24} aria-hidden="true" /><div><h2>Vessel &amp; Stay Dossier</h2><p>{marina.name}</p></div><span>{nights} {nights === 1 ? "Night" : "Nights"}</span></header>
           <div className={styles.stay}>
             <div className={styles.dates}><span className={styles.label}>Stay dates</span><strong>{confirmationDateRange(booking.arrivalDate, booking.departureDate)}</strong><small className={styles.mobileNights}>{nights} {nights === 1 ? "night" : "nights"} total</small></div>
-            <div className={styles.times}><div><span className={styles.label}>Check-in</span><strong>From {formatBookingTime(booking.eta)}</strong></div><div><span className={styles.label}>Check-out</span><strong>Until {formatBookingTime(booking.etd)}</strong></div></div>
+            <div className={styles.times}><div><span className={styles.label}>Estimated arrival</span><strong>{booking.eta ? formatBookingTime(booking.eta) : arrivalWindowLabel(booking.etaWindow)}</strong></div><div><span className={styles.label}>Departure time</span><strong>{booking.etd ? formatBookingTime(booking.etd) : "Not specified"}</strong></div></div>
             <div className={styles.vessel}><span className={styles.label}>Registered vessel</span><div><Ship size={21} aria-hidden="true" /><strong>{formatVesselName(booking.vesselName)}</strong><small>{booking.vesselLengthM}m × {booking.vesselBeamM}m × {booking.vesselDraftM}m</small></div></div>
             <div className={styles.assignment}><span className={styles.label}>Berth assignment</span><div><Info size={17} aria-hidden="true" /><span>{berthAssignmentLabel(payment.berthAssignment)}</span></div></div>
           </div>

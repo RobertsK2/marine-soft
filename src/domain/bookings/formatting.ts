@@ -8,8 +8,8 @@ export function formatBookingDate(value: string) {
   );
 }
 
-export function formatBookingTime(value: string) {
-  return value.slice(0, 5);
+export function formatBookingTime(value: string | null) {
+  return value ? value.slice(0, 5) : "Not specified";
 }
 
 export function bookingNights(arrivalDate: string, departureDate: string) {
