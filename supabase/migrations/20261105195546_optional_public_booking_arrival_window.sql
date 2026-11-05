@@ -273,6 +273,45 @@ create trigger bookings_set_on_site_due_at_when_eta_provided
 after update of eta on public.bookings for each row
 execute function private.set_on_site_due_at_when_eta_provided();
 
+-- A balance can be inserted and updated in the same transaction. Its generic
+-- updated_at trigger uses the transaction timestamp, so a timestamp-only
+-- notification key can discard the updated due date. Key the balance notice
+-- to its actual contents as well.
+create function private.queue_balance_notification()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare
+  booking_reference text;
+  marina_name text;
+begin
+  if new.balance_due_minor <= 0 then return new; end if;
+  if tg_op = 'UPDATE' and old.state = new.state and old.balance_due_minor = new.balance_due_minor
+    and old.due_at is not distinct from new.due_at
+    and old.payment_link_url is not distinct from new.payment_link_url then
+    return new;
+  end if;
+  select bookings.reference, marinas.name into booking_reference, marina_name
+  from public.bookings bookings join public.marinas marinas on marinas.id = bookings.marina_id
+  where bookings.id = new.booking_id;
+  perform private.enqueue_booking_notification(
+    new.booking_id, 'payment_balance_reminder',
+    'payment-balance:' || new.id || ':' || md5(concat_ws('|',
+      new.state, new.balance_due_minor, new.due_at, new.payment_link_url, new.updated_at)),
+    'Payment balance for booking ' || booking_reference,
+    'A balance of ' || new.balance_due_minor || ' ' || coalesce(new.currency, 'currency')
+      || ' minor units is due for booking ' || booking_reference || ' at ' || marina_name || '.'
+      || case when new.due_at is null then '' else E'\nDue: ' || new.due_at end
+      || case when new.payment_link_url is null then '' else E'\nPayment link: ' || new.payment_link_url end
+      || case when new.collection_method = 'on_site' then E'\nPayment will be collected on site.' else '' end
+  );
+  return new;
+end;
+$$;
+revoke all on function private.queue_balance_notification() from public, anon, authenticated, service_role;
+drop trigger payment_balances_queue_reminder on public.booking_payment_balances;
+create trigger payment_balances_queue_reminder
+after insert or update on public.booking_payment_balances for each row
+execute function private.queue_balance_notification();
+
 -- An unknown exact ETA must not suppress the reminder or state an invented time.
 create or replace function public.queue_upcoming_arrival_reminders()
 returns integer
