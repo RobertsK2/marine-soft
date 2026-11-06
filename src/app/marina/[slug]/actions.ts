@@ -8,7 +8,7 @@ import { getBookingHoldRequester } from "@/domain/booking-holds/requester";
 import { createCheckoutForHold } from "@/domain/checkout/service";
 import type { CheckoutActionState } from "@/domain/checkout/types";
 import { validatePublicBookingSearch } from "@/domain/public-booking/validation";
-import { captureServerError } from "@/lib/monitoring/server";
+import { captureCheckoutFailure, captureServerError } from "@/lib/monitoring/server";
 import { createPrivilegedClient } from "@/lib/supabase/privileged";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -91,7 +91,7 @@ export async function startBookingCheckoutAction(
   } catch (checkoutError) {
     // Checkout handles definite rejection with the existing release RPC. An
     // uncertain result retains the original expiry so a safe retry can reuse it.
-    captureServerError(checkoutError, { operation: "stripe_checkout_create", marinaSlug });
+    captureCheckoutFailure(checkoutError);
     return { status: "error", message: "Secure payment could not be opened. Please try again, or check availability again." };
   }
   redirect(checkoutUrl);

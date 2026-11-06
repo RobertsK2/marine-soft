@@ -7,33 +7,51 @@ import { getStripe } from "@/lib/stripe/server";
 import { buildCheckoutSessionParams, LOCAL_PLATFORM_ACCOUNT_MARKER } from "@/domain/checkout/model";
 import { issueGuestManagementUrl } from "@/domain/guest-access/service";
 import { checkoutPaymentState } from "@/domain/checkout/confirmation";
+import type { CheckoutFailureStage } from "@/domain/checkout/diagnostics";
 
 export class CheckoutServiceError extends Error {
-  constructor(message: string, options?: ErrorOptions) { super(message, options); this.name = "CheckoutServiceError"; }
+  constructor(message: string, options?: ErrorOptions, readonly diagnosticStage?: CheckoutFailureStage) {
+    super(message, options); this.name = "CheckoutServiceError";
+  }
 }
 
-export async function createCheckoutForHold(holdToken: string, stripe: Stripe = getStripe()) {
-  const supabase = createPrivilegedClient();
-  const { data, error } = await supabase.rpc("prepare_booking_checkout", { target_hold_token: holdToken });
-  if (error) throw new CheckoutServiceError("Unable to prepare checkout.", { cause: error });
-  const prepared = data?.[0];
+export async function createCheckoutForHold(holdToken: string, injectedStripe?: Stripe) {
+  let stripe: Stripe;
+  try { stripe = injectedStripe ?? getStripe(); }
+  catch (error) { throw new CheckoutServiceError("Unable to initialize Stripe.", { cause: error }, "stripe_initialization"); }
+  const preparation = await (async () => {
+    try {
+      const supabase = createPrivilegedClient();
+      const { data, error } = await supabase.rpc("prepare_booking_checkout", { target_hold_token: holdToken });
+      if (error) throw error;
+      return { supabase, prepared: data?.[0] };
+    } catch (error) {
+      throw new CheckoutServiceError("Unable to prepare checkout.", { cause: error }, "payment_preparation");
+    }
+  })();
+  const { supabase, prepared } = preparation;
   if (!prepared || prepared.outcome !== "ready" || !prepared.payment_id || !prepared.stripe_account_id ||
       !prepared.amount_total_minor || !prepared.currency || !prepared.marina_slug || !prepared.marina_name) {
     return { outcome: prepared?.outcome ?? "not_found", url: null };
   }
-  const useLocalPlatform = isStripeLocalPlatformFallbackEnabled()
-    && prepared.stripe_account_id === LOCAL_PLATFORM_ACCOUNT_MARKER;
+  let useLocalPlatform: boolean;
+  try { useLocalPlatform = isStripeLocalPlatformFallbackEnabled()
+    && prepared.stripe_account_id === LOCAL_PLATFORM_ACCOUNT_MARKER; }
+  catch (error) { throw new CheckoutServiceError("Unable to configure connected Checkout.", { cause: error }, "connected_account_configuration"); }
   const requestOptions: Stripe.RequestOptions = {
     idempotencyKey: `berthio-checkout-${prepared.payment_id}`,
     ...(!useLocalPlatform ? { stripeAccount: prepared.stripe_account_id } : {}),
   };
   let creatingSession = false;
+  let diagnosticStage: CheckoutFailureStage = "site_url";
   try {
     if (prepared.existing_checkout_session_id) {
+      diagnosticStage = "stripe_api";
       const existing = await stripe.checkout.sessions.retrieve(prepared.existing_checkout_session_id, {}, requestOptions);
       return { outcome: "ready", url: existing.url };
     }
     const siteUrl = getSiteUrl();
+    diagnosticStage = "stripe_api";
     creatingSession = true;
     const session = await stripe.checkout.sessions.create(buildCheckoutSessionParams({
       holdToken, paymentId: prepared.payment_id, marinaName: prepared.marina_name,
@@ -44,6 +62,7 @@ export async function createCheckoutForHold(holdToken: string, stripe: Stripe = 
     }), requestOptions);
     creatingSession = false;
     if (!session.url) throw new Error("Stripe did not return a hosted Checkout URL.");
+    diagnosticStage = "payment_attachment";
     const { data: attached, error: attachError } = await supabase.rpc("attach_booking_checkout_session", {
       target_payment_id: prepared.payment_id,
       target_session_id: session.id,
@@ -64,9 +83,9 @@ export async function createCheckoutForHold(holdToken: string, stripe: Stripe = 
         rejection.statusCode !== undefined && rejection.statusCode >= 400 && rejection.statusCode < 500 &&
         rejection.statusCode !== 409 && rejection.statusCode !== 429) {
       const { error: failureError } = await supabase.rpc("fail_booking_checkout_creation", { target_payment_id: prepared.payment_id });
-      if (failureError) throw new CheckoutServiceError("Unable to record rejected Checkout; hold will expire.", { cause: failureError });
+      if (failureError) throw new CheckoutServiceError("Unable to record rejected Checkout; hold will expire.", { cause: failureError }, "payment_attachment");
     }
-    throw new CheckoutServiceError("Unable to create Stripe Checkout.", { cause: checkoutError });
+    throw new CheckoutServiceError("Unable to create Stripe Checkout.", { cause: checkoutError }, diagnosticStage);
   }
 }
 

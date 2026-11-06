@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ hold: vi.fn(), payAtMarina: vi.fn(), requester: vi.fn(), checkout: vi.fn(), marina: vi.fn(), redirect: vi.fn(), capture: vi.fn(), guestUrl: vi.fn() }));
+const mocks = vi.hoisted(() => ({ hold: vi.fn(), payAtMarina: vi.fn(), requester: vi.fn(), checkout: vi.fn(), marina: vi.fn(), redirect: vi.fn(), capture: vi.fn(), captureCheckout: vi.fn(), guestUrl: vi.fn() }));
 vi.mock("@/domain/booking-holds/service", () => ({ createPublicBookingHold: mocks.hold, confirmPublicPayAtMarinaBooking: mocks.payAtMarina }));
 vi.mock("@/domain/guest-access/service", () => ({ issueGuestManagementUrl: mocks.guestUrl }));
 vi.mock("@/domain/booking-holds/requester", () => ({ getBookingHoldRequester: mocks.requester }));
 vi.mock("@/domain/checkout/service", () => ({ createCheckoutForHold: mocks.checkout }));
-vi.mock("@/lib/monitoring/server", () => ({ captureServerError: mocks.capture }));
+vi.mock("@/lib/monitoring/server", () => ({ captureServerError: mocks.capture, captureCheckoutFailure: mocks.captureCheckout }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("@/lib/supabase/privileged", () => ({ createPrivilegedClient: () => {
   const query = { select: () => query, eq: () => query, maybeSingle: mocks.marina };

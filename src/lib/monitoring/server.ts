@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { classifyCheckoutFailure } from "@/domain/checkout/diagnostics";
 
 function safeOperation(context: Record<string, string | number | boolean | null>) {
   const operation = context.operation;
@@ -21,5 +22,15 @@ export function captureServerError(
 
   if (process.env.NODE_ENV !== "test") {
     console.error("Berthio server error", safeContext);
+  }
+}
+
+export function captureCheckoutFailure(error: unknown) {
+  const diagnostic = classifyCheckoutFailure(error);
+  if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+    Sentry.captureException(new Error("Server operation failed"), { extra: diagnostic });
+  }
+  if (process.env.NODE_ENV !== "test") {
+    console.error("Berthio server error", diagnostic);
   }
 }
