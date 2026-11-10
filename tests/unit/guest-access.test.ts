@@ -69,4 +69,9 @@ describe("guest booking access", () => {
       target_grant_id: grantId, requested_eta: "16:15", requested_etd: "08:45",
     });
   });
+
+  it("preserves an unpaid on-site balance and arrival preference without inventing times", async () => {
+    mocks.rpc.mockResolvedValue({ data: [{ booking_reference: "BK-ABCDEFGHIJ", marina_name: "Marina A", eta: null, etd: null, eta_window: "morning", balance_due_minor: 12000, collection_method: "on_site", booking_status: "confirmed" }], error: null });
+    expect(await loadGuestBooking(createGuestAccessToken(grantId, expiresAt))).toMatchObject({ eta: null, etd: null, etaWindow: "morning", balanceDueMinor: 12000, collectionMethod: "on_site", status: "confirmed" });
+  });
 });

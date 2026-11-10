@@ -34,12 +34,12 @@ test("pay-at-marina-only confirms once with the full balance outstanding", async
   let holdId: string | undefined;
   await setMethods(db, false, true);
   try {
-    const query = new URLSearchParams({ arrivalDate: "2026-12-08", departureDate: "2026-12-10", etaWindow: "unsure", vesselLengthM: "9.5", vesselBeamM: "3.1", vesselDraftM: "1.7", vesselName });
+    const query = new URLSearchParams({ arrivalDate: "2026-12-08", departureDate: "2026-12-10", etaWindow: "morning", vesselLengthM: "9.5", vesselBeamM: "3.1", vesselDraftM: "1.7", vesselName });
     await page.goto(`/marina/marina-a?${query}#booking-entry`);
     await expect(page.getByRole("heading", { name: "Review Booking" })).toBeVisible();
     await expect(page.getByLabel("Booking information")).toContainText("Pay at the marina after booking");
     await expect(page.getByLabel("Booking information")).not.toContainText("Stripe");
-    await expect(page.getByRole("group", { name: "Payment method" })).toHaveCount(0);
+    await expect(page.getByRole("group", { name: "Choose how to pay" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Continue to Payment" })).toHaveCount(0);
     const confirm = page.getByRole("button", { name: "Confirm Booking", exact: true });
     await page.getByLabel("Full name").fill("Pay Later Guest");
@@ -65,13 +65,17 @@ test("pay-at-marina-only confirms once with the full balance outstanding", async
     await page.waitForURL(/\/guest\/bookings\/[^?]+\?confirmation=1$/, { timeout: 30_000 });
     await expect(page.getByRole("heading", { name: "Booking confirmed" })).toBeVisible();
     await expect(page.getByText(`Due at marina · €${(quotedTotal / 100).toFixed(2)}`)).toBeVisible();
+    await expect(page.getByText("Pay at Marina", { exact: true })).toBeVisible();
+    await expect(page.getByText("Morning (06:00–12:00)", { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Booking confirmed" })).toBeVisible();
 
     const bookings = await db.from("bookings").select("id, booking_hold_id, booking_payment_id, status, price_total_minor, eta, etd, eta_window, customer_snapshot").eq("vessel_name", vesselName);
     expect(bookings.error).toBeNull();
     expect(bookings.data).toHaveLength(1);
     bookingId = bookings.data![0].id;
     holdId = bookings.data![0].booking_hold_id;
-    expect(bookings.data![0]).toMatchObject({ status: "confirmed", booking_payment_id: null, price_total_minor: quotedTotal, eta: null, etd: null, eta_window: null });
+    expect(bookings.data![0]).toMatchObject({ status: "confirmed", booking_payment_id: null, price_total_minor: quotedTotal, eta: null, etd: null, eta_window: "morning" });
     expect((bookings.data![0].customer_snapshot as { source?: string }).source).toBe("public_pay_at_marina");
     const holds = await db.from("booking_holds").select("id, status").eq("idempotency_key", attempt);
     expect(holds.error).toBeNull();
@@ -94,19 +98,19 @@ test("pay-at-marina-only confirms once with the full balance outstanding", async
   }
 });
 
-test("both methods show a two-option choice that defaults to Pay now", async ({ page }, testInfo) => {
+test("both methods show a two-option choice that defaults to Pay Online", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile" || !process.env.E2E_SUPABASE_READY, "Mobile with local Supabase fixtures required.");
   const db = localDatabase();
   await setMethods(db, true, true);
   try {
     const query = new URLSearchParams({ arrivalDate: "2026-12-11", departureDate: "2026-12-13", etaWindow: "unsure", vesselLengthM: "9.5", vesselBeamM: "3.1", vesselDraftM: "1.7", vesselName: "Payment choice E2E" });
     await page.goto(`/marina/marina-a?${query}#booking-entry`);
-    const methods = page.getByRole("group", { name: "Payment method" });
+    const methods = page.getByRole("group", { name: "Choose how to pay" });
     await expect(methods).toBeVisible();
     await expect(page.getByLabel("Booking information")).toContainText("Choose how to pay when you review your booking");
     await expect(page.getByLabel("Booking information")).not.toContainText("Stripe");
-    const payNow = page.getByRole("radio", { name: /Pay now/ });
-    const payAtMarina = page.getByRole("radio", { name: /Pay at marina/ });
+    const payNow = page.getByRole("radio", { name: /Pay Online/ });
+    const payAtMarina = page.getByRole("radio", { name: /Pay at Marina/ });
     await expect(payNow).toBeChecked();
     await expect(payAtMarina).not.toBeChecked();
     await expect(page.getByRole("button", { name: "Continue to Payment" })).toBeVisible();

@@ -1,6 +1,15 @@
 import type { Booking } from "@/domain/bookings/types";
 import type { BookingPaymentBalance } from "./types";
 
+export function bookingCollectionMethodLabel(method: BookingPaymentBalance["collection_method"]) {
+  return {
+    berthio: "Pay Online",
+    on_site: "Pay at Marina",
+    outside_berthio: "Paid directly to marina",
+    payment_link: "Payment link",
+  }[method];
+}
+
 export function deriveBookingPaymentBalance(booking: Booking): BookingPaymentBalance {
   const paid = booking.source === "online" && booking.booking_payment_id ? booking.price_total_minor ?? 0 : 0;
   const total = booking.price_total_minor;

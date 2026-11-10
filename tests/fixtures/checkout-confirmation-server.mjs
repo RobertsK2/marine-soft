@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 const marinaId = "10000000-0000-4000-8000-000000000001";
 const snapshot = { version: 1, currency: "EUR", totalMinor: 17908, accommodationMinor: 14000, mandatoryFeesMinor: 800, taxMinor: 3108, taxBehavior: "exclusive", taxRateBps: 2100 };
 const marina = { id: marinaId, name: "Test Harbour Ādaži", slug: "test-harbour", timezone: "Europe/Riga", is_public: true, contact_email: "harbour@example.test", contact_phone: "+37120000000", cover_image_url: "https://fixture.berthio.test/harbour.svg", logo_url: null, primary_color: "#073bcb", accepts_online_payment: true, accepts_pay_at_marina: false };
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://127.0.0.1:54329");
   if (url.pathname === "/cover.svg") {
     res.writeHead(200, { "Content-Type": "image/svg+xml" });
@@ -14,7 +14,7 @@ const server = http.createServer((req, res) => {
   let data = [];
   if (url.pathname === "/rest/v1/marinas") {
     const slug = url.searchParams.get("slug");
-    data = slug === "eq.test-harbour" ? [marina] : slug === "eq.marina-a" ? [{ ...marina, slug: "marina-a" }] : slug === "eq.no-contact" ? [{ ...marina, slug: "no-contact", contact_email: null, contact_phone: null, website_url: null }] : [];
+    data = slug === "eq.test-harbour" ? [marina] : slug === "eq.marina-a" ? [{ ...marina, slug: "marina-a" }] : slug === "eq.payment-options" ? [{ ...marina, slug: "payment-options", accepts_pay_at_marina: true }] : slug === "eq.pay-at-marina-only" ? [{ ...marina, slug: "pay-at-marina-only", accepts_online_payment: false, accepts_pay_at_marina: true }] : slug === "eq.no-contact" ? [{ ...marina, slug: "no-contact", contact_email: null, contact_phone: null, website_url: null }] : [];
   } else if (url.pathname === "/rest/v1/booking_payments") {
     const session = url.searchParams.get("stripe_checkout_session_id")?.replace(/^eq\./, "");
     if (url.searchParams.get("marina_id") !== `eq.${marinaId}`) { res.writeHead(403); return res.end('{}'); }
@@ -35,6 +35,13 @@ const server = http.createServer((req, res) => {
     data = true;
   } else if (url.pathname === "/rest/v1/rpc/ensure_guest_booking_access") {
     data = [{ grant_id: "30000000-0000-4000-8000-000000000001", expires_at: "2030-01-01T00:00:00Z" }];
+  } else if (url.pathname === "/rest/v1/rpc/get_guest_booking") {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const body = JSON.parse(Buffer.concat(chunks).toString());
+    if (["30000000-0000-4000-8000-000000000011", "30000000-0000-4000-8000-000000000012"].includes(body.target_grant_id)) {
+      data = [{ booking_reference: "BK-TEST-8492", marina_name: marina.name, arrival_date: "2027-05-24", departure_date: "2027-05-28", eta: null, etd: null, eta_window: body.target_grant_id.endsWith("11") ? "morning" : null, vessel_name: "Jūras vējš IV", vessel_length_m: 11.5, vessel_beam_m: 3.8, vessel_draft_m: 1.6, price_total_minor: 17908, price_currency: "EUR", balance_due_minor: 17908, collection_method: "on_site", booking_status: "confirmed", access_expires_at: "2030-01-01T00:00:00Z" }];
+    }
   } else if (!["/rest/v1/booking_berth_assignments", "/rest/v1/notification_outbox", "/rest/v1/booking_holds", "/rest/v1/pricing_season_length_rates", "/rest/v1/marina_mandatory_fees"].includes(url.pathname)) {
     res.writeHead(404); return res.end('{}');
   }

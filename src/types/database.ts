@@ -871,6 +871,7 @@ export type Database = {
           arrival_date: string;
           departure_date: string;
           eta: string | null;
+          eta_window: "morning" | "afternoon" | "evening" | null;
           etd: string | null;
           vessel_name: string | null;
           vessel_length_m: number;

@@ -77,3 +77,10 @@
 .shell :global(.payment-methods-settings label) { display: flex; gap: 10px; align-items: center; }
 .shell :global(.payment-methods-settings input) { width: 18px; height: 18px; accent-color: #0750ed; }
 .shell :global(.payment-methods-settings button) { justify-self: start; }
+.shell :global(.payment-methods-settings p) { margin: 0; color: #586d8c; font-size: 13px; line-height: 1.5; }
+.shell :global(.payment-method-toggle input) { appearance: none; position: relative; width: 42px; height: 24px; flex: none; margin: 0; border: 1px solid #8194af; border-radius: 999px; background: #8194af; cursor: pointer; }
+.shell :global(.payment-method-toggle input::before) { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: white; }
+.shell :global(.payment-method-toggle input:checked) { border-color: var(--berthio-blue); background: var(--berthio-blue); }
+.shell :global(.payment-method-toggle input:checked::before) { left: 20px; }
+.shell :global(.payment-method-toggle input:focus-visible) { outline: 2px solid var(--berthio-blue); outline-offset: 3px; }
+.shell :global(.payment-method-toggle input:disabled) { cursor: wait; }

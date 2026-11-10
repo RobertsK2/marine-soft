@@ -103,7 +103,7 @@ describe("one-step public booking checkout", () => {
     data.set("customerPhone", "+37120000000");
     await expect(run(data)).rejects.toThrow("NEXT_REDIRECT");
     expect(mocks.payAtMarina).toHaveBeenCalledExactlyOnceWith(
-      "marina-a", key, expect.objectContaining({ vesselLengthM: 12 }),
+      "marina-a", key, expect.objectContaining({ vesselLengthM: 12, eta: null, etd: null, etaWindow: "morning" }),
       { sessionHash: "server-session", networkHash: "server-network" },
       { customerName: "Guest Person", customerEmail: "guest@example.test", customerPhone: "+37120000000" },
     );
@@ -118,6 +118,24 @@ describe("one-step public booking checkout", () => {
     expect(await run(data)).toMatchObject({ status: "error", requiresAvailabilityCheck: true });
     expect(mocks.hold).not.toHaveBeenCalled();
     expect(mocks.payAtMarina).not.toHaveBeenCalled();
+    expect(mocks.checkout).not.toHaveBeenCalled();
+  });
+
+  it("validates contact details before confirming Pay at Marina", async () => {
+    mocks.marina.mockResolvedValue({ data: { timezone: "Europe/Riga", accepts_online_payment: true, accepts_pay_at_marina: true }, error: null });
+    const data = form(); data.set("paymentMethod", "marina");
+    expect(await run(data)).toMatchObject({ status: "error", fieldErrors: { customerName: expect.any(String), customerEmail: expect.any(String), customerPhone: expect.any(String) } });
+    expect(mocks.payAtMarina).not.toHaveBeenCalled();
+    expect(mocks.checkout).not.toHaveBeenCalled();
+  });
+
+  it.each(["method_disabled", "unavailable", "idempotency_conflict"])("honors a transactional %s rejection without starting Stripe", async outcome => {
+    mocks.marina.mockResolvedValue({ data: { timezone: "Europe/Riga", accepts_online_payment: true, accepts_pay_at_marina: true }, error: null });
+    mocks.payAtMarina.mockResolvedValue({ outcome, bookingId: null });
+    const data = form();
+    Object.entries({ paymentMethod: "marina", customerName: "Guest", customerEmail: "guest@example.test", customerPhone: "+37120000000" }).forEach(([k,v]) => data.set(k,v));
+    expect(await run(data)).toMatchObject({ status: "error", requiresAvailabilityCheck: true });
+    expect(mocks.guestUrl).not.toHaveBeenCalled();
     expect(mocks.checkout).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,8 @@ import { updateGuestBookingTimesAction } from "@/app/guest/bookings/[token]/acti
 import { GuestTimesForm } from "@/components/guest-booking/guest-times-form";
 import { formatBookingDate, formatBookingTime, formatVesselName } from "@/domain/bookings/formatting";
 import { loadGuestBooking } from "@/domain/guest-access/service";
+import { arrivalWindowLabel } from "@/domain/public-booking/types";
+import { bookingCollectionMethodLabel } from "@/domain/booking-payments/model";
 
 export const metadata: Metadata = {
   title: "Manage booking",
@@ -44,13 +46,16 @@ export default async function GuestBookingPage({ params, searchParams }: { param
           <div><dt>Booking reference</dt><dd>{booking.reference}</dd></div>
           <div><dt>Status</dt><dd>{booking.status.replaceAll("_", " ")}</dd></div>
           <div><dt>Stay</dt><dd>{formatBookingDate(booking.arrivalDate)} to {formatBookingDate(booking.departureDate)}</dd></div>
-          <div><dt>ETA / ETD</dt><dd>{formatBookingTime(booking.eta)} / {formatBookingTime(booking.etd)}</dd></div>
+          <div><dt>Estimated arrival</dt><dd>{booking.eta ? formatBookingTime(booking.eta) : arrivalWindowLabel(booking.etaWindow)}</dd></div>
+          <div><dt>Departure time</dt><dd>{formatBookingTime(booking.etd)}</dd></div>
           <div><dt>Vessel</dt><dd>{formatVesselName(booking.vesselName)} · {booking.vesselLengthM} × {booking.vesselBeamM} × {booking.vesselDraftM} m</dd></div>
+          <div><dt>Payment method</dt><dd>{bookingCollectionMethodLabel(booking.collectionMethod)}</dd></div>
           <div>
             <dt>Payment summary</dt>
-            <dd>{dueAtMarina ? `Due at marina · ${dueTotal}` : `Paid · ${paidTotal}`}</dd>
+            <dd>{booking.balanceDueMinor > 0 ? `${dueAtMarina ? "Due at marina" : "Balance due"} · ${dueTotal}` : `Paid · ${paidTotal}`}</dd>
           </div>
         </dl>
+        {dueAtMarina ? <p className="guest-booking-intro">The outstanding balance is payable directly to the marina.</p> : null}
 
         <section className="guest-booking-editor" aria-labelledby="arrival-times-heading">
           <div>

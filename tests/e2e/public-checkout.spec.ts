@@ -17,7 +17,7 @@ test("one payment action creates one private 15-minute hold and one real Stripe 
   await page.goto(`/marina/marina-a?${query}#booking-entry`);
   const cta = page.getByRole("button", { name: "Continue to Payment", exact: true });
   await expect(cta).toBeVisible();
-  await expect(page.getByRole("group", { name: "Payment method" })).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Choose how to pay" })).toHaveCount(0);
   await expect(page.getByLabel("Booking information")).toContainText("Secure online checkout with Stripe");
   if (testInfo.project.name === "mobile") {
     await expect(page.getByRole("heading", { name: "Review Booking" })).toBeVisible();

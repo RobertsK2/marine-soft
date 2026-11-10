@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(32);
 
 select is((select count(*)::integer from pg_proc where pronamespace='public'::regnamespace and proname='create_booking_hold' and pronargs=15),1,'legacy hold RPC remains available');
 select is((select count(*)::integer from pg_proc where pronamespace='public'::regnamespace and proname='create_booking_hold' and pronargs=16),1,'arrival-window hold RPC is available');
@@ -13,6 +13,14 @@ select ok(has_function_privilege('service_role',(select oid from pg_proc where p
 select ok(not has_function_privilege('anon',(select oid from pg_proc where pronamespace='public'::regnamespace and proname='confirm_pay_at_marina_booking' and pronargs=19),'execute'),'anon cannot confirm an arrival-window booking');
 select ok(not has_function_privilege('authenticated',(select oid from pg_proc where pronamespace='public'::regnamespace and proname='confirm_pay_at_marina_booking' and pronargs=19),'execute'),'authenticated cannot confirm an arrival-window booking');
 select ok(has_function_privilege('service_role',(select oid from pg_proc where pronamespace='public'::regnamespace and proname='confirm_pay_at_marina_booking' and pronargs=19),'execute'),'service role can confirm an arrival-window booking');
+
+select is((select outcome from public.confirm_pay_at_marina_booking(
+  'd1000000-0000-4000-8000-000000000001','79000000-0000-4000-8000-000000000098',
+  '2027-06-10','2027-06-12',null::time,null::time,'Disabled Method',9.5,3.1,1.7,'EUR',10000,
+  '{"version":1,"currency":"EUR","totalMinor":10000,"arrivalDate":"2027-06-10","departureDate":"2027-06-12","vesselLengthM":9.5}'::jsonb,
+  repeat('c',64),repeat('d',64),'Guest','guest@example.test','+37120000000','morning')),
+  'method_disabled','new arrival-window RPC rejects a disabled payment method');
+select is((select count(*)::integer from public.booking_holds where idempotency_key='79000000-0000-4000-8000-000000000098'),0,'disabled method does not reserve capacity');
 
 create temporary table selected_window_holds as
 select request.eta_window, request.idempotency_key, hold.outcome, hold.hold_token
@@ -52,6 +60,14 @@ select results_eq(
   $$select eta::text,etd::text,eta_window from public.bookings where id=(select booking_id from window_booking)$$,
   $$values (null::text,null::text,'morning'::text)$$,
   'confirmed booking retains its window without invented exact times');
+
+create temporary table window_guest_access as select * from public.ensure_guest_booking_access((select booking_id from window_booking));
+select results_eq(
+  $$select eta::text,etd::text,eta_window,balance_due_minor,collection_method::text from public.get_guest_booking((select grant_id from window_guest_access))$$,
+  $$values (null::text,null::text,'morning'::text,10000::bigint,'on_site'::text)$$,
+  'signed guest projection retains arrival window and the full unpaid on-site balance');
+select is((select count(*)::integer from public.get_guest_booking('79000000-0000-4000-8000-000000000099')),0,'unknown guest grant exposes no booking');
+select ok(not has_function_privilege('authenticated','public.get_guest_booking(uuid)','execute'),'guest projection still requires server-side signed access validation');
 
 create temporary table optional_times_booking as select * from public.confirm_pay_at_marina_booking(
   'd1000000-0000-4000-8000-000000000001','79000000-0000-4000-8000-000000000001',

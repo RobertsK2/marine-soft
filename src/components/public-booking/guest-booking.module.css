@@ -69,9 +69,10 @@
 .page :global(.public-hold-message) { width: 100%; font-size: 12px; }
 .page :global(.public-payment-methods), .page :global(.public-customer-details) { width: 100%; border: 0; margin: 0; padding: 0; display: grid; gap: 12px; }
 .page :global(.public-payment-methods legend), .page :global(.public-customer-details legend) { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
-.page :global(.public-payment-methods label) { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid #8A8D91; border-radius: 2px; color: #0A192F; cursor: pointer; }
-.page :global(.public-payment-methods label:has(input:checked)) { border: 2px solid #0A192F; padding: 11px; }
-.page :global(.public-payment-methods input) { width: 18px; height: 18px; accent-color: #0A192F; }
+.page :global(.public-payment-methods label) { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 14px; border: 1px solid #d8dfe7; border-radius: 12px; color: #0A192F; cursor: pointer; }
+.page :global(.public-payment-methods label:has(input:checked)) { border-color: var(--berthio-blue); background: #f2f6ff; }
+.page :global(.public-payment-methods label:focus-within) { outline: 2px solid var(--berthio-blue); outline-offset: 2px; }
+.page :global(.public-payment-methods input) { flex: none; width: 18px; height: 18px; accent-color: var(--berthio-blue); }
 .page :global(.public-payment-methods strong), .page :global(.public-payment-methods small) { display: block; }
 .page :global(.public-payment-methods small) { margin-top: 3px; color: #63758c; }
 .page :global(.public-customer-details[hidden]) { display: none; }

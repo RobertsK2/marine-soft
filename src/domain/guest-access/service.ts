@@ -62,6 +62,7 @@ export async function loadGuestBooking(token: string): Promise<GuestBooking | nu
     arrivalDate: booking.arrival_date,
     departureDate: booking.departure_date,
     eta: booking.eta,
+    etaWindow: booking.eta_window ?? null,
     etd: booking.etd,
     vesselName: booking.vessel_name,
     vesselLengthM: booking.vessel_length_m,

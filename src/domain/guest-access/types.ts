@@ -6,6 +6,7 @@ export type GuestBooking = {
   arrivalDate: string;
   departureDate: string;
   eta: string | null;
+  etaWindow: "morning" | "afternoon" | "evening" | null;
   etd: string | null;
   vesselName: string | null;
   vesselLengthM: number;
