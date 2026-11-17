@@ -47,9 +47,26 @@ test("pricing rows, percentage conversion, save version and responsive layout", 
   expect(originalMethods.error).toBeNull();
   try {
     const allow = page.getByRole("switch", { name: "Allow Pay at Marina" });
+    const online = page.getByRole("switch", { name: "Pay Online", exact: true });
     await expect(allow).toBeVisible();
     await expect(allow).toHaveAccessibleDescription("Allow guests to book online and pay directly at the marina.");
-    await page.getByRole("checkbox", { name: "Pay Online", exact: true }).check();
+    await expect(online).toHaveAccessibleDescription("Allow guests to pay online when booking.");
+    const onlineBounds = await online.boundingBox();
+    const marinaBounds = await allow.boundingBox();
+    expect(onlineBounds).not.toBeNull();
+    expect(marinaBounds).not.toBeNull();
+    expect(onlineBounds!.x).toBe(marinaBounds!.x);
+    expect(onlineBounds!.width).toBe(marinaBounds!.width);
+    expect(onlineBounds!.height).toBe(marinaBounds!.height);
+    const save = page.getByRole("button", { name: "Save payment methods" });
+    const saveBounds = await save.boundingBox();
+    expect(saveBounds!.height).toBe(42);
+    expect(saveBounds!.width).toBeLessThan(240);
+    await online.uncheck();
+    await allow.uncheck();
+    await save.click();
+    await expect(page.getByRole("alert")).toHaveText("Keep at least one payment method enabled.");
+    await online.check();
     await allow.setChecked(!originalMethods.data!.accepts_pay_at_marina);
     await page.getByRole("button", { name: "Save payment methods" }).click();
     await expect.poll(async () => {
