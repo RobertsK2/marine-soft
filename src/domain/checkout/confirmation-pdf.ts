@@ -75,7 +75,9 @@ export async function createConfirmationPdf(payment: Payment, marina: PublicMari
   for (const line of confirmationPriceLines(payment.priceSnapshot, payment.amountTotalMinor, payment.currency)) {
     text(`${line.label}: ${confirmationMoney(line.amount, payment.currency)}`);
   }
-  text(`Total paid: ${confirmationMoney(payment.amountTotalMinor, payment.currency)}`, 16);
+  text(`Booking total: ${confirmationMoney(payment.amountTotalMinor, payment.currency)}`);
+  text(`Amount paid: ${confirmationMoney(payment.paidMinor, payment.currency)}`, 16);
+  text(`Outstanding balance: ${confirmationMoney(payment.balanceDueMinor, payment.currency)}`);
   section("Before you arrive");
   text("Keep this reference for check-in. Contact the marina for arrival instructions and berth guidance.");
   if (marina.contactPhone) text(`Marina phone: ${marina.contactPhone}`);

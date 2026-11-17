@@ -62,9 +62,10 @@ test("pay-at-marina-only confirms once with the full balance outstanding", async
       deliver();
     }
 
-    await page.waitForURL(/\/guest\/bookings\/[^?]+\?confirmation=1$/, { timeout: 30_000 });
+    await page.waitForURL(/\/guest\/bookings\/[^?]+$/, { timeout: 30_000 });
     await expect(page.getByRole("heading", { name: "Booking confirmed" })).toBeVisible();
-    await expect(page.getByText(`Due at marina · €${(quotedTotal / 100).toFixed(2)}`)).toBeVisible();
+    await expect(page.getByText("Due at Marina", { exact: true })).toBeVisible();
+    await expect(page.locator("dl > div").filter({ has: page.getByText("Outstanding balance", { exact: true }) })).toContainText(`€${(quotedTotal / 100).toFixed(2)}`);
     await expect(page.getByText("Pay at Marina", { exact: true })).toBeVisible();
     await expect(page.getByText("Morning (06:00–12:00)", { exact: true })).toBeVisible();
     await page.reload();

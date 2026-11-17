@@ -109,7 +109,7 @@ describe("one-step public booking checkout", () => {
     );
     expect(mocks.hold).not.toHaveBeenCalled();
     expect(mocks.checkout).not.toHaveBeenCalled();
-    expect(mocks.redirect).toHaveBeenCalledWith("https://berthio.test/guest/bookings/signed-token?confirmation=1");
+    expect(mocks.redirect).toHaveBeenCalledWith("https://berthio.test/guest/bookings/signed-token");
   });
 
   it("rejects a disabled payment method before allocating inventory", async () => {

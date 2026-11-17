@@ -49,13 +49,13 @@ test("signed guest confirmation shows unpaid balance and optional arrival prefer
     const signature = createHmac("sha256", "fixture-signing-secret-at-least-32-characters").update(`v1.${payload}`).digest("base64url");
     await page.goto(`/guest/bookings/v1.${payload}.${signature}?confirmation=1`);
     await expect(page.getByRole("heading", { name: "Booking confirmed", exact: true })).toBeVisible();
-    await expect(page.getByText("Pay at Marina", { exact: true })).toBeVisible();
-    await expect(page.getByText("Due at marina · €179.08", { exact: true })).toBeVisible();
+    await expect(page.locator("dd").getByText("Pay at Marina", { exact: true })).toBeVisible();
+    await expect(page.getByText("Due at Marina", { exact: true })).toBeVisible();
     await expect(page.getByText(suffix === "11" ? "Morning (06:00–12:00)" : "Not specified", { exact: true }).first()).toBeVisible();
     await expect(page.locator('[name="eta"]')).toHaveValue("");
     await expect(page.locator('[name="etd"]')).toHaveValue("");
-    await expect(page.getByText(/^Paid ·/)).toHaveCount(0);
-    await expect(page.getByText("The outstanding balance is payable directly to the marina.")).toBeVisible();
+    await expect(page.getByText("Paid", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Your reservation is confirmed. Payment will be collected directly by the marina.")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   await page.screenshot({ path: info.outputPath("pay-at-marina-confirmation.png"), fullPage: true });

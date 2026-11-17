@@ -75,7 +75,7 @@ export async function startBookingCheckoutAction(
     return { status: "error", message: "Your booking could not be started. Please try again." };
   }
 
-  if (confirmationUrl) redirect(`${confirmationUrl}?confirmation=1`);
+  if (confirmationUrl) redirect(confirmationUrl);
 
   let checkoutUrl: string;
   try {

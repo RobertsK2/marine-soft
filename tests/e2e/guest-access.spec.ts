@@ -67,16 +67,18 @@ test("signed guest link shows one safe booking, edits times, and stops after rev
   const token = `v1.${payload}.${signature}`;
 
   await page.goto(`/guest/bookings/${encodeURIComponent(token)}`);
-  await expect(page.getByRole("heading", { name: "Marina A" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Booking confirmed", exact: true })).toBeVisible();
   await expect(page.getByText(booking!.reference, { exact: true })).toBeVisible();
-  await expect(page.getByText("Paid · €50.00")).toBeVisible();
+  await expect(page.getByText("Paid", { exact: true })).toBeVisible();
+  await expect(page.locator("dl > div").filter({ has: page.getByText("Amount paid", { exact: true }) })).toContainText("€50.00");
   await expect(page.getByText(/guest-link-.*@example\.test/)).toHaveCount(0);
 
   await page.getByRole("textbox", { name: "ETA", exact: true }).fill("16:15");
   await page.getByRole("textbox", { name: "ETD", exact: true }).fill("08:45");
   await page.getByRole("button", { name: "Update ETA / ETD" }).click();
   await expect(page.getByText("Arrival and departure times updated.")).toBeVisible();
-  await expect(page.getByText("16:15 / 08:45")).toBeVisible();
+  await expect(page.getByText("16:15", { exact: true })).toBeVisible();
+  await expect(page.getByText("08:45", { exact: true })).toBeVisible();
 
   expect((await supabase.rpc("revoke_guest_booking_access", { target_grant_id: grant.grant_id })).data).toBe(true);
   await page.reload();

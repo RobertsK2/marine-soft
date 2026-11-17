@@ -6,7 +6,7 @@ import { createPrivilegedClient } from "@/lib/supabase/privileged";
 import { getStripe } from "@/lib/stripe/server";
 import { buildCheckoutSessionParams, LOCAL_PLATFORM_ACCOUNT_MARKER } from "@/domain/checkout/model";
 import { issueGuestManagementUrl } from "@/domain/guest-access/service";
-import { checkoutPaymentState } from "@/domain/checkout/confirmation";
+import { checkoutPaymentState, type BookingConfirmationData } from "@/domain/checkout/confirmation";
 import type { CheckoutFailureStage } from "@/domain/checkout/diagnostics";
 
 export class CheckoutServiceError extends Error {
@@ -94,7 +94,7 @@ function paymentLetters(paymentId: string) {
     .map((value) => String.fromCharCode(97 + (value % 26))).join("");
 }
 
-export async function getCheckoutReturnStatus(marinaSlug: string, sessionId: string) {
+export async function getCheckoutReturnStatus(marinaSlug: string, sessionId: string): Promise<BookingConfirmationData | null> {
   const supabase = createPrivilegedClient();
   const { data: marina, error: marinaError } = await supabase.from("marinas").select("id, name").eq("slug", marinaSlug).eq("is_public", true).maybeSingle();
   if (marinaError || !marina) return null;
@@ -107,6 +107,11 @@ export async function getCheckoutReturnStatus(marinaSlug: string, sessionId: str
     .eq("marina_id", marina.id).eq("booking_payment_id", data.id).maybeSingle();
   if (bookingError) throw new CheckoutServiceError("Unable to load booking confirmation.", { cause: bookingError });
   const status = checkoutPaymentState(data.status, booking?.status);
+  const { data: balance, error: balanceError } = booking && status === "paid"
+    ? await supabase.from("booking_payment_balances").select("total_due_minor, paid_minor, balance_due_minor, currency")
+      .eq("marina_id", marina.id).eq("booking_id", booking.id).maybeSingle()
+    : { data: null, error: null };
+  if (balanceError) throw new CheckoutServiceError("Unable to load payment balance.", { cause: balanceError });
   const guestManagementUrl = booking && status === "paid"
     ? await issueGuestManagementUrl(booking.id).catch(() => null)
     : null;
@@ -130,8 +135,11 @@ export async function getCheckoutReturnStatus(marinaSlug: string, sessionId: str
   ]) : [null, null];
   return {
     status,
-    amountTotalMinor: data.amount_total_minor,
-    currency: data.currency,
+    paymentMethod: "online",
+    amountTotalMinor: balance?.total_due_minor ?? data.amount_total_minor,
+    paidMinor: balance?.paid_minor ?? (status === "paid" ? data.amount_total_minor : 0),
+    balanceDueMinor: balance?.balance_due_minor ?? (status === "paid" ? 0 : data.amount_total_minor),
+    currency: balance?.currency ?? data.currency,
     paidAt: data.paid_at,
     confirmation,
     guestManagementUrl,
