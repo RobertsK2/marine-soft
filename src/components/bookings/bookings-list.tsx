@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { CalendarDays, ChevronDown, ListFilter, Plus, Search } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { parseBookingSort, type BookingSort } from "@/domain/bookings/list-sorting";
 import { BookingStatusBadge } from "./booking-status";
 import { formatBookingTime, formatVesselName } from "@/domain/bookings/formatting";
 import { filterBookingRows, type BookingListFilters, type BookingListRow } from "./bookings-list-model";
@@ -10,8 +12,15 @@ import styles from "./bookings-list.module.css";
 
 const EMPTY_FILTERS: BookingListFilters = { query: "", status: "", from: "", to: "", source: "", payment: "" };
 
-export function BookingsList({ rows }: { rows: BookingListRow[] }) {
+export function BookingsList({ rows, sort = "newest" }: { rows: BookingListRow[]; sort?: BookingSort }) {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const router = useRouter();
+  const [sorting, startSorting] = useTransition();
+  const changeSort = (value: string) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("sort", parseBookingSort(value));
+    startSorting(() => router.replace(`/dashboard/bookings?${params}`, { scroll: false }));
+  };
   const update = (key: keyof BookingListFilters, value: string) => setFilters((current) => ({ ...current, [key]: value }));
   const visible = filterBookingRows(rows, filters);
   const filtered = Object.values(filters).some(Boolean);
@@ -30,11 +39,17 @@ export function BookingsList({ rows }: { rows: BookingListRow[] }) {
       <Link className={styles.create} href="/dashboard/bookings/new"><Plus size={16} aria-hidden="true" />Create booking</Link>
     </div>
     {filtered ? <div className={styles.filterSummary}><span role="status">{visible.length} of {rows.length} bookings</span><button type="button" onClick={() => setFilters(EMPTY_FILTERS)}>Clear filters</button></div> : null}
-    <div className={styles.tableWrap} role="region" aria-label="Bookings table" tabIndex={0}>
+    <label className={styles.sortControl}>Sort by
+      <select aria-label="Sort bookings" value={sort} disabled={sorting} onChange={(event) => changeSort(event.target.value)}>
+        <option value="newest">Newest first</option>
+        <option value="arrival">Arrival date (soonest first)</option>
+      </select>
+    </label>
+    <div className={styles.tableWrap} role="region" aria-label="Bookings table" aria-busy={sorting} tabIndex={0}>
       <table className={styles.table}>
         <thead><tr>{["Booking", "Stay", "Berth", "Status", "Payment", "Actions"].map((heading) => <th scope="col" key={heading}>{heading}</th>)}</tr></thead>
         <tbody>{visible.map((booking) => <tr key={booking.id}>
-          <td><Link className={styles.guest} href={`/dashboard/bookings/${booking.id}`} title={booking.reference}>{booking.customer_name}</Link><span className={styles.secondary}>{formatVesselName(booking.vessel_name)}</span></td>
+          <td><Link className={styles.guest} href={`/dashboard/bookings/${booking.id}`} title={booking.reference}>{booking.customer_name}</Link><span className={styles.secondary}>{booking.reference}</span><span className={styles.secondary}>{formatVesselName(booking.vessel_name)}</span></td>
           <td><span className={styles.stay}>{booking.stayLabel}</span><span className={styles.secondary}>ETA {formatBookingTime(booking.eta)} / ETD {formatBookingTime(booking.etd)}</span></td>
           <td>{booking.berthCodes.length ? <span className={styles.berth} title={booking.berthCodes.join(" → ")}>{booking.berthCodes[0]}{booking.berthCodes.length > 1 ? ` +${booking.berthCodes.length - 1}` : ""}</span> : <span className={styles.unassigned}>Unassigned</span>}</td>
           <td><BookingStatusBadge status={booking.status} /></td>

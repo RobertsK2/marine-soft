@@ -8,6 +8,7 @@ import type {
 import type { Database } from "@/types/database";
 import { deriveBookingPaymentBalance, isPaymentOverdue } from "@/domain/booking-payments/model";
 import type { BookingPaymentBalance } from "@/domain/booking-payments/types";
+import type { BookingSort } from "@/domain/bookings/list-sorting";
 
 export class BookingRepositoryError extends Error {
   constructor(
@@ -39,13 +40,14 @@ function bookingRecord(input: BookingInput) {
 export async function listBookings(
   supabase: SupabaseClient<Database>,
   marinaId: string,
+  sort: BookingSort = "newest",
 ): Promise<Booking[]> {
   const { data, error } = await supabase
     .from("bookings")
     .select("*")
     .eq("marina_id", marinaId)
-    .order("arrival_date", { ascending: true })
-    .order("reference", { ascending: true });
+    .order(sort === "arrival" ? "arrival_date" : "created_at", { ascending: sort === "arrival" })
+    .order("id", { ascending: false });
 
   if (error) {
     throw new BookingRepositoryError("Unable to load bookings.", error.code, {
