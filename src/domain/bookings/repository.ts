@@ -116,12 +116,19 @@ export async function getBookingPaymentBalance(
 export async function createBooking(
   supabase: SupabaseClient<Database>,
   marinaId: string,
+  actorId: string,
+  requestId: string,
   input: BookingInput,
+  totalMinor: number,
 ) {
   const { data, error } = await supabase
-    .from("bookings")
-    .insert({ marina_id: marinaId, ...bookingRecord(input) })
-    .select("id, reference")
+    .rpc("create_manual_booking_with_balance", {
+      target_marina_id: marinaId,
+      target_actor_id: actorId,
+      requested_request_id: requestId,
+      requested_booking: bookingRecord(input),
+      requested_total_minor: totalMinor,
+    })
     .single();
 
   if (error) {

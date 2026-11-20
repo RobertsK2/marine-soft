@@ -40,8 +40,6 @@
 .summary dd { margin: 0; text-align: right; font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .summary dd small { display: block; margin-top: 6px; font-size: 11px; font-weight: 400; line-height: 1.5; color: var(--muted); }
 .capacity { padding: 7px 10px; border-radius: 6px; background: #f0f6ff; color: #2864c8; }
-.total { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--line); padding-top: 22px; margin-top: 24px; font-size: 14px; }
-.total strong { font-weight: 600; }
 .submit { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; min-height: 48px; margin-top: 28px; border: 0; border-radius: 8px; background: #0750ed; color: white; font-size: 14px; font-weight: 600; cursor: pointer; }
 .submit:disabled { background: #dce2e9; color: #647187; cursor: wait; }
 .cancel { display: block; text-align: center; margin-top: 15px; font-size: 12px; color: var(--muted); }

@@ -628,6 +628,30 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      create_manual_booking_with_balance: {
+        Args: {
+          target_marina_id: string;
+          target_actor_id: string;
+          requested_request_id: string;
+          requested_booking: Json;
+          requested_total_minor: number;
+        };
+        Returns: { outcome: string; booking_id: string | null }[];
+      };
+      initialize_manual_booking_balance: {
+        Args: { target_marina_id: string; target_booking_id: string; target_actor_id: string; requested_total_minor: number };
+        Returns: string;
+      };
+      update_booking_payment_settings: {
+        Args: {
+          target_marina_id: string;
+          target_booking_id: string;
+          target_actor_id: string;
+          requested_payment_link: string | null;
+          requested_due_at: string | null;
+        };
+        Returns: string;
+      };
       allow_public_availability_check: {
         Args: { request_session_hash: string; request_network_hash: string };
         Returns: boolean;

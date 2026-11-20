@@ -564,11 +564,15 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Length (m)").fill("8");
     await page.getByLabel("Beam (m)").fill("2.8");
     await page.getByLabel("Draft (m)").fill("1.4");
+    await page.getByLabel("Booking total (€)").fill("60.00");
     await page.getByRole("button", { name: "Create booking" }).click();
     await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/, { timeout: 30_000 });
     await expect(page.getByRole("heading", { name: "History / Activity", exact: true })).toBeVisible();
-    await expect(page.getByText("booking / created", { exact: true })).toBeVisible();
-    await expect(page.getByRole("region", { name: "History / Activity", exact: true }).getByText(staffEmail!, { exact: true })).toBeVisible();
+    const history = page.getByRole("region", { name: "History / Activity", exact: true });
+    for (const event of ["booking / created", "payment / balance_changed"]) {
+      const entry = history.getByRole("listitem").filter({ has: page.getByText(event, { exact: true }) });
+      await expect(entry.getByText(staffEmail!, { exact: true })).toBeVisible();
+    }
   });
 
   test("Marina A cannot open a Marina B berth by manipulated id", async ({ page }) => {
@@ -934,6 +938,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Length (m)").fill("8");
     await page.getByLabel("Beam (m)").fill("2.8");
     await page.getByLabel("Draft (m)").fill("1.4");
+    await page.getByLabel("Booking total (€)").fill("60.00");
     await page.getByRole("button", { name: "Create booking" }).click();
     await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/, { timeout: 30_000 });
 
@@ -967,7 +972,8 @@ test.describe("local Supabase marina auth", () => {
     await page.goto("/dashboard/bookings/new");
     await page.getByLabel("Arrival date").fill(isoDate(arrival));
     await page.getByLabel("Departure date").fill(isoDate(departure));
-    await page.getByRole("radio", { name: /Afternoon/ }).check();
+    await page.getByLabel("ETA", { exact: true }).fill("14:00");
+    await page.getByLabel("ETD", { exact: true }).fill("10:00");
     await page.getByLabel("Customer name").fill(`Assignment E2E ${testInfo.project.name}`);
     await page.getByLabel("Email").fill(`assignment-${testInfo.project.name}@example.test`);
     await page.getByLabel("Phone").fill("+371 20000123");
@@ -976,6 +982,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Length (m)").fill("8.5");
     await page.getByLabel("Beam (m)").fill("2.9");
     await page.getByLabel("Draft (m)").fill("1.5");
+    await page.getByLabel("Booking total (€)").fill("60.00");
     await page.getByRole("button", { name: "Create booking" }).click();
 
     await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/, { timeout: 30_000 });
@@ -1061,7 +1068,8 @@ test.describe("local Supabase marina auth", () => {
     await page.goto("/dashboard/bookings/new");
     await page.getByLabel("Arrival date").fill(isoDate(arrival));
     await page.getByLabel("Departure date").fill(isoDate(departure));
-    await page.getByRole("radio", { name: /Afternoon/ }).check();
+    await page.getByLabel("ETA", { exact: true }).fill("14:00");
+    await page.getByLabel("ETD", { exact: true }).fill("10:00");
     await page.getByLabel("Customer name").fill(`Extension E2E ${testInfo.project.name}`);
     await page.getByLabel("Email").fill(`extension-${testInfo.project.name}@example.test`);
     await page.getByLabel("Phone").fill("+371 20000404");
@@ -1070,6 +1078,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Length (m)").fill("8.5");
     await page.getByLabel("Beam (m)").fill("2.9");
     await page.getByLabel("Draft (m)").fill("1.5");
+    await page.getByLabel("Booking total (€)").fill("60.00");
     await page.getByRole("button", { name: "Create booking" }).click();
     await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/, { timeout: 30_000 });
     bookingId = page.url().split("/").at(-1)!;
@@ -1129,6 +1138,8 @@ test.describe("local Supabase marina auth", () => {
     } finally {
       const cleanupIds = [bookingId, blockerId].filter((value): value is string => value !== null);
       if (cleanupIds.length > 0) {
+        const balances = await service.from("booking_payment_balances").delete().in("booking_id", cleanupIds);
+        expect(balances.error).toBeNull();
         const cleanup = await service.from("bookings").delete().in("id", cleanupIds);
         expect(cleanup.error).toBeNull();
       }
@@ -1159,7 +1170,8 @@ test.describe("local Supabase marina auth", () => {
     await page.getByRole("link", { name: "Create booking" }).click();
     await page.getByLabel("Arrival date").fill(isoDate(arrival));
     await page.getByLabel("Departure date").fill(isoDate(departure));
-    await page.getByRole("radio", { name: /Afternoon/ }).check();
+    await page.getByLabel("ETA", { exact: true }).fill("14:00");
+    await page.getByLabel("ETD", { exact: true }).fill("10:00");
     await page.getByLabel("Customer name").fill(guestName);
     await page.getByLabel("Email").fill("transit@example.test");
     await page.getByLabel("Phone").fill("+371 20000009");
@@ -1168,6 +1180,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Length (m)").fill("9.5");
     await page.getByLabel("Beam (m)").fill("3.1");
     await page.getByLabel("Draft (m)").fill("1.7");
+    await page.getByLabel("Booking total (€)").fill("60.00");
     await page.getByRole("button", { name: "Create booking" }).click();
 
     await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/);
@@ -1206,6 +1219,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Length (m)").fill("19");
     await page.getByLabel("Beam (m)").fill("5.8");
     await page.getByLabel("Draft (m)").fill("3.1");
+    await page.getByLabel("Booking total (€)").fill("120.00");
     await page.getByRole("button", { name: "Create booking" }).click();
     await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/);
     await expect(bookingHeader.getByText("Large One", { exact: true })).toBeVisible();
@@ -1224,6 +1238,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Length (m)").fill("19");
     await page.getByLabel("Beam (m)").fill("5.8");
     await page.getByLabel("Draft (m)").fill("3.1");
+    await page.getByLabel("Booking total (€)").fill("120.00");
     await page.getByRole("button", { name: "Create booking" }).click();
     await expect(page.getByText(
       "No safe berth capacity is available for this vessel and stay.",
@@ -1241,6 +1256,7 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Length (m)").fill("99");
     await page.getByLabel("Beam (m)").fill("20");
     await page.getByLabel("Draft (m)").fill("10");
+    await page.getByLabel("Booking total (€)").fill("120.00");
     await page.getByRole("button", { name: "Create booking" }).click();
     await expect(page.getByText(
       "No safe berth capacity is available for this vessel and stay.",

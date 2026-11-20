@@ -1,7 +1,7 @@
 import { Anchor, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { recordOfflinePaymentAction, assignBookingBerthAction, confirmBookingExtensionAction, previewBookingExtensionAction, transitionBookingStayAction, updateBookingDetailsAction, updateBookingPaymentStateAction, updateBookingStatusAction } from "@/app/dashboard/bookings/actions";
+import { recordOfflinePaymentAction, assignBookingBerthAction, confirmBookingExtensionAction, initializeBookingTotalAction, previewBookingExtensionAction, savePaymentSettingsAction, transitionBookingStayAction, updateBookingDetailsAction, updateBookingStatusAction } from "@/app/dashboard/bookings/actions";
 import { AppShell } from "@/components/app-shell";
 import { AuditHistory } from "@/components/audit-log/audit-history";
 import { BookingStatusBadge } from "@/components/bookings/booking-status";
@@ -12,12 +12,12 @@ import { BookingChangeForm } from "@/components/bookings/booking-change-form";
 import { BookingExtensionForm } from "@/components/bookings/booking-extension-form";
 import { RecordPaymentForm } from "@/components/bookings/record-payment-form";
 import { OFFLINE_PAYMENT_METHODS, paymentStatusLabel } from "@/domain/booking-payments/offline";
-import { BookingPaymentBalanceForm } from "@/components/bookings/booking-payment-balance-form";
+import { BookingPaymentSettingsForm, SetBookingTotalForm } from "@/components/bookings/booking-payment-settings-form";
 import { getBookingBerthAssignmentState } from "@/domain/berth-assignments/repository";
 import { listBookingAuditEvents } from "@/domain/audit-log/repository";
 import { bookingNights, formatBookingDate, formatBookingTime, formatVesselName } from "@/domain/bookings/formatting";
 import { arrivalWindowLabel } from "@/domain/public-booking/types";
-import { bookingCollectionMethodLabel } from "@/domain/booking-payments/model";
+import { bookingCollectionMethodLabel, formatPaymentDueAtInput } from "@/domain/booking-payments/model";
 import { getBooking, getBookingPaymentBalance, listBookingPriceAdjustments } from "@/domain/bookings/repository";
 import { requireMarinaMembership } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -46,7 +46,9 @@ export default async function BookingDetailPage({
   const receipts = receiptResult.data ?? [];
   const recordPaymentAction = recordOfflinePaymentAction.bind(null, booking.id);
   const statusAction = updateBookingStatusAction.bind(null, booking.id, booking.updated_at);
-  const paymentAction = updateBookingPaymentStateAction.bind(null, booking.id);
+  const hasPaymentBalance = !paymentBalance.id.startsWith("derived-");
+  const canSetBookingTotal = !hasPaymentBalance && booking.source === "manual"
+    && !booking.booking_payment_id && booking.status !== "cancelled";
   const changeAction = updateBookingDetailsAction.bind(null, booking.id, booking.updated_at);
   const assignmentAction = assignBookingBerthAction.bind(null, booking.id);
   const operationalAction = transitionBookingStayAction.bind(null, booking.id);
@@ -125,10 +127,17 @@ export default async function BookingDetailPage({
             <div><dt>Payment method</dt><dd>{bookingCollectionMethodLabel(paymentBalance.collection_method)}</dd></div><div><dt>Total amount</dt><dd>{money(paymentBalance.total_due_minor)}</dd></div><div><dt>Amount paid</dt><dd>{money(paymentBalance.paid_minor)}</dd></div><div><dt>Remaining balance</dt><dd>{money(paymentBalance.balance_due_minor)}</dd></div>
           </dl>{paymentBalance.overdue ? <p className={styles.warning}>Overdue - booking remains active</p> : null}
           {paymentBalance.collection_method === "on_site" && !booking.booking_payment_id && booking.status !== "cancelled" ? (
-            paymentBalance.currency === "EUR" && !paymentBalance.id.startsWith("derived-")
+            paymentBalance.currency === "EUR" && hasPaymentBalance
               ? <RecordPaymentForm action={recordPaymentAction} paidMinor={paymentBalance.paid_minor} remainingMinor={paymentBalance.balance_due_minor} />
-              : paymentBalance.balance_due_minor > 0 ? <p className={styles.warning}>A marina administrator must set a euro payment balance before a payment can be recorded here.</p> : null
+              : null
           ) : null}
+          {canSetBookingTotal ? context.role === "marina_admin"
+            ? <details className={styles.disclosure}><summary>Set booking total</summary><div className={styles.formBody}>
+              <SetBookingTotalForm action={initializeBookingTotalAction.bind(null, booking.id)}
+                initialTotal={booking.price_currency === "EUR" && booking.price_total_minor ? (booking.price_total_minor / 100).toFixed(2) : ""} />
+            </div></details>
+            : <p className={styles.warning}>Ask a marina administrator to set the booking total before recording a payment.</p>
+            : null}
           {paymentBalance.collection_method === "on_site" || receipts.length > 0 ? <details className={styles.disclosure}><summary>Payment history{receipts.length ? ` (${receipts.length})` : ""}</summary><div className={styles.formBody}>
             {receipts.length ? <ol className={styles.receipts}>{receipts.map((receipt) => <li key={receipt.id}>
               <strong>{money(receipt.amount_minor)} · {OFFLINE_PAYMENT_METHODS[receipt.method]}</strong>
@@ -137,9 +146,10 @@ export default async function BookingDetailPage({
             </li>)}</ol> : <p className="assignment-intro">No individual offline payments recorded.</p>}
             {(receipts.at(-1)?.paid_before_minor ?? paymentBalance.paid_minor) > 0 ? <p className="assignment-intro">{money(receipts.at(-1)?.paid_before_minor ?? paymentBalance.paid_minor)} was recorded before individual offline receipts. See History / Activity for earlier changes.</p> : null}
           </div></details> : null}
-          {context.role === "marina_admin" ? <details className={styles.disclosure}><summary>Advanced payment management</summary><div className={styles.formBody}>
-            <p className="assignment-intro">Administrator settings for totals, due dates, payment links and legacy balances. Recorded receipts cannot be edited or removed.</p>
-            <BookingPaymentBalanceForm action={paymentAction} balance={paymentBalance} hasReceipts={receipts.length > 0} />
+          {context.role === "marina_admin" && hasPaymentBalance ? <details className={styles.disclosure}><summary>Payment settings</summary><div className={styles.formBody}>
+            <BookingPaymentSettingsForm action={savePaymentSettingsAction.bind(null, booking.id, paymentBalance.payment_link_url)}
+              savedLink={paymentBalance.payment_link_url ?? ""} savedDueAt={formatPaymentDueAtInput(paymentBalance.due_at, context.timezone)}
+              timezone={context.timezone} />
           </div></details> : null}
           {paymentBalance.note ? <p className={styles.note}>{paymentBalance.note}</p> : null}
           </section>

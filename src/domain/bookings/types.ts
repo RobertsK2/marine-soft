@@ -36,6 +36,7 @@ export type BookingField =
   | "vesselName"
   | "vesselLengthM"
   | "vesselBeamM"
-  | "vesselDraftM";
+  | "vesselDraftM"
+  | "bookingTotal";
 
 export type BookingFieldErrors = Partial<Record<BookingField, string>>;

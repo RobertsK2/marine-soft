@@ -50,7 +50,7 @@
 .detail .formBody :global(.button) { border: 1px solid #b9c8dc; border-radius: 8px; background: white; color: var(--navy); box-shadow: none; font-size: 14px; text-transform: none; letter-spacing: 0; min-height: 38px; }
 .detail .formBody :global(.button:hover) { background: #f1f5fa; }
 .detail .formBody :global(.button:disabled) { color: #788494; background: #f1f3f6; }
-.formBody :global(.booking-form-grid), .formBody :global(.booking-payment-grid), .formBody :global(.booking-extension-preview-form), .formBody :global(.berth-assignment-form), .formBody :global(.booking-status-control), .formBody :global(.extension-route) { grid-template-columns: 1fr; }
+.formBody :global(.booking-form-grid), .formBody :global(.booking-extension-preview-form), .formBody :global(.berth-assignment-form), .formBody :global(.booking-status-control), .formBody :global(.extension-route) { grid-template-columns: 1fr; }
 .formBody :global(.booking-form), .formBody :global(.booking-status-form), .formBody :global(.booking-payment-form) { margin: 0; }
 .formBody :global(.form-section) { padding: 12px; border-color: var(--line); }
 .formBody input, .formBody select, .formBody textarea { max-width: 100%; min-width: 0; border-radius: 8px; border-color: #e0e7f0; background: white; }

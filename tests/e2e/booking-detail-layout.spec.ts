@@ -32,9 +32,10 @@ test.describe("booking detail workspace", () => {
     await expect(page.getByText("Send Message to Skipper", { exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath("booking-detail.png"), fullPage: true });
-    for (const [summary, control] of [["Edit booking details", "Customer name"], ["Assign / reassign berth", "Suitable operational berth"], ["Extend stay / berth moves", "New departure date"], ["Advanced payment management", "Payment state"], ["Review cancellation", "Booking status"]]) {
+    await expect(page.getByText("Advanced payment management", { exact: true })).toHaveCount(0);
+    for (const [summary, control] of [["Edit booking details", "Customer name"], ["Assign / reassign berth", "Suitable operational berth"], ["Extend stay / berth moves", "New departure date"], ["Review cancellation", "Booking status"]]) {
       await page.locator("summary").filter({ hasText: summary }).click();
-      await expect(control === "Payment state" ? page.getByRole("combobox", { name: control, exact: true }) : page.getByLabel(control, { exact: true })).toBeVisible();
+      await expect(page.getByLabel(control, { exact: true })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.locator("summary").filter({ hasText: summary }).click();
     }

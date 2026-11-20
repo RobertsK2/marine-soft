@@ -1,6 +1,6 @@
 "use server";
 
-import { recordOfflinePayment, type RecordPaymentState } from "@/domain/booking-payments/actions";
+import { initializeBookingTotal, recordOfflinePayment, savePaymentSettings, type BookingPaymentActionState, type RecordPaymentState } from "@/domain/booking-payments/actions";
 
 import {
   assignBookingBerthAction as assignBookingBerth,
@@ -9,13 +9,11 @@ import {
   previewBookingExtensionAction as previewBookingExtension,
   transitionBookingStayAction as transitionBookingStay,
   updateBookingDetailsAction as updateBookingDetails,
-  updateBookingPaymentStateAction as updateBookingPaymentState,
   updateBookingStatusAction as updateBookingStatus,
   type BerthAssignmentActionState,
   type BookingActionState,
   type BookingChangeActionState,
   type BookingExtensionActionState,
-  type BookingPaymentActionState,
   type OperationalTransitionActionState,
 } from "@/domain/bookings/action-service";
 
@@ -24,23 +22,32 @@ export type {
   BookingActionState,
   BookingChangeActionState,
   BookingExtensionActionState,
-  BookingPaymentActionState,
   OperationalTransitionActionState,
 } from "@/domain/bookings/action-service";
 
 export async function createBookingAction(
+  requestId: string,
   state: BookingActionState,
   formData: FormData,
 ) {
-  return createBooking(state, formData);
+  return createBooking(requestId, state, formData);
 }
 
-export async function updateBookingPaymentStateAction(
+export async function initializeBookingTotalAction(
   bookingId: string,
   state: BookingPaymentActionState,
   formData: FormData,
 ) {
-  return updateBookingPaymentState(bookingId, state, formData);
+  return initializeBookingTotal(bookingId, state, formData);
+}
+
+export async function savePaymentSettingsAction(
+  bookingId: string,
+  savedLink: string | null,
+  state: BookingPaymentActionState,
+  formData: FormData,
+) {
+  return savePaymentSettings(bookingId, savedLink, state, formData);
 }
 
 export async function previewBookingExtensionAction(
