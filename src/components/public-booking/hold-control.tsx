@@ -8,15 +8,16 @@ import type { CheckoutActionState } from "@/domain/checkout/types";
 const initialState: CheckoutActionState = { status: "idle" };
 
 export function HoldControl({ idempotencyKey, marinaSlug, online, atMarina }: { idempotencyKey: string; marinaSlug: string; online: boolean; atMarina: boolean }) {
-  const [method, setMethod] = useState(online ? "online" : "marina");
+  const [selectedMethod, setMethod] = useState(online ? "online" : "marina");
+  const method = online && atMarina ? selectedMethod : online ? "online" : "marina";
   // A server refresh must not turn a payment retry into a new booking attempt.
   const [attemptKey] = useState(idempotencyKey);
   const [state, formAction, pending] = useActionState(startBookingCheckoutAction.bind(null, marinaSlug), initialState);
   return <div className="public-hold-control" aria-busy={pending}>
     {online && atMarina ? <fieldset className="public-payment-methods" disabled={pending}>
-      <legend>Payment method</legend>
-      <label><input type="radio" name="paymentMethod" value="online" checked={method === "online"} onChange={() => setMethod("online")} /><span><strong>Pay now</strong><small>Secure online payment</small></span></label>
-      <label><input type="radio" name="paymentMethod" value="marina" checked={method === "marina"} onChange={() => setMethod("marina")} /><span><strong>Pay at marina</strong><small>Pay when you arrive</small></span></label>
+      <legend>Choose how to pay</legend>
+      <label><input type="radio" name="paymentMethod" value="online" checked={method === "online"} onChange={() => setMethod("online")} /><span><strong>Pay Online</strong><small>Secure card payment via Stripe</small></span></label>
+      <label><input type="radio" name="paymentMethod" value="marina" checked={method === "marina"} onChange={() => setMethod("marina")} /><span><strong>Pay at Marina</strong><small>Reserve now and pay directly at the marina</small></span></label>
     </fieldset> : <input name="paymentMethod" type="hidden" value={method} />}
     {atMarina ? <fieldset className="public-customer-details" hidden={method !== "marina"} disabled={pending || method !== "marina"}>
       <legend>Your contact details</legend>

@@ -1,6 +1,5 @@
 "use client";
 
-import { GuestTimeInput } from "@/components/public-booking/guest-time-input";
 import { LoaderCircle } from "lucide-react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
@@ -24,8 +23,8 @@ export function GuestTimesForm({
   etd,
 }: {
   action: (state: GuestTimeActionState, formData: FormData) => Promise<GuestTimeActionState>;
-  eta: string;
-  etd: string;
+  eta: string | null;
+  etd: string | null;
 }) {
   const [state, formAction] = useActionState(action, initialState);
   return (
@@ -33,12 +32,12 @@ export function GuestTimesForm({
       <div className="guest-times-fields">
         <div className="form-field">
           <label htmlFor="guest-eta">ETA</label>
-          <GuestTimeInput aria-describedby={state.fieldErrors?.eta ? "guest-eta-error" : undefined} aria-invalid={Boolean(state.fieldErrors?.eta)} defaultValue={eta.slice(0, 5)} id="guest-eta" name="eta" required />
+          <input aria-describedby={state.fieldErrors?.eta ? "guest-eta-error" : undefined} aria-invalid={Boolean(state.fieldErrors?.eta)} defaultValue={eta?.slice(0, 5) ?? ""} id="guest-eta" name="eta" type="time" />
           {state.fieldErrors?.eta ? <p className="field-error" id="guest-eta-error">{state.fieldErrors.eta}</p> : null}
         </div>
         <div className="form-field">
           <label htmlFor="guest-etd">ETD</label>
-          <GuestTimeInput aria-describedby={state.fieldErrors?.etd ? "guest-etd-error" : undefined} aria-invalid={Boolean(state.fieldErrors?.etd)} defaultValue={etd.slice(0, 5)} id="guest-etd" name="etd" required />
+          <input aria-describedby={state.fieldErrors?.etd ? "guest-etd-error" : undefined} aria-invalid={Boolean(state.fieldErrors?.etd)} defaultValue={etd?.slice(0, 5) ?? ""} id="guest-etd" name="etd" type="time" />
           {state.fieldErrors?.etd ? <p className="field-error" id="guest-etd-error">{state.fieldErrors.etd}</p> : null}
         </div>
       </div>

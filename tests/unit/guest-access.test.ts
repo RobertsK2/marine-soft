@@ -61,11 +61,17 @@ describe("guest booking access", () => {
   it("allows only validated ETA and ETD values", async () => {
     expect(validateGuestTimes({ eta: "24:00", etd: "09:00" })).toMatchObject({ success: false });
     expect(validateGuestTimes({ eta: "16:15", etd: "08:45" })).toEqual({ success: true, data: { eta: "16:15", etd: "08:45" } });
+    expect(validateGuestTimes({ eta: "16:15", etd: "" })).toEqual({ success: true, data: { eta: "16:15", etd: null } });
     const token = createGuestAccessToken(grantId, expiresAt);
     mocks.rpc.mockResolvedValue({ data: true, error: null });
     expect(await updateGuestBookingTimes(token, "16:15", "08:45")).toBe(true);
     expect(mocks.rpc).toHaveBeenCalledWith("update_guest_booking_times", {
       target_grant_id: grantId, requested_eta: "16:15", requested_etd: "08:45",
     });
+  });
+
+  it("preserves an unpaid on-site balance and arrival preference without inventing times", async () => {
+    mocks.rpc.mockResolvedValue({ data: [{ booking_reference: "BK-ABCDEFGHIJ", marina_name: "Marina A", eta: null, etd: null, eta_window: "morning", balance_due_minor: 12000, collection_method: "on_site", booking_status: "confirmed" }], error: null });
+    expect(await loadGuestBooking(createGuestAccessToken(grantId, expiresAt))).toMatchObject({ eta: null, etd: null, etaWindow: "morning", balanceDueMinor: 12000, collectionMethod: "on_site", status: "confirmed" });
   });
 });

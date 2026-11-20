@@ -84,9 +84,9 @@ export function deriveTodaysActivity(
         event: "Arrival",
         id: `${booking.id}-arrival`,
         reference: booking.reference,
-        sortTime: booking.eta,
+        sortTime: booking.eta ?? "99:99",
         status: booking.status,
-        time: booking.eta.slice(0, 5),
+        time: booking.eta?.slice(0, 5) ?? "Not specified",
       });
     }
     if (booking.status !== "cancelled" && booking.departure_date === today) {
@@ -96,9 +96,9 @@ export function deriveTodaysActivity(
         event: "Departure",
         id: `${booking.id}-departure`,
         reference: booking.reference,
-        sortTime: booking.etd,
+        sortTime: booking.etd ?? "99:99",
         status: booking.status,
-        time: booking.etd.slice(0, 5),
+        time: booking.etd?.slice(0, 5) ?? "Not specified",
       });
     }
     if (marinaDateKey(new Date(booking.created_at), timeZone) === today) {

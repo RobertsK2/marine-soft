@@ -1,7 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { checkAvailability } from "@/domain/availability/matching";
-import { loadAvailabilitySnapshot } from "@/domain/availability/repository";
+import { parsePaymentAmount } from "@/domain/booking-payments/offline";
 import {
   BookingRepositoryError,
   createBooking,
@@ -55,11 +54,6 @@ export type BookingExtensionActionState = {
   preview?: BookingExtensionPreview;
 };
 
-export type BookingPaymentActionState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-};
-
 function formValues(formData: FormData) {
   return {
     arrivalDate: formData.get("arrivalDate"),
@@ -102,109 +96,55 @@ function repositoryFailure(error: unknown): BookingActionState {
 }
 
 export async function createBookingAction(
+  requestId: string,
   _state: BookingActionState,
   formData: FormData,
 ): Promise<BookingActionState> {
   const validation = validateBookingInput(formValues(formData));
-  if (!validation.success) {
-    return { status: "error", fieldErrors: validation.errors };
+  const totalMinor = parsePaymentAmount(formData.get("bookingTotal"));
+  if (!validation.success || totalMinor === null) {
+    return {
+      status: "error",
+      fieldErrors: {
+        ...(!validation.success ? validation.errors : {}),
+        ...(totalMinor === null ? { bookingTotal: "Enter a positive euro amount with up to two decimal places." } : {}),
+      },
+    };
   }
+  if (!isUuid(requestId)) return { status: "error", message: "Reload the booking form and try again." };
 
   const context = await getAuthorizationContext();
   if (!context) return { status: "error", message: "Marina access is required." };
 
   let bookingId: string;
   try {
-    const supabase = await createClient();
-    const availabilityRequest = {
-      marinaId: context.marinaId,
-      arrivalDate: validation.data.arrivalDate,
-      departureDate: validation.data.departureDate,
-      vesselLengthM: validation.data.vesselLengthM,
-      vesselBeamM: validation.data.vesselBeamM,
-      vesselDraftM: validation.data.vesselDraftM,
-    };
-    const snapshot = await loadAvailabilitySnapshot(supabase, availabilityRequest);
-    const availability = checkAvailability(
-      availabilityRequest,
-      snapshot.berths,
-      snapshot.bookings,
-    );
-    if (!availability.available) {
+    const booking = await createBooking(createPrivilegedClient(), context.marinaId, context.userId,
+      requestId, validation.data, totalMinor);
+    if (booking.outcome === "unavailable") {
       return {
         status: "error",
         message: "No safe berth capacity is available for this vessel and stay.",
       };
     }
-
-    const booking = await createBooking(supabase, context.marinaId, validation.data);
-    bookingId = booking.id;
+    if (booking.outcome === "unauthorized") return { status: "error", message: "Marina access is required." };
+    if (booking.outcome === "idempotency_conflict") {
+      return { status: "error", message: "This form already created a booking. Check the bookings list before starting another." };
+    }
+    if (!booking.booking_id || !["created", "existing"].includes(booking.outcome)) {
+      throw new Error(`Unexpected manual booking outcome: ${booking.outcome}`);
+    }
+    bookingId = booking.booking_id;
   } catch (error) {
     return repositoryFailure(error);
   }
 
   revalidatePath("/dashboard/bookings");
+  revalidatePath("/dashboard/payments");
   redirect(`/dashboard/bookings/${bookingId}`);
 }
 
 function formatMoney(amountMinor: number, currency: string) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(amountMinor / 100);
-}
-
-export async function updateBookingPaymentStateAction(
-  bookingId: string,
-  _state: BookingPaymentActionState,
-  formData: FormData,
-): Promise<BookingPaymentActionState> {
-  if (!isUuid(bookingId)) return { status: "error", message: "The booking reference is invalid." };
-  const context = await getAuthorizationContext();
-  if (!context) return { status: "error", message: "Marina access is required." };
-  const state = String(formData.get("paymentState") ?? "");
-  const method = String(formData.get("collectionMethod") ?? "");
-  const validStates = ["paid_in_full", "deposit_paid", "balance_due", "paid_outside_berthio", "payment_link_required"];
-  const validMethods = ["berthio", "outside_berthio", "payment_link", "on_site"];
-  if (!validStates.includes(state) || !validMethods.includes(method)) {
-    return { status: "error", message: "Choose a valid payment state and collection method." };
-  }
-  const total = String(formData.get("totalDueMinor") ?? "");
-  const paid = String(formData.get("paidMinor") ?? "0");
-  const totalMinor = total === "" ? null : Number(total);
-  const paidMinor = Number(paid);
-  if ((totalMinor !== null && (!Number.isSafeInteger(totalMinor) || totalMinor < 0)) || !Number.isSafeInteger(paidMinor) || paidMinor < 0) {
-    return { status: "error", message: "Amounts must be non-negative whole minor units." };
-  }
-  try {
-    const privileged = createPrivilegedClient();
-    const { data, error } = await privileged.rpc("set_booking_payment_state", {
-      target_marina_id: context.marinaId,
-      target_booking_id: bookingId,
-      target_actor_id: context.userId,
-      requested_state: state as never,
-      requested_method: method as never,
-      requested_currency: String(formData.get("currency") ?? "") || null,
-      requested_total_minor: totalMinor,
-      requested_paid_minor: paidMinor,
-      requested_due_at: String(formData.get("dueAt") ?? "") || null,
-      requested_payment_link_url: String(formData.get("paymentLinkUrl") ?? "") || null,
-      requested_note: String(formData.get("paymentNote") ?? "") || null,
-    });
-    if (error) throw error;
-    const result = data?.[0];
-    if (!result) throw new Error("Payment state update returned no result.");
-    const errors: Record<string, string> = {
-      unauthorized: "Marina access is required.", not_found: "Booking not found for this marina.",
-      invalid_amounts: "Paid amount must not exceed the total due.", invalid_state: "The amounts and collection method do not match that payment state.",
-    };
-    if (errors[result.outcome]) return { status: "error", message: errors[result.outcome] };
-    if (result.outcome !== "updated") throw new Error(`Unexpected payment state outcome: ${result.outcome}`);
-    revalidatePath("/dashboard");
-    revalidatePath("/dashboard/bookings");
-    revalidatePath(`/dashboard/bookings/${bookingId}`);
-    return { status: "success", message: result.overdue ? "Payment state saved. Balance is overdue; booking was not cancelled." : "Payment state saved." };
-  } catch (error) {
-    captureServerError(error, { operation: "booking_payment_state", bookingId, marinaId: context.marinaId });
-    return { status: "error", message: "Payment state could not be saved." };
-  }
 }
 
 async function calculateExtensionPrice(
@@ -416,11 +356,6 @@ export async function updateBookingDetailsAction(
     return { status: "error", message: "The booking version is invalid. Refresh and try again." };
   }
 
-  const validation = validateBookingInput(formValues(formData));
-  if (!validation.success) {
-    return { status: "error", fieldErrors: validation.errors };
-  }
-
   const context = await getAuthorizationContext();
   if (!context) return { status: "error", message: "Marina access is required." };
 
@@ -428,6 +363,8 @@ export async function updateBookingDetailsAction(
     const privileged = createPrivilegedClient();
     const current = await getBooking(privileged, context.marinaId, bookingId);
     if (!current) return { status: "error", message: "Booking not found for this marina." };
+    const validation = validateBookingInput(formValues(formData), { optionalTimes: current.source === "online" });
+    if (!validation.success) return { status: "error", fieldErrors: validation.errors };
     const { count: activeSegmentCount, error: segmentError } = await privileged
       .from("booking_berth_assignments")
       .select("id", { count: "exact", head: true })

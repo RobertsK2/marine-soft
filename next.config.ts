@@ -18,6 +18,13 @@ const nextConfig: NextConfig = {
     return [
       { source: "/(.*)", headers: securityHeaders(securityHeaderEnvironment) },
       {
+        source: "/guest/bookings/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
+      {
         source: "/marina/:slug/checkout/return/:path*",
         headers: [
           { key: "Referrer-Policy", value: "no-referrer" },

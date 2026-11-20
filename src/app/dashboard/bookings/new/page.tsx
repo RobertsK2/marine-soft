@@ -23,7 +23,7 @@ export default async function NewBookingPage() {
     >
       <Link className={styles.back} href="/dashboard/bookings"><ArrowLeft size={16} aria-hidden="true" />Back to bookings</Link>
       <header className={styles.pageHeading}><h1>Create manual booking</h1><span>Manual entry</span></header>
-      <BookingForm action={createBookingAction} timezone={context.timezone} />
+      <BookingForm action={createBookingAction.bind(null, crypto.randomUUID())} timezone={context.timezone} />
     </AppShell>
   );
 }

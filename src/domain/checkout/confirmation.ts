@@ -1,4 +1,24 @@
 import type { Database, Json } from "@/types/database";
+import type { GuestBooking } from "@/domain/guest-access/types";
+
+export type BookingConfirmationData = {
+  status: "paid" | "confirmed" | "processing" | "failed" | "unavailable";
+  paymentMethod: "online" | "marina";
+  amountTotalMinor: number;
+  paidMinor: number;
+  balanceDueMinor: number;
+  currency: string;
+  paidAt: string | null;
+  confirmation: Pick<GuestBooking, "reference" | "marinaName" | "arrivalDate" | "departureDate" | "eta" | "etd" | "etaWindow" | "vesselName" | "vesselLengthM" | "vesselBeamM" | "vesselDraftM" | "status"> | null;
+  guestManagementUrl: string | null;
+  priceSnapshot: Json;
+  berthAssignment: "assigned" | "on_arrival" | "unknown";
+  emailSent: boolean;
+};
+
+export function confirmationPaymentLabel(payment: Pick<BookingConfirmationData, "balanceDueMinor" | "paymentMethod">) {
+  return payment.balanceDueMinor <= 0 ? "Paid" : payment.paymentMethod === "marina" ? "Due at Marina" : "Balance due";
+}
 
 export function checkoutPaymentState(
   payment: Database["public"]["Enums"]["booking_payment_status"],

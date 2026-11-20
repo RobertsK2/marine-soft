@@ -39,26 +39,11 @@ function positiveDimension(
   return Math.round(parsed * 100) / 100;
 }
 
-export function validateBookingInput(values: Record<string, unknown>):
-  | { success: true; data: BookingInput }
-  | { success: false; errors: BookingFieldErrors } {
-  const errors: BookingFieldErrors = {};
-  const arrivalDate = stringValue(values.arrivalDate);
-  const departureDate = stringValue(values.departureDate);
-  const eta = stringValue(values.eta);
-  const etd = stringValue(values.etd);
+export function validateBookingCustomer(values: Record<string, unknown>) {
   const customerName = stringValue(values.customerName);
   const customerEmail = stringValue(values.customerEmail).toLowerCase();
   const customerPhone = stringValue(values.customerPhone);
-  const vesselNameValue = stringValue(values.vesselName);
-
-  if (!validDate(arrivalDate)) errors.arrivalDate = "Enter a valid arrival date.";
-  if (!validDate(departureDate)) errors.departureDate = "Enter a valid departure date.";
-  if (validDate(arrivalDate) && validDate(departureDate) && departureDate <= arrivalDate) {
-    errors.departureDate = "Departure must be after arrival.";
-  }
-  if (!LOCAL_TIME.test(eta)) errors.eta = "Enter a valid ETA.";
-  if (!LOCAL_TIME.test(etd)) errors.etd = "Enter a valid ETD.";
+  const errors: Pick<BookingFieldErrors, "customerName" | "customerEmail" | "customerPhone"> = {};
   if (customerName.length < 1 || customerName.length > 160) {
     errors.customerName = "Customer name is required and must be 160 characters or fewer.";
   }
@@ -68,6 +53,30 @@ export function validateBookingInput(values: Record<string, unknown>):
   if (customerPhone.length < 5 || customerPhone.length > 40) {
     errors.customerPhone = "Customer phone is required and must be 5–40 characters.";
   }
+  return Object.keys(errors).length > 0
+    ? { success: false as const, errors }
+    : { success: true as const, data: { customerName, customerEmail, customerPhone } };
+}
+
+export function validateBookingInput(values: Record<string, unknown>, options: { optionalTimes?: boolean } = {}):
+  | { success: true; data: BookingInput }
+  | { success: false; errors: BookingFieldErrors } {
+  const errors: BookingFieldErrors = {};
+  const arrivalDate = stringValue(values.arrivalDate);
+  const departureDate = stringValue(values.departureDate);
+  const eta = stringValue(values.eta);
+  const etd = stringValue(values.etd);
+  const customer = validateBookingCustomer(values);
+  const vesselNameValue = stringValue(values.vesselName);
+
+  if (!validDate(arrivalDate)) errors.arrivalDate = "Enter a valid arrival date.";
+  if (!validDate(departureDate)) errors.departureDate = "Enter a valid departure date.";
+  if (validDate(arrivalDate) && validDate(departureDate) && departureDate <= arrivalDate) {
+    errors.departureDate = "Departure must be after arrival.";
+  }
+  if ((!options.optionalTimes || eta) && !LOCAL_TIME.test(eta)) errors.eta = "Enter a valid ETA.";
+  if ((!options.optionalTimes || etd) && !LOCAL_TIME.test(etd)) errors.etd = "Enter a valid ETD.";
+  if (!customer.success) Object.assign(errors, customer.errors);
   if (vesselNameValue.length > 120) {
     errors.vesselName = "Vessel name must be 120 characters or fewer.";
   }
@@ -91,18 +100,16 @@ export function validateBookingInput(values: Record<string, unknown>):
     errors,
   );
 
-  if (Object.keys(errors).length > 0) return { success: false, errors };
+  if (Object.keys(errors).length > 0 || !customer.success) return { success: false, errors };
 
   return {
     success: true,
     data: {
       arrivalDate,
       departureDate,
-      eta,
-      etd,
-      customerName,
-      customerEmail,
-      customerPhone,
+      eta: eta || null,
+      etd: etd || null,
+      ...customer.data,
       vesselName: vesselNameValue || null,
       vesselLengthM,
       vesselBeamM,

@@ -4,9 +4,9 @@ export function validateGuestTimes(values: { eta: unknown; etd: unknown }) {
   const eta = typeof values.eta === "string" ? values.eta.trim() : "";
   const etd = typeof values.etd === "string" ? values.etd.trim() : "";
   const errors: { eta?: string; etd?: string } = {};
-  if (!LOCAL_TIME.test(eta)) errors.eta = "Enter a valid ETA.";
-  if (!LOCAL_TIME.test(etd)) errors.etd = "Enter a valid ETD.";
+  if (eta && !LOCAL_TIME.test(eta)) errors.eta = "Enter a valid ETA.";
+  if (etd && !LOCAL_TIME.test(etd)) errors.etd = "Enter a valid ETD.";
   return Object.keys(errors).length > 0
     ? { success: false as const, errors }
-    : { success: true as const, data: { eta, etd } };
+    : { success: true as const, data: { eta: eta || null, etd: etd || null } };
 }

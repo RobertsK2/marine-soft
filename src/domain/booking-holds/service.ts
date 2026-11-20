@@ -41,6 +41,7 @@ async function preparePublicBookingHold(
       requested_departure: request.departureDate,
       requested_eta: request.eta,
       requested_etd: request.etd,
+      requested_eta_window: request.etaWindow ?? null,
       requested_vessel_name: request.vesselName,
       requested_length_m: request.vesselLengthM,
       requested_beam_m: request.vesselBeamM,

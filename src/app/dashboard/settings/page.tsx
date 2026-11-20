@@ -10,7 +10,7 @@ export const metadata = { title: "Settings" };
 
 const destinations = [
   { title: "General", description: "Marina profile, contact details, website, and operational timezone.", href: "/dashboard/settings/general", icon: Building2 },
-  { title: "Pricing", description: "Rates, seasonal pricing, mandatory fees, VAT, and billing currency.", href: "/dashboard/settings/pricing", icon: CircleDollarSign },
+  { title: "Pricing", description: "Rates, seasonal pricing, mandatory fees, VAT, and accepted payment methods.", href: "/dashboard/settings/pricing", icon: CircleDollarSign },
   { title: "Cancellation Policy", description: "Cancellation windows, refund rules, and booking cancellation policy.", href: "/dashboard/settings/cancellation-policy", icon: ShieldCheck },
   { title: "Integrations", description: "Stripe, email delivery, notification processing, and integration readiness.", href: "/dashboard/settings/integrations", icon: PlugZap },
   { title: "Publishing", description: "Public booking page status, readiness checks, and publishing controls.", href: "/dashboard/settings/publishing", icon: Globe2 },

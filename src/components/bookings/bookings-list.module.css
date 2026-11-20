@@ -8,7 +8,9 @@
 .kpis p { margin: 4px 0 0; font-size: 12px; color: #627796; }
 .list { --line: #e0e7f0; --muted: #627796; min-width: 0; }
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 24px; }
-.filters input, .filters select, .filterMenu summary { min-height: 38px; border: 1px solid var(--line); border-radius: 8px; padding: 7px 13px; background: white; color: var(--navy); font: inherit; font-size: 14px; }
+.filters input, .filters select, .filterMenu summary, .sortControl select { min-height: 38px; border: 1px solid var(--line); border-radius: 8px; padding: 7px 13px; background: white; color: var(--navy); font: inherit; font-size: 14px; }
+.sortControl { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 16px; color: var(--muted); font-size: 12px; }
+.sortControl select { min-width: 0; max-width: 100%; }
 .filters select { max-width: 100%; }
 .search { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; max-width: 480px; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding-left: 12px; background: white; color: #7f95b2; }
 .search input { width: 100%; min-width: 0; border: 0; padding-left: 0; }
@@ -59,7 +61,7 @@
   .kpis article { padding: 0; border: 0; }
   .search { flex-basis: 100%; }
   .filters { gap: 8px; }
-  .filters input, .filters select, .filterMenu summary, .create { min-height: 42px; }
+  .filters input, .filters select, .filterMenu summary, .create, .sortControl select { min-height: 42px; }
   .filterMenu[open] { flex-basis: 100%; }
   .filterMenu > div { position: static; width: 100%; margin-top: 8px; box-shadow: none; }
   .filterMenu:not(.more) > div { left: auto; right: 0; }

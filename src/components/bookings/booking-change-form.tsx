@@ -51,12 +51,12 @@ export function BookingChangeForm({
           {([
             ["arrivalDate", "Arrival date", "date", booking.arrival_date],
             ["departureDate", "Departure date", "date", booking.departure_date],
-            ["eta", "ETA", "time", booking.eta.slice(0, 5)],
-            ["etd", "ETD", "time", booking.etd.slice(0, 5)],
+            ["eta", "ETA", "time", booking.eta?.slice(0, 5) ?? ""],
+            ["etd", "ETD", "time", booking.etd?.slice(0, 5) ?? ""],
           ] as const).map(([name, label, type, value]) => (
             <div className="form-field" key={name}>
               <label htmlFor={`edit-${name}`}>{label}</label>
-              <input aria-describedby={describedBy(errors, name)} aria-invalid={Boolean(errors?.[name])} defaultValue={value} id={`edit-${name}`} name={name} required type={type} />
+              <input aria-describedby={describedBy(errors, name)} aria-invalid={Boolean(errors?.[name])} defaultValue={value} id={`edit-${name}`} name={name} required={type !== "time" || booking.source === "manual"} type={type} />
               <FieldError id={`edit-${name}-error`} message={errors?.[name]} />
             </div>
           ))}

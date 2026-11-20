@@ -167,8 +167,9 @@ export type Database = {
           check_in_assignment_exception_by: string | null;
           check_in_without_assignment: boolean;
           departure_date: string;
-          eta: string;
-          etd: string;
+          eta: string | null;
+          eta_window: "morning" | "afternoon" | "evening" | null;
+          etd: string | null;
           id: string;
           marina_id: string;
           price_currency: string | null;
@@ -198,8 +199,9 @@ export type Database = {
           check_in_assignment_exception_by?: string | null;
           check_in_without_assignment?: boolean;
           departure_date: string;
-          eta: string;
-          etd: string;
+          eta: string | null;
+          eta_window?: "morning" | "afternoon" | "evening" | null;
+          etd: string | null;
           id?: string;
           marina_id: string;
           price_currency?: string | null;
@@ -225,8 +227,9 @@ export type Database = {
           customer_name?: string;
           customer_phone?: string;
           departure_date?: string;
-          eta?: string;
-          etd?: string;
+          eta?: string | null;
+          eta_window?: "morning" | "afternoon" | "evening" | null;
+          etd?: string | null;
           price_currency?: string | null;
           price_snapshot?: Json | null;
           price_total_minor?: number | null;
@@ -244,7 +247,7 @@ export type Database = {
         Row: {
           id: string; public_token: string; marina_id: string; idempotency_key: string;
           requester_session_hash: string; requester_network_hash: string;
-          arrival_date: string; departure_date: string; eta: string; etd: string;
+          arrival_date: string; departure_date: string; eta: string | null; etd: string | null; eta_window: "morning" | "afternoon" | "evening" | null;
           vessel_name: string | null; vessel_length_m: number; vessel_beam_m: number;
           vessel_draft_m: number; status: Database["public"]["Enums"]["booking_hold_status"];
           expires_at: string; price_currency: string; price_total_minor: number;
@@ -254,7 +257,7 @@ export type Database = {
         Insert: {
           id?: string; public_token?: string; marina_id: string; idempotency_key: string;
           requester_session_hash?: string; requester_network_hash?: string;
-          arrival_date: string; departure_date: string; eta: string; etd: string;
+          arrival_date: string; departure_date: string; eta: string | null; etd: string | null; eta_window?: "morning" | "afternoon" | "evening" | null;
           vessel_name?: string | null; vessel_length_m: number; vessel_beam_m: number;
           vessel_draft_m: number; status?: Database["public"]["Enums"]["booking_hold_status"];
           expires_at: string; price_currency: string; price_total_minor: number;
@@ -268,6 +271,12 @@ export type Database = {
         Row: { id: string; hold_id: string; marina_id: string; stripe_account_id: string; stripe_checkout_session_id: string | null; stripe_payment_intent_id: string | null; status: Database["public"]["Enums"]["booking_payment_status"]; amount_total_minor: number; currency: string; price_snapshot: Json; paid_at: string | null; failed_at: string | null; created_at: string; updated_at: string };
         Insert: { id?: string; hold_id: string; marina_id: string; stripe_account_id: string; stripe_checkout_session_id?: string | null; stripe_payment_intent_id?: string | null; status?: Database["public"]["Enums"]["booking_payment_status"]; amount_total_minor: number; currency: string; price_snapshot: Json; paid_at?: string | null; failed_at?: string | null; created_at?: string; updated_at?: string };
         Update: Partial<Database["public"]["Tables"]["booking_payments"]["Insert"]>;
+        Relationships: [];
+      };
+      booking_offline_payments: {
+        Row: { id: string; marina_id: string; booking_id: string; request_id: string; currency: string; amount_minor: number; paid_before_minor: number; method: "cash" | "card_terminal" | "bank_transfer"; note: string | null; recorded_by: string; recorded_by_label: string; recorded_at: string };
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
       booking_payment_balances: {
@@ -619,6 +628,30 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      create_manual_booking_with_balance: {
+        Args: {
+          target_marina_id: string;
+          target_actor_id: string;
+          requested_request_id: string;
+          requested_booking: Json;
+          requested_total_minor: number;
+        };
+        Returns: { outcome: string; booking_id: string | null }[];
+      };
+      initialize_manual_booking_balance: {
+        Args: { target_marina_id: string; target_booking_id: string; target_actor_id: string; requested_total_minor: number };
+        Returns: string;
+      };
+      update_booking_payment_settings: {
+        Args: {
+          target_marina_id: string;
+          target_booking_id: string;
+          target_actor_id: string;
+          requested_payment_link: string | null;
+          requested_due_at: string | null;
+        };
+        Returns: string;
+      };
       allow_public_availability_check: {
         Args: { request_session_hash: string; request_network_hash: string };
         Returns: boolean;
@@ -663,8 +696,8 @@ export type Database = {
           expected_updated_at: string;
           requested_arrival: string;
           requested_departure: string;
-          requested_eta: string;
-          requested_etd: string;
+          requested_eta: string | null;
+          requested_etd: string | null;
           requested_customer_name: string;
           requested_customer_email: string;
           requested_customer_phone: string;
@@ -867,8 +900,9 @@ export type Database = {
           marina_name: string;
           arrival_date: string;
           departure_date: string;
-          eta: string;
-          etd: string;
+          eta: string | null;
+          eta_window: "morning" | "afternoon" | "evening" | null;
+          etd: string | null;
           vessel_name: string | null;
           vessel_length_m: number;
           vessel_beam_m: number;
@@ -882,14 +916,14 @@ export type Database = {
         }[];
       };
       update_guest_booking_times: {
-        Args: { target_grant_id: string; requested_eta: string; requested_etd: string };
+        Args: { target_grant_id: string; requested_eta: string | null; requested_etd: string | null };
         Returns: boolean;
       };
       create_booking_hold: {
         Args: {
           target_marina_id: string; request_idempotency_key: string;
           requested_arrival: string; requested_departure: string;
-          requested_eta: string; requested_etd: string; requested_vessel_name: string | null;
+          requested_eta: string | null; requested_etd: string | null; requested_eta_window: "morning" | "afternoon" | "evening" | null; requested_vessel_name: string | null;
           requested_length_m: number; requested_beam_m: number; requested_draft_m: number;
           calculated_price_currency: string; calculated_price_total_minor: number;
           calculated_price_snapshot: Json;
@@ -948,6 +982,10 @@ export type Database = {
           target_error_message?: string | null;
         };
         Returns: string;
+      };
+      record_booking_offline_payment: {
+        Args: { target_marina_id: string; target_booking_id: string; target_actor_id: string; target_actor_label: string; requested_request_id: string; requested_currency: string; requested_amount_minor: number; requested_method: string; requested_note: string | null; expected_paid_minor: number };
+        Returns: { outcome: string; receipt_id: string | null }[];
       };
       set_booking_payment_state: {
         Args: {
