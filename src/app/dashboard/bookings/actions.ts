@@ -1,5 +1,7 @@
 "use server";
 
+import { recordOfflinePayment, type RecordPaymentState } from "@/domain/booking-payments/actions";
+
 import {
   assignBookingBerthAction as assignBookingBerth,
   confirmBookingExtensionAction as confirmBookingExtension,
@@ -91,4 +93,8 @@ export async function assignBookingBerthAction(
   formData: FormData,
 ) {
   return assignBookingBerth(bookingId, state, formData);
+}
+
+export async function recordOfflinePaymentAction(bookingId: string, state: RecordPaymentState, form: FormData) {
+  return recordOfflinePayment(bookingId, state, form);
 }

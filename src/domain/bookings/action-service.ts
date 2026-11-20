@@ -158,7 +158,7 @@ export async function updateBookingPaymentStateAction(
 ): Promise<BookingPaymentActionState> {
   if (!isUuid(bookingId)) return { status: "error", message: "The booking reference is invalid." };
   const context = await getAuthorizationContext();
-  if (!context) return { status: "error", message: "Marina access is required." };
+  if (!context || context.role !== "marina_admin") return { status: "error", message: "Marina administrator access is required." };
   const state = String(formData.get("paymentState") ?? "");
   const method = String(formData.get("collectionMethod") ?? "");
   const validStates = ["paid_in_full", "deposit_paid", "balance_due", "paid_outside_berthio", "payment_link_required"];
@@ -192,7 +192,7 @@ export async function updateBookingPaymentStateAction(
     const result = data?.[0];
     if (!result) throw new Error("Payment state update returned no result.");
     const errors: Record<string, string> = {
-      unauthorized: "Marina access is required.", not_found: "Booking not found for this marina.",
+      unauthorized: "Marina administrator access is required.", history_locked: "Recorded payments cannot be overwritten. Use Record payment for new collections.", not_found: "Booking not found for this marina.",
       invalid_amounts: "Paid amount must not exceed the total due.", invalid_state: "The amounts and collection method do not match that payment state.",
     };
     if (errors[result.outcome]) return { status: "error", message: errors[result.outcome] };

@@ -12,7 +12,7 @@ insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_co
   ('00000000-0000-0000-0000-000000000000','d1500000-0000-4000-8000-000000000001','authenticated','authenticated','payment-admin@example.test','',now(),'{}','{}',now(),now()),
   ('00000000-0000-0000-0000-000000000002','e2500000-0000-4000-8000-000000000002','authenticated','authenticated','payment-other@example.test','',now(),'{}','{}',now(),now());
 insert into public.organization_members(organization_id,user_id,role) values
-  ('d0000000-0000-4000-8000-000000000001','d1500000-0000-4000-8000-000000000001','marina_staff'),
+  ('d0000000-0000-4000-8000-000000000001','d1500000-0000-4000-8000-000000000001','marina_admin'),
   ('e0000000-0000-4000-8000-000000000002','e2500000-0000-4000-8000-000000000002','marina_admin');
 insert into public.bookings(id,marina_id,arrival_date,departure_date,eta,etd,customer_name,customer_email,customer_phone,vessel_name,vessel_length_m,vessel_beam_m,vessel_draft_m,status,price_currency,price_total_minor,price_snapshot) values
   ('f4100000-0000-4000-8000-000000000001','d1000000-0000-4000-8000-000000000001',current_date + 10,current_date + 12,'14:00','10:00','Paid Full','paid-full@example.test','+37124000001','Full',8,2.8,1.4,'confirmed','EUR',10000,'{"version":1,"currency":"EUR","totalMinor":10000}'::jsonb),

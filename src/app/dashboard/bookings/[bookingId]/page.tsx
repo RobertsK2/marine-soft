@@ -1,7 +1,7 @@
 import { Anchor, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { assignBookingBerthAction, confirmBookingExtensionAction, previewBookingExtensionAction, transitionBookingStayAction, updateBookingDetailsAction, updateBookingPaymentStateAction, updateBookingStatusAction } from "@/app/dashboard/bookings/actions";
+import { recordOfflinePaymentAction, assignBookingBerthAction, confirmBookingExtensionAction, previewBookingExtensionAction, transitionBookingStayAction, updateBookingDetailsAction, updateBookingPaymentStateAction, updateBookingStatusAction } from "@/app/dashboard/bookings/actions";
 import { AppShell } from "@/components/app-shell";
 import { AuditHistory } from "@/components/audit-log/audit-history";
 import { BookingStatusBadge } from "@/components/bookings/booking-status";
@@ -10,6 +10,8 @@ import { BookingOperationalTransition } from "@/components/bookings/booking-oper
 import { BerthAssignmentForm } from "@/components/bookings/berth-assignment-form";
 import { BookingChangeForm } from "@/components/bookings/booking-change-form";
 import { BookingExtensionForm } from "@/components/bookings/booking-extension-form";
+import { RecordPaymentForm } from "@/components/bookings/record-payment-form";
+import { OFFLINE_PAYMENT_METHODS, paymentStatusLabel } from "@/domain/booking-payments/offline";
 import { BookingPaymentBalanceForm } from "@/components/bookings/booking-payment-balance-form";
 import { getBookingBerthAssignmentState } from "@/domain/berth-assignments/repository";
 import { listBookingAuditEvents } from "@/domain/audit-log/repository";
@@ -33,12 +35,16 @@ export default async function BookingDetailPage({
   const supabase = await createClient();
   const booking = await getBooking(supabase, context.marinaId, bookingId);
   if (!booking) notFound();
-  const [assignment, priceAdjustments, paymentBalance, auditEvents] = await Promise.all([
+  const [assignment, priceAdjustments, paymentBalance, auditEvents, receiptResult] = await Promise.all([
     getBookingBerthAssignmentState(supabase, context.marinaId, booking),
     listBookingPriceAdjustments(supabase, context.marinaId, booking.id),
     getBookingPaymentBalance(supabase, context.marinaId, booking),
     listBookingAuditEvents(supabase, context.marinaId, booking.id),
+    supabase.from("booking_offline_payments").select("*").eq("marina_id", context.marinaId).eq("booking_id", booking.id).order("paid_before_minor", { ascending: false }),
   ]);
+  if (receiptResult.error) throw new Error("Unable to load payment history.");
+  const receipts = receiptResult.data ?? [];
+  const recordPaymentAction = recordOfflinePaymentAction.bind(null, booking.id);
   const statusAction = updateBookingStatusAction.bind(null, booking.id, booking.updated_at);
   const paymentAction = updateBookingPaymentStateAction.bind(null, booking.id);
   const changeAction = updateBookingDetailsAction.bind(null, booking.id, booking.updated_at);
@@ -115,21 +121,35 @@ export default async function BookingDetailPage({
           ) : <p className="assignment-warning">Cancelled and checked-out bookings cannot be extended.</p>}
         </div></details>
           </section>
-          <section className={styles.card}><h2>Financial & billing</h2><p className={styles.paymentState}>{paymentBalance.collection_method === "on_site" && paymentBalance.balance_due_minor > 0 ? "Due at marina" : paymentBalance.state.replaceAll("_", " ")}</p><dl className={styles.money}>
-            <div><dt>Payment method</dt><dd>{bookingCollectionMethodLabel(paymentBalance.collection_method)}</dd></div><div><dt>Total amount</dt><dd>{money(paymentBalance.total_due_minor)}</dd></div><div><dt>Recorded paid</dt><dd>{money(paymentBalance.paid_minor)}</dd></div><div><dt>Balance due</dt><dd>{money(paymentBalance.balance_due_minor)}</dd></div>
+          <section className={styles.card} aria-label="Payment"><h2>Payment</h2><p className={styles.paymentState}>{paymentStatusLabel(paymentBalance)}</p><dl className={styles.money}>
+            <div><dt>Payment method</dt><dd>{bookingCollectionMethodLabel(paymentBalance.collection_method)}</dd></div><div><dt>Total amount</dt><dd>{money(paymentBalance.total_due_minor)}</dd></div><div><dt>Amount paid</dt><dd>{money(paymentBalance.paid_minor)}</dd></div><div><dt>Remaining balance</dt><dd>{money(paymentBalance.balance_due_minor)}</dd></div>
           </dl>{paymentBalance.overdue ? <p className={styles.warning}>Overdue - booking remains active</p> : null}
-<details className={styles.disclosure} ><summary>Manage payment / staff note</summary><div className={styles.formBody}>
-          <p className="assignment-intro">Track the next collection action. Overdue balances are warnings only and never cancel a booking automatically.</p>
-          <BookingPaymentBalanceForm action={paymentAction} balance={paymentBalance} />
-        </div></details></section>
-          <section className={styles.card}><h2>Payment staff note</h2><p className={styles.note}>{paymentBalance.note || "No staff note recorded."}</p><small>Edit using Manage payment / staff note above.</small></section>
+          {paymentBalance.collection_method === "on_site" && !booking.booking_payment_id && booking.status !== "cancelled" ? (
+            paymentBalance.currency === "EUR" && !paymentBalance.id.startsWith("derived-")
+              ? <RecordPaymentForm action={recordPaymentAction} paidMinor={paymentBalance.paid_minor} remainingMinor={paymentBalance.balance_due_minor} />
+              : paymentBalance.balance_due_minor > 0 ? <p className={styles.warning}>A marina administrator must set a euro payment balance before a payment can be recorded here.</p> : null
+          ) : null}
+          {paymentBalance.collection_method === "on_site" || receipts.length > 0 ? <details className={styles.disclosure}><summary>Payment history{receipts.length ? ` (${receipts.length})` : ""}</summary><div className={styles.formBody}>
+            {receipts.length ? <ol className={styles.receipts}>{receipts.map((receipt) => <li key={receipt.id}>
+              <strong>{money(receipt.amount_minor)} · {OFFLINE_PAYMENT_METHODS[receipt.method]}</strong>
+              <time dateTime={receipt.recorded_at}>{new Date(receipt.recorded_at).toLocaleString("en-GB", { timeZone: context.timezone })} ({context.timezone})</time>
+              <span>Recorded by {receipt.recorded_by_label}</span>{receipt.note ? <p>{receipt.note}</p> : null}
+            </li>)}</ol> : <p className="assignment-intro">No individual offline payments recorded.</p>}
+            {(receipts.at(-1)?.paid_before_minor ?? paymentBalance.paid_minor) > 0 ? <p className="assignment-intro">{money(receipts.at(-1)?.paid_before_minor ?? paymentBalance.paid_minor)} was recorded before individual offline receipts. See History / Activity for earlier changes.</p> : null}
+          </div></details> : null}
+          {context.role === "marina_admin" ? <details className={styles.disclosure}><summary>Advanced payment management</summary><div className={styles.formBody}>
+            <p className="assignment-intro">Administrator settings for totals, due dates, payment links and legacy balances. Recorded receipts cannot be edited or removed.</p>
+            <BookingPaymentBalanceForm action={paymentAction} balance={paymentBalance} hasReceipts={receipts.length > 0} />
+          </div></details> : null}
+          {paymentBalance.note ? <p className={styles.note}>{paymentBalance.note}</p> : null}
+          </section>
           {booking.status === "confirmed" ? <section className={`${styles.card} ${styles.cancellation}`}><h2>Cancellation</h2><details className={styles.disclosure}><summary>Review cancellation</summary><div className={styles.formBody}><BookingStatusForm action={statusAction} status={booking.status} /></div></details></section> : null}
         </aside>
       </div>
       <section className={styles.records} aria-label="Booking records"><details className={styles.disclosure} ><summary>Booking record</summary><div className={styles.formBody}>
           <dl>
             <div><dt>Reference</dt><dd>{booking.reference}</dd></div>
-            <div><dt>Source</dt><dd>{booking.source === "online" ? "Online · Stripe paid" : "Manual"}</dd></div>
+            <div><dt>Source</dt><dd>{booking.source === "online" ? (booking.booking_payment_id ? "Online · Pay Online" : "Online · Pay at Marina") : "Manual"}</dd></div>
             {paidTotal ? <div><dt>Original price snapshot</dt><dd>{paidTotal}</dd></div> : null}
             {revisedTotal && revisedTotal !== paidTotal ? <div><dt>Current revised total</dt><dd>{revisedTotal}</dd></div> : null}
             <div><dt>Booking ID</dt><dd className="mono-cell">{booking.id}</dd></div>

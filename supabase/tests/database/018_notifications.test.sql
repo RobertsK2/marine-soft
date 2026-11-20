@@ -18,11 +18,11 @@ insert into auth.users(instance_id, id, aud, role, email, encrypted_password, em
   ('00000000-0000-0000-0000-000000000000', 'a9100000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'notify-staff@example.test', '', now(), '{}', '{}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', 'a9100000-0000-4000-8000-000000000002', 'authenticated', 'authenticated', 'notify-other@example.test', '', now(), '{}', '{}', now(), now());
 insert into public.organization_members(organization_id, user_id, role) values
-  ('d0000000-0000-4000-8000-000000000001', 'a9100000-0000-4000-8000-000000000001', 'marina_staff'),
+  ('d0000000-0000-4000-8000-000000000001', 'a9100000-0000-4000-8000-000000000001', 'marina_admin'),
   ('e0000000-0000-4000-8000-000000000002', 'a9100000-0000-4000-8000-000000000002', 'marina_staff');
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"a9100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}', true);
+select set_config('request.jwt.claims', '{"sub":"a9100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 reset role;
 insert into public.bookings(
   id, marina_id, arrival_date, departure_date, eta, etd, customer_name, customer_email,
@@ -33,13 +33,13 @@ insert into public.bookings(
   'notify-guest@example.test', '+37125000009', 'Messenger', 8, 2.8, 1.4, 'confirmed'
 );
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"a9100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}', true);
+select set_config('request.jwt.claims', '{"sub":"a9100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 select is((select count(*)::integer from public.notification_outbox where booking_id = 'a9200000-0000-4000-8000-000000000001' and event_type = 'booking_confirmation'), 1, 'booking confirmation is queued transactionally');
 select is((select recipient_email from public.notification_outbox where booking_id = 'a9200000-0000-4000-8000-000000000001' and event_type = 'booking_confirmation'), 'notify-guest@example.test', 'recipient snapshot is stored');
 reset role;
 update public.bookings set eta = '13:30' where id = 'a9200000-0000-4000-8000-000000000001';
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"a9100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}', true);
+select set_config('request.jwt.claims', '{"sub":"a9100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 select is((select count(*)::integer from public.notification_outbox where booking_id = 'a9200000-0000-4000-8000-000000000001' and event_type = 'booking_confirmation'), 1, 'booking updates do not duplicate confirmation');
 
 set local role service_role;

@@ -10,9 +10,11 @@ const initialState: BookingPaymentActionState = { status: "idle" };
 export function BookingPaymentBalanceForm({
   action,
   balance,
+  hasReceipts = false,
 }: {
   action: (state: BookingPaymentActionState, formData: FormData) => Promise<BookingPaymentActionState>;
   balance: BookingPaymentBalance;
+  hasReceipts?: boolean;
 }) {
   const [state, formAction] = useActionState(action, initialState);
   return (
@@ -30,15 +32,15 @@ export function BookingPaymentBalanceForm({
           <option value="paid_outside_berthio">Paid outside Berthio</option>
           <option value="payment_link_required">Payment link required</option>
         </select></label>
-        <label>Collection method<select defaultValue={balance.collection_method} name="collectionMethod">
+        <label>Collection method{hasReceipts ? <input type="hidden" name="collectionMethod" value={balance.collection_method} /> : null}<select disabled={hasReceipts} defaultValue={balance.collection_method} name="collectionMethod">
           <option value="berthio">Berthio</option>
           <option value="outside_berthio">Outside Berthio</option>
           <option value="payment_link">Payment link</option>
           <option value="on_site">Pay on site</option>
         </select></label>
-        <label>Currency<input defaultValue={balance.currency ?? "EUR"} maxLength={3} name="currency" /></label>
+        <label>Currency<input readOnly={hasReceipts} defaultValue={balance.currency ?? "EUR"} maxLength={3} name="currency" /></label>
         <label>Total due (minor units)<input defaultValue={balance.total_due_minor ?? ""} min="0" name="totalDueMinor" type="number" /></label>
-        <label>Paid (minor units)<input defaultValue={balance.paid_minor} min="0" name="paidMinor" type="number" /></label>
+        <label>Paid (minor units)<input readOnly={balance.collection_method === "on_site" || hasReceipts} defaultValue={balance.paid_minor} min="0" name="paidMinor" type="number" /></label>
         <label>Due at<input defaultValue={balance.due_at ? balance.due_at.slice(0, 16) : ""} name="dueAt" type="datetime-local" /></label>
       </div>
       <label>Payment link URL<input defaultValue={balance.payment_link_url ?? ""} name="paymentLinkUrl" type="url" placeholder="https://…" /></label>

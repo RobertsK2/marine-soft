@@ -273,6 +273,12 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["booking_payments"]["Insert"]>;
         Relationships: [];
       };
+      booking_offline_payments: {
+        Row: { id: string; marina_id: string; booking_id: string; request_id: string; currency: string; amount_minor: number; paid_before_minor: number; method: "cash" | "card_terminal" | "bank_transfer"; note: string | null; recorded_by: string; recorded_by_label: string; recorded_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       booking_payment_balances: {
         Row: {
           id: string;
@@ -952,6 +958,10 @@ export type Database = {
           target_error_message?: string | null;
         };
         Returns: string;
+      };
+      record_booking_offline_payment: {
+        Args: { target_marina_id: string; target_booking_id: string; target_actor_id: string; target_actor_label: string; requested_request_id: string; requested_currency: string; requested_amount_minor: number; requested_method: string; requested_note: string | null; expected_paid_minor: number };
+        Returns: { outcome: string; receipt_id: string | null }[];
       };
       set_booking_payment_state: {
         Args: {

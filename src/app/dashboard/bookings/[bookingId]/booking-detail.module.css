@@ -83,3 +83,8 @@
 @media (max-width: 760px) { .breadcrumb { min-height: 60px; margin: -20px -16px 24px; padding: 0 16px; } }
 @media (max-width: 900px) { .workspace { grid-template-columns: 1fr; } .stay, .progression > div { grid-template-columns: repeat(3,minmax(0,1fr)); } }
 @media (max-width: 600px) { .heading h1 { font-size: 23px; overflow-wrap: anywhere; } .heading { gap: 10px; } .stay, .progression > div { grid-template-columns: 1fr; } .breadcrumb small { margin-left: 0; } .mainCard > section, .card { padding: 20px; } .detail :global(.audit-event-list li) { grid-template-columns: 1fr; } .detail :global(.audit-event-code) { grid-row: auto; } .detail :global(.audit-event-list p), .detail :global(.audit-event-list small) { grid-column: 1; } }
+
+.receipts { display: grid; gap: 14px; list-style: none; padding: 0; margin: 0; }
+.receipts li { display: grid; gap: 5px; padding-bottom: 14px; border-bottom: 1px solid var(--line); font-size: 13px; overflow-wrap: anywhere; }
+.receipts time, .receipts span { font-size: 12px; color: var(--muted); }
+.receipts p { margin: 3px 0 0; white-space: pre-wrap; }
