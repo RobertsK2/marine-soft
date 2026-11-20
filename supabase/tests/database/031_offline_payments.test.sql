@@ -45,6 +45,7 @@ select is(pg_temp.collect(0,'10000000-0000-4000-8000-000000000003',2000),'invali
 select is(pg_temp.collect(-1,'10000000-0000-4000-8000-000000000003',2000),'invalid_payment','negative rejected');
 select is(pg_temp.collect(8000,'10000000-0000-4000-8000-000000000003',2000),'recorded','pay remaining balance');
 select is((select state::text from public.booking_payment_balances where booking_id='f4200000-0000-4000-8000-000000000001'),'paid_in_full','derived fully paid state');
+select is(pg_temp.collect(1,'10000000-0000-4000-8000-000000000008',10000),'excessive_amount','fully paid booking rejects a fresh collection');
 select is((select count(*)::integer from public.booking_offline_payments where booking_id='f4200000-0000-4000-8000-000000000001'),3,'three real receipts only');
 select is((select status::text from public.bookings where id='f4200000-0000-4000-8000-000000000001'),'confirmed','collection never changes booking status');
 select is(pg_temp.collect(10000,'10000000-0000-4000-8000-000000000004',0,'f4200000-0000-4000-8000-000000000002'),'recorded','single full payment');
