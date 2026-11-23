@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(29);
 
 select has_table('public','booking_cancellation_events','cancellation decision history exists');
 select has_function('public','preview_booking_cancellation',array['uuid','uuid','uuid','timestamp with time zone'],'cancellation preview RPC exists');
@@ -51,6 +51,12 @@ select is((select outcome from public.preview_booking_cancellation('e1000000-000
 select is((select status::text from public.bookings where id='c4100000-0000-4000-8000-000000000006'),'confirmed','cross-tenant booking remains unchanged');
 select throws_ok($$update public.booking_cancellation_events set reason='forged'$$,'23514','Booking cancellation history is immutable.','cancellation history cannot be rewritten');
 
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"c1500000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}',true);
+select is((select refund_recommendation_minor from public.booking_cancellation_events where booking_id='c4100000-0000-4000-8000-000000000001'),10000::bigint,'marina staff can read their saved cancellation recommendation');
+select set_config('request.jwt.claims','{"sub":"c2500000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal2"}',true);
+select is((select count(*)::integer from public.booking_cancellation_events where booking_id='c4100000-0000-4000-8000-000000000001'),0,'another marina administrator cannot read the saved cancellation event');
 reset role;
 select * from finish();
 rollback;

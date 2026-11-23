@@ -72,6 +72,26 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      booking_cancellation_events: {
+        Row: {
+          id: string;
+          marina_id: string;
+          booking_id: string;
+          cancelled_at: string;
+          cancelled_by: string;
+          reason: string;
+          policy_code: string;
+          refund_percent: number;
+          refund_recommendation_minor: number | null;
+          currency: string | null;
+          paid_total_minor: number | null;
+          price_snapshot: Json | null;
+          payment_balance_snapshot: Json | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       booking_price_adjustments: {
         Row: {
           id: string;

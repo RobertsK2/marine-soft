@@ -15,10 +15,11 @@ import { OFFLINE_PAYMENT_METHODS, paymentStatusLabel } from "@/domain/booking-pa
 import { BookingPaymentSettingsForm, SetBookingTotalForm } from "@/components/bookings/booking-payment-settings-form";
 import { getBookingBerthAssignmentState } from "@/domain/berth-assignments/repository";
 import { listBookingAuditEvents } from "@/domain/audit-log/repository";
-import { bookingNights, formatBookingDate, formatBookingTime, formatVesselName } from "@/domain/bookings/formatting";
+import { formatCancellationPolicy } from "@/domain/booking-cancellations/model";
+import { bookingNights, formatBookingDate, formatBookingTime, formatMoney, formatVesselName } from "@/domain/bookings/formatting";
 import { arrivalWindowLabel } from "@/domain/public-booking/types";
 import { bookingCollectionMethodLabel, formatPaymentDueAtInput } from "@/domain/booking-payments/model";
-import { getBooking, getBookingPaymentBalance, listBookingPriceAdjustments } from "@/domain/bookings/repository";
+import { getBooking, getBookingCancellationEvent, getBookingPaymentBalance, listBookingPriceAdjustments } from "@/domain/bookings/repository";
 import { requireMarinaMembership } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
@@ -35,12 +36,13 @@ export default async function BookingDetailPage({
   const supabase = await createClient();
   const booking = await getBooking(supabase, context.marinaId, bookingId);
   if (!booking) notFound();
-  const [assignment, priceAdjustments, paymentBalance, auditEvents, receiptResult] = await Promise.all([
+  const [assignment, priceAdjustments, paymentBalance, auditEvents, receiptResult, cancellation] = await Promise.all([
     getBookingBerthAssignmentState(supabase, context.marinaId, booking),
     listBookingPriceAdjustments(supabase, context.marinaId, booking.id),
     getBookingPaymentBalance(supabase, context.marinaId, booking),
     listBookingAuditEvents(supabase, context.marinaId, booking.id),
     supabase.from("booking_offline_payments").select("*").eq("marina_id", context.marinaId).eq("booking_id", booking.id).order("paid_before_minor", { ascending: false }),
+    booking.status === "cancelled" ? getBookingCancellationEvent(supabase, context.marinaId, booking.id) : null,
   ]);
   if (receiptResult.error) throw new Error("Unable to load payment history.");
   const receipts = receiptResult.data ?? [];
@@ -84,6 +86,36 @@ export default async function BookingDetailPage({
             <div><span>Arrival / ETA</span><strong>{formatBookingDate(booking.arrival_date)}</strong><p>{booking.eta ? formatBookingTime(booking.eta) : arrivalWindowLabel(booking.eta_window)} / {context.timezone}</p></div>
             <div><span>Departure / ETD</span><strong>{formatBookingDate(booking.departure_date)}</strong><p>{formatBookingTime(booking.etd)} / {context.timezone}</p></div>
           </section>
+          {booking.status === "cancelled" ? (
+            <section className={styles.cancellationSummary} aria-labelledby="cancellation-summary-heading">
+              <h2 id="cancellation-summary-heading">Cancellation Summary</h2>
+              {cancellation ? (
+                <dl>
+                  <div>
+                    <dt>Amount paid at cancellation</dt>
+                    <dd>{cancellation.paid_total_minor !== null && cancellation.currency
+                      ? formatMoney(cancellation.paid_total_minor, cancellation.currency)
+                      : "Not recorded"}</dd>
+                  </div>
+                  <div>
+                    <dt>Recommended refund</dt>
+                    <dd>{cancellation.refund_recommendation_minor !== null && cancellation.currency
+                      ? `${formatMoney(cancellation.refund_recommendation_minor, cancellation.currency)} (${cancellation.refund_percent}%)`
+                      : `Amount not recorded (${cancellation.refund_percent}% policy rate)`}</dd>
+                  </div>
+                  <div>
+                    <dt>Cancellation policy</dt>
+                    <dd>{formatCancellationPolicy(cancellation.policy_code)}</dd>
+                  </div>
+                  <div>
+                    <dt>Cancellation date</dt>
+                    <dd><time dateTime={cancellation.cancelled_at}>{actualTime(cancellation.cancelled_at)}</time></dd>
+                  </div>
+                </dl>
+              ) : <p>No cancellation decision was recorded for this booking.</p>}
+              <p>Refund recommendation only. No automatic refund is issued.</p>
+            </section>
+          ) : null}
           <section className={styles.progression}><h2>Arrival & departure progression</h2><div>
             <article><small>01 / Booking</small><strong>{booking.status === "cancelled" ? "Cancelled" : "Confirmed stay"}</strong><p>{booking.source === "online" ? "Online" : "Manual"}</p></article>
             <article data-complete={Boolean(booking.actual_check_in_at)}><small>02 / Arrival</small><strong>{booking.actual_check_in_at ? "Checked in" : "Not checked in"}</strong><p>{actualTime(booking.actual_check_in_at) ?? (booking.eta ? `Scheduled ${formatBookingTime(booking.eta)}` : `Arrival preference: ${arrivalWindowLabel(booking.eta_window)}`)}</p></article>

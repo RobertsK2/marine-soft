@@ -14,7 +14,7 @@ import {
   type BookingStatus,
 } from "@/domain/bookings/types";
 import { validateBookingInput } from "@/domain/bookings/validation";
-import { bookingNights } from "@/domain/bookings/formatting";
+import { bookingNights, formatMoney } from "@/domain/bookings/formatting";
 import { extensionNights, parseExtensionBerthOptions } from "@/domain/booking-extensions/model";
 import type { BookingExtensionPreview } from "@/domain/booking-extensions/types";
 import type { CancellationPreview } from "@/domain/booking-cancellations/types";
@@ -141,10 +141,6 @@ export async function createBookingAction(
   revalidatePath("/dashboard/bookings");
   revalidatePath("/dashboard/payments");
   redirect(`/dashboard/bookings/${bookingId}`);
-}
-
-function formatMoney(amountMinor: number, currency: string) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(amountMinor / 100);
 }
 
 async function calculateExtensionPrice(

@@ -12,6 +12,10 @@ export function formatBookingTime(value: string | null) {
   return value ? value.slice(0, 5) : "Not specified";
 }
 
+export function formatMoney(amountMinor: number, currency: string) {
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(amountMinor / 100);
+}
+
 export function bookingNights(arrivalDate: string, departureDate: string) {
   const arrival = Date.parse(`${arrivalDate}T00:00:00Z`);
   const departure = Date.parse(`${departureDate}T00:00:00Z`);

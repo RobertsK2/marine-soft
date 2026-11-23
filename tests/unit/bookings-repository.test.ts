@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
-import { listBookings, BookingRepositoryError } from "@/domain/bookings/repository";
+import { getBookingCancellationEvent, listBookings, BookingRepositoryError } from "@/domain/bookings/repository";
 import { parseBookingSort } from "@/domain/bookings/list-sorting";
 
 type Record = { id: string; marina_id: string; created_at: string; arrival_date: string; source: "online" | "manual"; booking_payment_id: string | null };
@@ -66,5 +66,23 @@ describe("booking list database ordering", () => {
   it("allows only supported sort modes and defaults invalid or duplicate URL values to newest", () => {
     expect(parseBookingSort("arrival")).toBe("arrival");
     for (const value of [undefined, "", "newest", "created_at", "invalid", ["arrival", "newest"]]) expect(parseBookingSort(value)).toBe("newest");
+  });
+});
+
+describe("booking cancellation event lookup", () => {
+  const row = {
+    cancelled_at: "2026-11-23T13:06:53Z", policy_code: "partial_refund_2_to_6_days",
+    refund_percent: 50, refund_recommendation_minor: 4379, currency: "EUR", paid_total_minor: 8759,
+  };
+
+  it.each([row, null])("scopes the persisted lookup to the marina and booking and returns %j", async (data) => {
+    const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) };
+    const from = vi.fn().mockReturnValue(query);
+    const client = { from } as unknown as SupabaseClient<Database>;
+
+    await expect(getBookingCancellationEvent(client, "marina-a", "booking-1")).resolves.toEqual(data);
+    expect(from).toHaveBeenCalledExactlyOnceWith("booking_cancellation_events");
+    expect(query.eq.mock.calls).toEqual([["marina_id", "marina-a"], ["booking_id", "booking-1"]]);
   });
 });

@@ -910,20 +910,22 @@ test.describe("local Supabase marina auth", () => {
     await expect(page.getByRole("button", { name: "Berth A-01, Available" })).toBeVisible();
   });
 
-  test("marina staff previews and confirms a cancellation without an automatic refund", async ({ page }) => {
+  for (const { days, policy, recommendation } of [
+    { days: 5, policy: "Partial refund (2 to 6 days before arrival)", recommendation: "€43.79 (50%)" },
+    { days: 1, policy: "No refund (under 2 days before arrival)", recommendation: "€0.00 (0%)" },
+  ]) test(`marina staff sees the saved cancellation summary with ${recommendation} recommended`, async ({ page }) => {
     test.slow();
-    const email = process.env.E2E_MARINA_STAFF_EMAIL ?? process.env.E2E_MARINA_EMAIL;
+    const email = process.env.E2E_MARINA_STAFF_EMAIL;
     const password = process.env.E2E_MARINA_PASSWORD;
-    test.skip(!email || !password, "Requires invited marina credentials.");
-    const arrival = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
-    const departure = new Date(Date.now() + 13 * 24 * 60 * 60 * 1000);
+    test.skip(!process.env.BERTHIO_ISOLATED_TESTS || !email || !password, "Requires isolated local marina staff fixtures.");
+    const arrival = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    const departure = new Date(Date.now() + (days + 3) * 24 * 60 * 60 * 1000);
     const isoDate = (value: Date) => value.toISOString().slice(0, 10);
 
     await page.goto("/login");
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign In" }).click();
-    await completeAdminMfa(page);
     await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto("/dashboard/bookings/new");
     await page.getByLabel("Arrival date").fill(isoDate(arrival));
@@ -938,9 +940,18 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Length (m)").fill("8");
     await page.getByLabel("Beam (m)").fill("2.8");
     await page.getByLabel("Draft (m)").fill("1.4");
-    await page.getByLabel("Booking total (€)").fill("60.00");
+    await page.getByLabel("Booking total (€)").fill("100.00");
     await page.getByRole("button", { name: "Create booking" }).click();
     await expect(page).toHaveURL(/\/dashboard\/bookings\/[0-9a-f-]+$/, { timeout: 30_000 });
+
+    const summary = page.getByRole("region", { name: "Cancellation Summary" });
+    await expect(summary).toHaveCount(0);
+    const payment = page.getByRole("region", { name: "Payment", exact: true });
+    await payment.locator("summary").filter({ hasText: /^Record payment$/ }).click();
+    await payment.getByLabel("Amount received (€)").fill("87.59");
+    await payment.getByLabel("Payment method").selectOption("cash");
+    await payment.getByRole("button", { name: "Record payment", exact: true }).click();
+    await expect(payment.getByRole("status")).toContainText("Payment recorded.");
 
     await page.locator("summary").filter({ hasText: "Review cancellation" }).click();
     await page.getByLabel("Booking status").selectOption("cancelled");
@@ -950,6 +961,16 @@ test.describe("local Supabase marina auth", () => {
     await page.getByLabel("Cancellation reason").fill("Customer requested cancellation.");
     await page.getByRole("button", { name: "Confirm cancellation" }).click();
     await expect(page.locator(".booking-status")).toHaveText("Cancelled");
+    await expect(summary.getByText(recommendation, { exact: true })).toBeVisible();
+
+    await page.reload();
+    await expect(summary.getByText("€87.59", { exact: true })).toBeVisible();
+    await expect(summary.getByText(recommendation, { exact: true })).toBeVisible();
+    await expect(summary.getByText(policy, { exact: true })).toBeVisible();
+    await expect(summary.locator("time")).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}T/);
+    await expect(summary.getByText("Refund recommendation only. No automatic refund is issued.")).toBeVisible();
+    await expect(summary.getByText(/refund (completed|pending)/i)).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 
   test("marina staff can assign and reassign a suitable real berth", async ({ page }, testInfo) => {

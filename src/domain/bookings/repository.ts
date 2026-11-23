@@ -77,6 +77,26 @@ export async function getBooking(
   return data;
 }
 
+export async function getBookingCancellationEvent(
+  supabase: SupabaseClient<Database>,
+  marinaId: string,
+  bookingId: string,
+) {
+  const { data, error } = await supabase
+    .from("booking_cancellation_events")
+    .select("cancelled_at, policy_code, refund_percent, refund_recommendation_minor, currency, paid_total_minor")
+    .eq("marina_id", marinaId)
+    .eq("booking_id", bookingId)
+    .maybeSingle();
+
+  if (error) {
+    throw new BookingRepositoryError("Unable to load booking cancellation.", error.code, {
+      cause: error,
+    });
+  }
+  return data;
+}
+
 export async function listBookingPriceAdjustments(
   supabase: SupabaseClient<Database>,
   marinaId: string,
