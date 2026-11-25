@@ -66,7 +66,8 @@ test("pay-at-marina-only confirms once with the full balance outstanding", async
     await expect(page.getByRole("heading", { name: "Booking confirmed" })).toBeVisible();
     await expect(page.getByText("Due at Marina", { exact: true })).toBeVisible();
     await expect(page.locator("dl > div").filter({ has: page.getByText("Outstanding balance", { exact: true }) })).toContainText(`€${(quotedTotal / 100).toFixed(2)}`);
-    await expect(page.getByText("Pay at Marina", { exact: true })).toBeVisible();
+    const payment = page.getByRole("region", { name: "Payment breakdown", exact: true });
+    await expect(payment.getByRole("definition").filter({ hasText: /^Pay at Marina$/ })).toBeVisible();
     await expect(page.getByText("Morning (06:00–12:00)", { exact: true })).toBeVisible();
     await page.reload();
     await expect(page.getByRole("heading", { name: "Booking confirmed" })).toBeVisible();
@@ -110,8 +111,8 @@ test("both methods show a two-option choice that defaults to Pay Online", async 
     await expect(methods).toBeVisible();
     await expect(page.getByLabel("Booking information")).toContainText("Choose how to pay when you review your booking");
     await expect(page.getByLabel("Booking information")).not.toContainText("Stripe");
-    const payNow = page.getByRole("radio", { name: /Pay Online/ });
-    const payAtMarina = page.getByRole("radio", { name: /Pay at Marina/ });
+    const payNow = methods.getByRole("radio", { name: /^Pay Online\b/ });
+    const payAtMarina = methods.getByRole("radio", { name: "Pay at Marina Reserve now and pay directly at the marina", exact: true });
     await expect(payNow).toBeChecked();
     await expect(payAtMarina).not.toBeChecked();
     await expect(page.getByRole("button", { name: "Continue to Payment" })).toBeVisible();

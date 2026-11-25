@@ -3,7 +3,9 @@ import { expect, test } from "@playwright/test";
 test("login layout, labels, keyboard controls and validation", async ({ page }, testInfo) => {
   await page.goto("/login?next=%2Fdashboard%2Fbookings");
   await expect(page.getByRole("heading", { name: "Sign in to Berthio" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Berthio home" }).locator("img")).toHaveAttribute("src", "/brand/berthio-mark.svg");
+  const logo = page.getByRole("link", { name: "Berthio home", exact: true }).getByRole("img", { name: "Berthio", exact: true });
+  await expect(logo).toHaveAttribute("src", "/brand/berthio_horizontal.svg");
+  await expect(logo).toBeVisible();
   await expect(page.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute("href", "/privacy");
   await expect(page.getByRole("link", { name: "Terms", exact: true })).toHaveAttribute("href", "/terms");
   await expect(page.getByRole("checkbox")).toHaveCount(0);

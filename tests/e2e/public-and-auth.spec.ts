@@ -1,6 +1,7 @@
 import { completeAdminMfa, totp } from "./helpers/admin-mfa";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import { calendarKey, shiftCalendarDay } from "../../src/components/public-booking/calendar-model";
 
 test("root redirects to the existing sign-in page", async ({ page }) => {
   await page.goto("/");
@@ -42,8 +43,8 @@ test.describe("public marina page", () => {
     const isoDate = (value: Date) => value.toISOString().slice(0, 10);
 
     await page.goto("/marina/marina-a#booking-entry");
-    await page.getByLabel("Arrival date").fill(isoDate(arrival));
-    await page.getByLabel("Departure date").fill(isoDate(departure));
+    await page.getByRole("textbox", { name: "Arrival date", exact: true }).fill(isoDate(arrival));
+    await page.getByRole("textbox", { name: "Departure date", exact: true }).fill(isoDate(departure));
     await page.getByRole("radio", { name: /Afternoon/ }).check();
     await page.getByLabel("Vessel name").fill("Test Aurora");
     await page.getByLabel("Length").fill("12.5");
@@ -63,7 +64,7 @@ test.describe("public marina page", () => {
     await expect(quote).toContainText("€153.44");
     await expect(page.getByLabel("Vessel name")).toHaveValue("Test Aurora");
     if (testInfo.project.name === "mobile") {
-      await expect(page.getByText("Estimated arrival 14:00, departure 10:00. Times are local to Europe/Riga.")).toBeVisible();
+      await expect(page.getByText("Arrival preference: afternoon. Exact arrival time can be updated later.", { exact: true })).toBeVisible();
     } else {
       await expect(page.getByText("Arrival times in Europe/Riga", { exact: true })).toBeVisible();
     }
@@ -95,25 +96,65 @@ test.describe("public marina page", () => {
   });
 
   test("public pricing applies each seasonal nightly rate across a boundary", async ({ page }) => {
-    const query = new URLSearchParams({
-      arrivalDate: "2026-09-30",
-      departureDate: "2026-10-02",
-      eta: "14:30",
-      etd: "10:00",
-      priceTotalMinor: "1",
-      pricingCurrency: "USD",
-      taxRateBps: "0",
-      vesselBeamM: "3.8",
-      vesselDraftM: "2.1",
-      vesselLengthM: "12.5",
-    });
-
-    await page.goto(`/marina/marina-a?${query.toString()}#booking-entry`);
-    const quote = page.locator("[data-price-total-minor='9272']");
-    await expect(quote).toContainText("Baltic high season");
-    await expect(quote).toContainText("Baltic autumn season");
-    await expect(quote).toContainText("€92.72");
-    await expect(page.locator("[data-booking-id], [data-hold-id]")).toHaveCount(0);
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
+    const secretKey = process.env.SUPABASE_SECRET_KEY;
+    if (!secretKey || !["localhost", "127.0.0.1"].includes(new URL(url).hostname)) {
+      throw new Error("Local Supabase fixtures are required for seasonal pricing.");
+    }
+    const supabase = createClient(url, secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
+    const marinaId = "d1000000-0000-4000-8000-000000000001";
+    const today = calendarKey(new Date());
+    let arrivalDate = shiftCalendarDay(today, 30);
+    const { data: seasons, error: seasonError } = await supabase.from("pricing_seasons")
+      .select("starts_on, ends_on").eq("marina_id", marinaId)
+      .gt("ends_on", arrivalDate).order("starts_on");
+    expect(seasonError).toBeNull();
+    // Existing seasons use [start, end) ranges. Find two free nights without moving seeded rates.
+    for (const season of seasons ?? []) {
+      if (shiftCalendarDay(arrivalDate, 2) <= season.starts_on) break;
+      if (arrivalDate < season.ends_on) arrivalDate = season.ends_on;
+    }
+    expect(arrivalDate <= shiftCalendarDay(today, 729), "Fixture arrival must be within the booking horizon").toBe(true);
+    const boundary = shiftCalendarDay(arrivalDate, 1);
+    const departureDate = shiftCalendarDay(arrivalDate, 2);
+    const highSeasonId = crypto.randomUUID();
+    const autumnSeasonId = crypto.randomUUID();
+    const { error: fixtureError } = await supabase.from("pricing_seasons").insert([
+      { id: highSeasonId, marina_id: marinaId, name: "Baltic high season", starts_on: arrivalDate, ends_on: boundary },
+      { id: autumnSeasonId, marina_id: marinaId, name: "Baltic autumn season", starts_on: boundary, ends_on: departureDate },
+    ]);
+    expect(fixtureError).toBeNull();
+    try {
+      const { error: rateError } = await supabase.from("pricing_season_meter_rates").insert([
+        { season_id: highSeasonId, marina_id: marinaId, nightly_rate_per_meter_minor: 300 },
+        { season_id: autumnSeasonId, marina_id: marinaId, nightly_rate_per_meter_minor: 220 },
+      ]);
+      expect(rateError).toBeNull();
+      const query = new URLSearchParams({
+        arrivalDate,
+        departureDate,
+        priceTotalMinor: "1",
+        pricingCurrency: "USD",
+        taxRateBps: "0",
+        vesselBeamM: "3.8",
+        vesselDraftM: "2.1",
+        vesselLengthM: "12.5",
+      });
+      await page.goto(`/marina/marina-a?${query}#booking-entry`);
+      const quote = page.getByRole("region", { name: "Price breakdown", exact: true });
+      await expect(quote).toHaveAttribute("data-price-total-minor", "9272");
+      await expect(quote.getByText("€92.72", { exact: true })).toBeVisible();
+      await quote.getByText("View rate and fee details", { exact: true }).click();
+      const rates = quote.getByRole("term").filter({ hasText: /Baltic (high|autumn) season/ });
+      await expect(rates).toHaveText([
+        /Baltic high season\s*1 night · €3\.00 \/ m · 12\.50 m/,
+        /Baltic autumn season\s*1 night · €2\.20 \/ m · 12\.50 m/,
+      ]);
+      await expect(page.locator("[data-booking-id], [data-hold-id]")).toHaveCount(0);
+    } finally {
+      const { error: cleanupError } = await supabase.from("pricing_seasons").delete().in("id", [highSeasonId, autumnSeasonId]);
+      expect(cleanupError).toBeNull();
+    }
   });
 
   test("capacity lost before payment requires a new availability check without Checkout", async ({ page }, testInfo) => {
@@ -186,9 +227,17 @@ test.describe("public marina page", () => {
     expect(attached).toBe(true);
 
     await page.goto(`/marina/marina-a/checkout/return?session_id=${sessionId}`);
-    await expect(page.getByRole("heading", { name: "Confirmation in progress" })).toBeVisible();
-    await expect(page.getByText(/browser return does not confirm payment/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Confirming your booking...", exact: true })).toBeVisible();
+    await expect(page.getByText(/waiting for payment confirmation/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Booking confirmed", exact: true })).toHaveCount(0);
+    await expect(page.getByText("Amount paid", { exact: true })).toHaveCount(0);
+    const payment = () => supabase.from("booking_payments").select("status, paid_at").eq("id", prepared![0].payment_id!).single();
+    const before = await payment();
+    expect(before.error).toBeNull();
+    expect(before.data).toEqual({ status: "pending", paid_at: null });
 
+    // Simulate the persisted result of a verified webhook. Signature verification
+    // at the HTTP boundary is exercised in stripe-webhook-route.test.ts.
     const { error: eventError } = await supabase.rpc("process_stripe_checkout_event", {
       target_event_id: `evt_${crypto.randomUUID().replaceAll("-", "")}`, target_event_type: "checkout.session.completed",
       target_stripe_account_id: "acct_testmarinaa", target_session_id: sessionId, target_payment_intent_id: `pi_${testInfo.project.name}`,
@@ -198,7 +247,10 @@ test.describe("public marina page", () => {
     });
     expect(eventError).toBeNull();
     await page.reload();
-    await expect(page.getByRole("heading", { name: "Booking confirmed" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Booking confirmed", exact: true })).toBeVisible();
+    const after = await payment();
+    expect(after.error).toBeNull();
+    expect(after.data).toEqual({ status: "paid", paid_at: expect.any(String) });
   });
 
   test("public availability distinguishes suitable capacity that is full", async ({ page }) => {
@@ -395,6 +447,15 @@ test.describe("local Supabase marina auth", () => {
     const contactEmail = `harbour-${suffix}@example.test`;
     let original: { contactEmail: string; contactPhone: string; timezone: string; websiteUrl: string } | null = null;
 
+    async function submitProfile(target: Page) {
+      const [response] = await Promise.all([
+        target.waitForResponse((result) => result.request().method() === "POST"
+          && new URL(result.url()).pathname === "/dashboard/settings/general"),
+        target.getByRole("button", { name: "Save marina profile", exact: true }).click(),
+      ]);
+      expect(response.ok()).toBe(true);
+    }
+
     try {
       await page.goto("/login");
       await page.getByLabel("Email").fill(email!);
@@ -420,7 +481,7 @@ test.describe("local Supabase marina auth", () => {
       await page.getByLabel("Contact phone").fill("+371 20 123 456");
       await page.getByLabel("Website").fill("https://marina.example/visitor");
       await page.getByLabel("IANA timezone").fill("Europe/London");
-      await page.getByRole("button", { name: "Save marina profile" }).click();
+      await submitProfile(page);
 
       await expect(page.getByRole("status")).toHaveText("Marina profile updated.");
       await page.reload();
@@ -436,7 +497,7 @@ test.describe("local Supabase marina auth", () => {
       );
 
       await stalePage.getByLabel("Contact phone").fill("+371 20 999 999");
-      await stalePage.getByRole("button", { name: "Save marina profile" }).click();
+      await submitProfile(stalePage);
       await expect(stalePage.locator(".form-message[role='alert']")).toContainText(
         "This profile changed after the page was opened",
       );
@@ -448,7 +509,7 @@ test.describe("local Supabase marina auth", () => {
         await page.getByLabel("Contact phone").fill(original.contactPhone);
         await page.getByLabel("Website").fill(original.websiteUrl);
         await page.getByLabel("IANA timezone").fill(original.timezone);
-        await page.getByRole("button", { name: "Save marina profile" }).click();
+        await submitProfile(page);
         await expect(page.getByRole("status")).toHaveText("Marina profile updated.");
       }
     }

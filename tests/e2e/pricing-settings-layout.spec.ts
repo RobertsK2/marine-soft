@@ -65,7 +65,8 @@ test("pricing rows, percentage conversion, save version and responsive layout", 
     await online.uncheck();
     await allow.uncheck();
     await save.click();
-    await expect(page.getByRole("alert")).toHaveText("Keep at least one payment method enabled.");
+    const paymentMethodsForm = page.locator("form").filter({ has: save });
+    await expect(paymentMethodsForm.getByRole("alert")).toHaveText("Keep at least one payment method enabled.");
     await online.check();
     await allow.setChecked(!originalMethods.data!.accepts_pay_at_marina);
     await page.getByRole("button", { name: "Save payment methods" }).click();
