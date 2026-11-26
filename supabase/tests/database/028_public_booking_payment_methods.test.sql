@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(21);
+select plan(22);
 
 select ok((select accepts_online_payment and not accepts_pay_at_marina from public.marinas where id='d1000000-0000-4000-8000-000000000001'), 'existing marina defaults to online only');
 select throws_ok(
@@ -55,11 +55,13 @@ select is((select count(*)::integer from public.booking_holds where idempotency_
 insert into auth.users (instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
 values
   ('00000000-0000-0000-0000-000000000000','78000000-0000-4000-8000-000000000010','authenticated','authenticated','payment-admin-a@example.test','',now(),'{}','{}',now(),now()),
-  ('00000000-0000-0000-0000-000000000000','78000000-0000-4000-8000-000000000011','authenticated','authenticated','payment-admin-b@example.test','',now(),'{}','{}',now(),now());
+  ('00000000-0000-0000-0000-000000000000','78000000-0000-4000-8000-000000000011','authenticated','authenticated','payment-admin-b@example.test','',now(),'{}','{}',now(),now()),
+  ('00000000-0000-0000-0000-000000000000','78000000-0000-4000-8000-000000000012','authenticated','authenticated','payment-staff-a@example.test','',now(),'{}','{}',now(),now());
 insert into public.organization_members (organization_id,user_id,role)
 values
   ('d0000000-0000-4000-8000-000000000001','78000000-0000-4000-8000-000000000010','marina_admin'),
-  ('e0000000-0000-4000-8000-000000000002','78000000-0000-4000-8000-000000000011','marina_admin');
+  ('e0000000-0000-4000-8000-000000000002','78000000-0000-4000-8000-000000000011','marina_admin'),
+  ('d0000000-0000-4000-8000-000000000001','78000000-0000-4000-8000-000000000012','marina_staff');
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"78000000-0000-4000-8000-000000000010","role":"authenticated","aal":"aal2"}',true);
 select results_eq(
@@ -71,6 +73,12 @@ select results_eq(
   $$update public.marinas set accepts_online_payment=false where id='d1000000-0000-4000-8000-000000000001' returning accepts_online_payment$$,
   $$select false where false$$,
   'another tenant cannot change payment methods');
+
+select set_config('request.jwt.claims','{"sub":"78000000-0000-4000-8000-000000000012","role":"authenticated","aal":"aal1"}',true);
+select results_eq(
+  $$update public.marinas set accepts_pay_at_marina=false where id='d1000000-0000-4000-8000-000000000001' returning accepts_pay_at_marina$$,
+  $$select false where false$$,
+  'marina staff cannot change payment settings through the Data API');
 
 select * from finish();
 rollback;

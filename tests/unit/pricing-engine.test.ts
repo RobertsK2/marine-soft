@@ -51,6 +51,11 @@ const perMeterCatalog: PricingCatalog = {
 };
 
 describe("Milestone 2 Phase 4 pricing engine", () => {
+  it("prices the same stay equally when exact times are unknown or an arrival window is selected", () => {
+    const unknown = calculatePriceSnapshot({ ...search, eta: null, etd: null, etaWindow: null }, perMeterCatalog);
+    const evening = calculatePriceSnapshot({ ...search, eta: null, etd: null, etaWindow: "evening" }, perMeterCatalog);
+    expect(evening).toEqual(unknown);
+  });
   it("prices each occupied night using its active per-meter season", () => {
     const quote = calculatePriceSnapshot(search, perMeterCatalog);
 

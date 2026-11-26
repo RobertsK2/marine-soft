@@ -2,13 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { createPublicBookingHold, confirmPublicPayAtMarinaBooking } from "@/domain/booking-holds/service";
-import { validateBookingInput } from "@/domain/bookings/validation";
+import { validateBookingCustomer } from "@/domain/bookings/validation";
 import { issueGuestManagementUrl } from "@/domain/guest-access/service";
 import { getBookingHoldRequester } from "@/domain/booking-holds/requester";
 import { createCheckoutForHold } from "@/domain/checkout/service";
 import type { CheckoutActionState } from "@/domain/checkout/types";
 import { validatePublicBookingSearch } from "@/domain/public-booking/validation";
-import { captureServerError } from "@/lib/monitoring/server";
+import { captureCheckoutFailure, captureServerError } from "@/lib/monitoring/server";
 import { createPrivilegedClient } from "@/lib/supabase/privileged";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -41,7 +41,7 @@ export async function startBookingCheckoutAction(
     // expiry and capacity under its marina lock before creating or reusing a hold.
     const requester = await getBookingHoldRequester();
     if (method === "marina") {
-      const customer = validateBookingInput(Object.fromEntries(formData));
+      const customer = validateBookingCustomer(Object.fromEntries(formData));
       if (!customer.success) return { status: "error", message: "Enter your contact details to confirm the booking.", fieldErrors: customer.errors };
       const result = await confirmPublicPayAtMarinaBooking(marinaSlug, idempotencyKey, validation.data, requester, {
         customerName: customer.data.customerName,
@@ -75,7 +75,7 @@ export async function startBookingCheckoutAction(
     return { status: "error", message: "Your booking could not be started. Please try again." };
   }
 
-  if (confirmationUrl) redirect(`${confirmationUrl}?confirmation=1`);
+  if (confirmationUrl) redirect(confirmationUrl);
 
   let checkoutUrl: string;
   try {
@@ -91,7 +91,7 @@ export async function startBookingCheckoutAction(
   } catch (checkoutError) {
     // Checkout handles definite rejection with the existing release RPC. An
     // uncertain result retains the original expiry so a safe retry can reuse it.
-    captureServerError(checkoutError, { operation: "stripe_checkout_create", marinaSlug });
+    captureCheckoutFailure(checkoutError);
     return { status: "error", message: "Secure payment could not be opened. Please try again, or check availability again." };
   }
   redirect(checkoutUrl);

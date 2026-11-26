@@ -62,6 +62,7 @@ export async function loadGuestBooking(token: string): Promise<GuestBooking | nu
     arrivalDate: booking.arrival_date,
     departureDate: booking.departure_date,
     eta: booking.eta,
+    etaWindow: booking.eta_window ?? null,
     etd: booking.etd,
     vesselName: booking.vessel_name,
     vesselLengthM: booking.vessel_length_m,
@@ -76,7 +77,7 @@ export async function loadGuestBooking(token: string): Promise<GuestBooking | nu
   };
 }
 
-export async function updateGuestBookingTimes(token: string, eta: string, etd: string) {
+export async function updateGuestBookingTimes(token: string, eta: string | null, etd: string | null) {
   const payload = verifyGuestAccessToken(token);
   if (!payload) return false;
   const { data, error } = await createPrivilegedClient().rpc("update_guest_booking_times", {

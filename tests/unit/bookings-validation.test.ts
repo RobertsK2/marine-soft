@@ -77,4 +77,13 @@ describe("booking validation", () => {
     if (result.success) expect(result.data.vesselName).toBeNull();
   });
 
+  it("keeps exact times required for manual creation but optional for editing an existing booking", () => {
+    const withoutTimes = { ...validInput, eta: "", etd: "" };
+    const manual = validateBookingInput(withoutTimes);
+    expect(manual.success).toBe(false);
+    if (!manual.success) expect(manual.errors).toMatchObject({ eta: "Enter a valid ETA.", etd: "Enter a valid ETD." });
+    expect(validateBookingInput(withoutTimes, { optionalTimes: true })).toMatchObject({ success: true, data: { eta: null, etd: null } });
+    expect(validateBookingInput({ ...withoutTimes, eta: "25:00" }, { optionalTimes: true })).toMatchObject({ success: false, errors: { eta: "Enter a valid ETA." } });
+  });
+
 });

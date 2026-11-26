@@ -18,6 +18,7 @@ beforeEach(() => {
     marinas: { id: "private-marina-id", name: "Private test marina" },
     booking_payments: { id: "private-payment-id", status: "paid", amount_total_minor: 1000, currency: "EUR", price_snapshot: {}, paid_at: "2027-01-01T00:00:00Z" },
     bookings: { id: "private-booking-id", reference: "BK-SAFE", status: "confirmed", vessel_name: "My vessel" },
+    booking_payment_balances: null,
     booking_berth_assignments: [],
     notification_outbox: [],
   };
@@ -53,6 +54,13 @@ describe("checkout return server authorization and state", () => {
     ]));
     expect(JSON.stringify(payment)).not.toMatch(/private-(?:marina|payment|booking)-id/);
     expect(payment?.emailSent).toBe(false);
+  });
+
+  it("uses recorded balance amounts without replacing webhook confirmation", async () => {
+    rows.booking_payment_balances = { total_due_minor: 1500, paid_minor: 1000, balance_due_minor: 500, currency: "EUR" };
+    expect(await getCheckoutReturnStatus("test-marina", "cs_test_secret")).toMatchObject({ status: "paid", paymentMethod: "online", amountTotalMinor: 1500, paidMinor: 1000, balanceDueMinor: 500 });
+    rows.booking_payments = { ...rows.booking_payments, status: "pending" };
+    expect(await getCheckoutReturnStatus("test-marina", "cs_test_secret")).toMatchObject({ status: "processing", paidMinor: 0 });
   });
 
   it("rejects a missing marina or a session inaccessible in that marina", async () => {

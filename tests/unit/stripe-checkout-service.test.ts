@@ -11,6 +11,7 @@ vi.mock("@/lib/stripe/server", () => ({ getStripe: vi.fn() }));
 vi.mock("@/lib/supabase/privileged", () => ({ createPrivilegedClient: () => ({ rpc: mocks.rpc }) }));
 
 import { createCheckoutForHold } from "@/domain/checkout/service";
+import { getStripe } from "@/lib/stripe/server";
 
 const prepared = {
   outcome: "ready", payment_id: "70000000-0000-4000-8000-000000000001",
@@ -27,6 +28,24 @@ describe("Stripe checkout service", () => {
   beforeEach(() => {
     mocks.rpc.mockReset();
     mocks.localPlatformFallback.mockReset().mockReturnValue(false);
+    vi.mocked(getStripe).mockReset();
+  });
+
+  it("identifies Stripe initialization before payment preparation", async () => {
+    vi.mocked(getStripe).mockImplementation(() => { throw new Error("private configuration detail"); });
+    await expect(createCheckoutForHold("hold")).rejects.toMatchObject({
+      diagnosticStage: "stripe_initialization",
+    });
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("identifies a payment preparation RPC error before calling Stripe", async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: new Error("private database detail") });
+    const create = vi.fn();
+    await expect(createCheckoutForHold("hold", fakeStripe(create))).rejects.toMatchObject({
+      diagnosticStage: "payment_preparation",
+    });
+    expect(create).not.toHaveBeenCalled();
   });
 
   it("creates a connected-account direct Checkout once and attaches it", async () => {

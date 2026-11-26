@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { BookingsList } from "@/components/bookings/bookings-list";
 import { bookingPaymentLabel, bookingStayLabel } from "@/components/bookings/bookings-list-model";
 import { listBookings } from "@/domain/bookings/repository";
+import { parseBookingSort } from "@/domain/bookings/list-sorting";
 import { listBerths } from "@/domain/berths/repository";
 import { listBerthAssignments } from "@/domain/berth-assignments/repository";
 import { deriveBookingPaymentBalance } from "@/domain/booking-payments/model";
@@ -14,11 +15,12 @@ import styles from "@/components/bookings/bookings-list.module.css";
 
 export const metadata = { title: "Bookings" };
 
-export default async function BookingsPage() {
+export default async function BookingsPage({ searchParams }: { searchParams: Promise<{ sort?: string | string[] }> }) {
+  const sort = parseBookingSort((await searchParams).sort);
   const context = await requireMarinaMembership("/dashboard/bookings");
   const supabase = await createClient();
   const [bookings, berths, assignments, paymentResult] = await Promise.all([
-    listBookings(supabase, context.marinaId),
+    listBookings(supabase, context.marinaId, sort),
     listBerths(supabase, context.marinaId),
     listBerthAssignments(supabase, context.marinaId),
     supabase.from("booking_payment_balances").select("booking_id,state,balance_due_minor,currency,collection_method").eq("marina_id", context.marinaId),
@@ -55,6 +57,6 @@ export default async function BookingsPage() {
       <article><span className={styles.icon}><LogOut size={22} aria-hidden="true" /></span><div><h2>Departures today</h2><strong>{metrics.departuresToday}</strong><p>Scheduled for today</p></div></article>
       <article><span className={styles.icon}><Clock3 size={22} aria-hidden="true" /></span><div><h2>Confirmed bookings</h2><strong>{bookings.filter(({ status }) => status === "confirmed").length}</strong><p>Total confirmed</p></div></article>
     </section>
-    <BookingsList rows={rows} />
+    <BookingsList rows={rows} sort={sort} />
   </AppShell>;
 }

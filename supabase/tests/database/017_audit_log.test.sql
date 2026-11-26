@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(30);
+select plan(34);
 
 select has_table('public', 'audit_events', 'audit event table exists');
 select has_trigger('public', 'audit_events', 'audit_events_immutable', 'audit events have an immutable trigger');
@@ -92,11 +92,29 @@ select is((select outcome from public.set_booking_payment_state(
   'd1000000-0000-4000-8000-000000000001', 'a8200000-0000-4000-8000-000000000001',
   'a8100000-0000-4000-8000-000000000002', 'balance_due', 'on_site', 'EUR', 10000, 2000,
   now() + interval '2 days', null, 'Audit balance'
-)), 'updated', 'payment balance change succeeds');
+)), 'unauthorized', 'staff cannot use the legacy balance editor');
+select ok(not exists(
+  select 1 from public.audit_events where booking_id = 'a8200000-0000-4000-8000-000000000001'
+    and event_type = 'payment.balance_changed'
+), 'denied balance edit produces no audit event');
+
+select is((select outcome from public.set_booking_payment_state(
+  'd1000000-0000-4000-8000-000000000001', 'a8200000-0000-4000-8000-000000000001',
+  'a8100000-0000-4000-8000-000000000001', 'balance_due', 'on_site', 'EUR', 10000, 0,
+  now() + interval '2 days', null, 'Audit balance'
+)), 'updated', 'admin can establish the on-site balance');
+select is((select outcome from public.record_booking_offline_payment(
+  'd1000000-0000-4000-8000-000000000001', 'a8200000-0000-4000-8000-000000000001',
+  'a8100000-0000-4000-8000-000000000002', 'audit-staff@example.test',
+  'a8400000-0000-4000-8000-000000000001', 'EUR', 2000, 'cash', 'Audit receipt', 0
+)), 'recorded', 'staff can record an offline receipt against the balance');
 select ok(exists(
   select 1 from public.audit_events where booking_id = 'a8200000-0000-4000-8000-000000000001'
     and event_type = 'payment.balance_changed' and actor_id = 'a8100000-0000-4000-8000-000000000002'
-), 'payment balance event retains the staff actor');
+    and actor_email = 'audit-staff@example.test' and actor_type = 'member'
+    and before_data @> '{"paid_minor": 0, "balance_due_minor": 10000}'
+    and after_data @> '{"paid_minor": 2000, "balance_due_minor": 8000}'
+), 'receipt-driven balance event retains the staff actor and balance change');
 
 update public.bookings set eta = '14:00', etd = '09:30'
 where id = 'a8200000-0000-4000-8000-000000000001';
@@ -106,12 +124,15 @@ select ok(exists(
 ), 'guest ETA or ETD change is identified without a staff actor');
 
 set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}', true);
+select is((select count(*) from public.audit_events where booking_id = 'a8200000-0000-4000-8000-000000000001'), 0::bigint, 'admin without MFA cannot read booking entity history');
+
 select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 select ok((select count(*) from public.audit_events where marina_id = 'd1000000-0000-4000-8000-000000000001') >= 8, 'admin can read full marina history');
-select ok((select count(*) from public.audit_events where booking_id = 'a8200000-0000-4000-8000-000000000001') >= 5, 'admin can read booking entity history');
+select ok((select count(*) from public.audit_events where booking_id = 'a8200000-0000-4000-8000-000000000001') >= 6, 'admin can read booking entity history');
 
 select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1"}', true);
-select ok((select count(*) from public.audit_events where booking_id = 'a8200000-0000-4000-8000-000000000001') >= 5, 'staff can read booking entity history');
+select ok((select count(*) from public.audit_events where booking_id = 'a8200000-0000-4000-8000-000000000001') >= 6, 'staff can read booking entity history');
 select ok((select count(*) from public.audit_events where berth_id = 'a8300000-0000-4000-8000-000000000001') >= 3, 'staff can read berth entity history');
 
 select set_config('request.jwt.claims', '{"sub":"a8100000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2"}', true);

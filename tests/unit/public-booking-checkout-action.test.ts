@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ hold: vi.fn(), payAtMarina: vi.fn(), requester: vi.fn(), checkout: vi.fn(), marina: vi.fn(), redirect: vi.fn(), capture: vi.fn(), guestUrl: vi.fn() }));
+const mocks = vi.hoisted(() => ({ hold: vi.fn(), payAtMarina: vi.fn(), requester: vi.fn(), checkout: vi.fn(), marina: vi.fn(), redirect: vi.fn(), capture: vi.fn(), captureCheckout: vi.fn(), guestUrl: vi.fn() }));
 vi.mock("@/domain/booking-holds/service", () => ({ createPublicBookingHold: mocks.hold, confirmPublicPayAtMarinaBooking: mocks.payAtMarina }));
 vi.mock("@/domain/guest-access/service", () => ({ issueGuestManagementUrl: mocks.guestUrl }));
 vi.mock("@/domain/booking-holds/requester", () => ({ getBookingHoldRequester: mocks.requester }));
 vi.mock("@/domain/checkout/service", () => ({ createCheckoutForHold: mocks.checkout }));
-vi.mock("@/lib/monitoring/server", () => ({ captureServerError: mocks.capture }));
+vi.mock("@/lib/monitoring/server", () => ({ captureServerError: mocks.capture, captureCheckoutFailure: mocks.captureCheckout }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("@/lib/supabase/privileged", () => ({ createPrivilegedClient: () => {
   const query = { select: () => query, eq: () => query, maybeSingle: mocks.marina };
@@ -17,7 +17,7 @@ import { startBookingCheckoutAction } from "@/app/marina/[slug]/actions";
 const key = "70000000-0000-4000-8000-000000000001";
 function form() {
   const data = new FormData();
-  Object.entries({ holdIdempotencyKey: key, arrivalDate: "2026-12-10", departureDate: "2026-12-12", eta: "14:30", etd: "10:00", vesselLengthM: "12", vesselBeamM: "3.8", vesselDraftM: "2.1", vesselName: "Aurora" }).forEach(([k, v]) => data.set(k, v));
+  Object.entries({ holdIdempotencyKey: key, arrivalDate: "2026-12-10", departureDate: "2026-12-12", etaWindow: "morning", vesselLengthM: "12", vesselBeamM: "3.8", vesselDraftM: "2.1", vesselName: "Aurora" }).forEach(([k, v]) => data.set(k, v));
   return data;
 }
 const run = (data = form()) => startBookingCheckoutAction("marina-a", { status: "idle" }, data);
@@ -41,9 +41,18 @@ describe("one-step public booking checkout", () => {
     data.set("sessionHash", "forged");
     data.set("priceTotalMinor", "1");
     await expect(run(data)).rejects.toThrow("NEXT_REDIRECT");
-    expect(mocks.hold).toHaveBeenCalledWith("marina-a", key, expect.objectContaining({ vesselLengthM: 12 }), { sessionHash: "server-session", networkHash: "server-network" });
+    expect(mocks.hold).toHaveBeenCalledWith("marina-a", key, expect.objectContaining({ vesselLengthM: 12, eta: null, etd: null, etaWindow: "morning" }), { sessionHash: "server-session", networkHash: "server-network" });
     expect(mocks.checkout).toHaveBeenCalledExactlyOnceWith("private-token");
     expect(mocks.redirect).toHaveBeenCalledWith("https://checkout.stripe.com/c/pay/cs_test_one");
+  });
+
+  it("passes an unspecified arrival preference and no exact times to the hold", async () => {
+    const data = form();
+    data.set("etaWindow", "unsure");
+    data.set("eta", "14:00");
+    data.set("etd", "10:00");
+    await expect(run(data)).rejects.toThrow("NEXT_REDIRECT");
+    expect(mocks.hold).toHaveBeenCalledWith("marina-a", key, expect.objectContaining({ eta: null, etd: null, etaWindow: null }), expect.any(Object));
   });
 
   it.each(["unavailable", "closed", "idempotency_conflict", "not_found"])("requires rechecking and never calls Stripe when hold is %s", async (outcome) => {
@@ -94,13 +103,13 @@ describe("one-step public booking checkout", () => {
     data.set("customerPhone", "+37120000000");
     await expect(run(data)).rejects.toThrow("NEXT_REDIRECT");
     expect(mocks.payAtMarina).toHaveBeenCalledExactlyOnceWith(
-      "marina-a", key, expect.objectContaining({ vesselLengthM: 12 }),
+      "marina-a", key, expect.objectContaining({ vesselLengthM: 12, eta: null, etd: null, etaWindow: "morning" }),
       { sessionHash: "server-session", networkHash: "server-network" },
       { customerName: "Guest Person", customerEmail: "guest@example.test", customerPhone: "+37120000000" },
     );
     expect(mocks.hold).not.toHaveBeenCalled();
     expect(mocks.checkout).not.toHaveBeenCalled();
-    expect(mocks.redirect).toHaveBeenCalledWith("https://berthio.test/guest/bookings/signed-token?confirmation=1");
+    expect(mocks.redirect).toHaveBeenCalledWith("https://berthio.test/guest/bookings/signed-token");
   });
 
   it("rejects a disabled payment method before allocating inventory", async () => {
@@ -109,6 +118,24 @@ describe("one-step public booking checkout", () => {
     expect(await run(data)).toMatchObject({ status: "error", requiresAvailabilityCheck: true });
     expect(mocks.hold).not.toHaveBeenCalled();
     expect(mocks.payAtMarina).not.toHaveBeenCalled();
+    expect(mocks.checkout).not.toHaveBeenCalled();
+  });
+
+  it("validates contact details before confirming Pay at Marina", async () => {
+    mocks.marina.mockResolvedValue({ data: { timezone: "Europe/Riga", accepts_online_payment: true, accepts_pay_at_marina: true }, error: null });
+    const data = form(); data.set("paymentMethod", "marina");
+    expect(await run(data)).toMatchObject({ status: "error", fieldErrors: { customerName: expect.any(String), customerEmail: expect.any(String), customerPhone: expect.any(String) } });
+    expect(mocks.payAtMarina).not.toHaveBeenCalled();
+    expect(mocks.checkout).not.toHaveBeenCalled();
+  });
+
+  it.each(["method_disabled", "unavailable", "idempotency_conflict"])("honors a transactional %s rejection without starting Stripe", async outcome => {
+    mocks.marina.mockResolvedValue({ data: { timezone: "Europe/Riga", accepts_online_payment: true, accepts_pay_at_marina: true }, error: null });
+    mocks.payAtMarina.mockResolvedValue({ outcome, bookingId: null });
+    const data = form();
+    Object.entries({ paymentMethod: "marina", customerName: "Guest", customerEmail: "guest@example.test", customerPhone: "+37120000000" }).forEach(([k,v]) => data.set(k,v));
+    expect(await run(data)).toMatchObject({ status: "error", requiresAvailabilityCheck: true });
+    expect(mocks.guestUrl).not.toHaveBeenCalled();
     expect(mocks.checkout).not.toHaveBeenCalled();
   });
 });

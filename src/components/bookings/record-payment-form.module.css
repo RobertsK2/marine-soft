@@ -1,0 +1,15 @@
+.form { display: grid; gap: 14px; min-width: 0; }
+.form label { display: grid; gap: 6px; color: #526885; font-size: 13px; font-weight: 500; }
+.form input, .form select, .form textarea { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #dce4ee; border-radius: 8px; background: white; color: var(--navy); font: inherit; font-size: 16px; }
+.form textarea { resize: vertical; }
+.form button { justify-self: start; min-height: 42px; padding: 10px 16px; border: 1px solid var(--navy); border-radius: 8px; background: var(--navy); color: white; font: inherit; font-size: 13px; cursor: pointer; }
+.form button:disabled { opacity: .6; cursor: default; }
+.form p { margin: 0; font-size: 13px; line-height: 1.5; }
+.form .hint { color: #627796; font-size: 12px; }
+.form :focus-visible { outline: 2px solid #3769a8; outline-offset: 3px; }
+
+.disclosure { border: 1px solid #e0e7f0; border-radius: 8px; margin-top: 10px; }
+.disclosure summary { padding: 12px 14px; cursor: pointer; font-size: 13px; color: var(--navy); }
+.disclosure[open] > summary { border-bottom: 1px solid #e0e7f0; }
+.disclosure .form { padding: 16px; }
+.message { font-size: 13px; line-height: 1.5; color: var(--navy); }

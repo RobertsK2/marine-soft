@@ -8,6 +8,7 @@ import type {
 import type { Database } from "@/types/database";
 import { deriveBookingPaymentBalance, isPaymentOverdue } from "@/domain/booking-payments/model";
 import type { BookingPaymentBalance } from "@/domain/booking-payments/types";
+import type { BookingSort } from "@/domain/bookings/list-sorting";
 
 export class BookingRepositoryError extends Error {
   constructor(
@@ -39,13 +40,14 @@ function bookingRecord(input: BookingInput) {
 export async function listBookings(
   supabase: SupabaseClient<Database>,
   marinaId: string,
+  sort: BookingSort = "newest",
 ): Promise<Booking[]> {
   const { data, error } = await supabase
     .from("bookings")
     .select("*")
     .eq("marina_id", marinaId)
-    .order("arrival_date", { ascending: true })
-    .order("reference", { ascending: true });
+    .order(sort === "arrival" ? "arrival_date" : "created_at", { ascending: sort === "arrival" })
+    .order("id", { ascending: false });
 
   if (error) {
     throw new BookingRepositoryError("Unable to load bookings.", error.code, {
@@ -69,6 +71,26 @@ export async function getBooking(
 
   if (error) {
     throw new BookingRepositoryError("Unable to load booking.", error.code, {
+      cause: error,
+    });
+  }
+  return data;
+}
+
+export async function getBookingCancellationEvent(
+  supabase: SupabaseClient<Database>,
+  marinaId: string,
+  bookingId: string,
+) {
+  const { data, error } = await supabase
+    .from("booking_cancellation_events")
+    .select("cancelled_at, policy_code, refund_percent, refund_recommendation_minor, currency, paid_total_minor")
+    .eq("marina_id", marinaId)
+    .eq("booking_id", bookingId)
+    .maybeSingle();
+
+  if (error) {
+    throw new BookingRepositoryError("Unable to load booking cancellation.", error.code, {
       cause: error,
     });
   }
@@ -114,12 +136,19 @@ export async function getBookingPaymentBalance(
 export async function createBooking(
   supabase: SupabaseClient<Database>,
   marinaId: string,
+  actorId: string,
+  requestId: string,
   input: BookingInput,
+  totalMinor: number,
 ) {
   const { data, error } = await supabase
-    .from("bookings")
-    .insert({ marina_id: marinaId, ...bookingRecord(input) })
-    .select("id, reference")
+    .rpc("create_manual_booking_with_balance", {
+      target_marina_id: marinaId,
+      target_actor_id: actorId,
+      requested_request_id: requestId,
+      requested_booking: bookingRecord(input),
+      requested_total_minor: totalMinor,
+    })
     .single();
 
   if (error) {

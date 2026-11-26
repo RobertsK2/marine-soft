@@ -19,14 +19,13 @@ async function scrollCalls(page: import("@playwright/test").Page) {
 }
 
 async function fillSearch(page: import("@playwright/test").Page, length = "9.5") {
-  await page.getByLabel("Arrival date", { exact: true }).fill("2026-12-14");
-  await page.getByLabel("Departure date", { exact: true }).fill("2026-12-17");
+  await page.getByRole("textbox", { name: "Arrival date", exact: true }).fill("2026-12-14");
+  await page.getByRole("textbox", { name: "Departure date", exact: true }).fill("2026-12-17");
   await page.getByLabel("Vessel name").fill("Desktop Scroll Test");
   await page.getByLabel("Length").fill(length);
   await page.getByLabel("Beam").fill("3.1");
   await page.getByLabel("Draft").fill("1.7");
-  await page.getByLabel("ETA", { exact: false }).fill("14:00");
-  await page.getByLabel("ETD", { exact: false }).fill("10:00");
+  await page.getByRole("radio", { name: /Afternoon/ }).check();
 }
 
 test("desktop scrolls to each newly rendered successful result and respects reduced motion", async ({ page }, testInfo) => {
@@ -88,13 +87,17 @@ test("desktop does not scroll for validation errors", async ({ page }, testInfo)
   test.skip(testInfo.project.name !== "chromium" || !process.env.E2E_SUPABASE_READY, "Desktop with local Supabase fixtures required.");
   await page.goto("/marina/marina-a");
   await fillSearch(page);
-  await page.getByLabel("ETA", { exact: false }).fill("");
+  const departure = page.getByRole("textbox", { name: "Departure date", exact: true });
+  await departure.fill("2026-12-14");
   await recordScrollCalls(page);
   const check = page.getByRole("button", { name: "Check Availability", exact: true });
   await check.scrollIntoViewIfNeeded();
   const viewportBeforeSearch = await page.evaluate(() => window.scrollY);
   await check.click();
-  await expect(page.getByText("Enter a valid ETA in marina local time.")).toBeVisible();
+  await expect(departure).toHaveAttribute("aria-invalid", "true");
+  await expect(departure).toHaveAccessibleDescription("Departure must be after arrival.");
+  await expect(page.getByText("Departure must be after arrival.", { exact: true })).toBeVisible();
+  await expect(page.locator("[data-availability]")).toHaveCount(0);
   expect(await scrollCalls(page)).toEqual([]);
   expect(await page.evaluate(() => window.scrollY)).toBe(viewportBeforeSearch);
 });

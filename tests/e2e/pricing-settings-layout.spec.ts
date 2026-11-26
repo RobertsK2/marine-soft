@@ -43,6 +43,46 @@ test("pricing rows, percentage conversion, save version and responsive layout", 
   await expect(rate).toBeVisible();
   await expect(rate).toHaveValue(String(original.taxRateBps / 100));
   expect(JSON.parse(await payload.inputValue())).toEqual(original);
+  const originalMethods = await service.from("marinas").select("accepts_online_payment,accepts_pay_at_marina").eq("id", "d1000000-0000-4000-8000-000000000001").single();
+  expect(originalMethods.error).toBeNull();
+  try {
+    const allow = page.getByRole("switch", { name: "Allow Pay at Marina" });
+    const online = page.getByRole("switch", { name: "Pay Online", exact: true });
+    await expect(allow).toBeVisible();
+    await expect(allow).toHaveAccessibleDescription("Allow guests to book online and pay directly at the marina.");
+    await expect(online).toHaveAccessibleDescription("Allow guests to pay online when booking.");
+    const onlineBounds = await online.boundingBox();
+    const marinaBounds = await allow.boundingBox();
+    expect(onlineBounds).not.toBeNull();
+    expect(marinaBounds).not.toBeNull();
+    expect(onlineBounds!.x).toBe(marinaBounds!.x);
+    expect(onlineBounds!.width).toBe(marinaBounds!.width);
+    expect(onlineBounds!.height).toBe(marinaBounds!.height);
+    const save = page.getByRole("button", { name: "Save payment methods" });
+    const saveBounds = await save.boundingBox();
+    expect(saveBounds!.height).toBe(42);
+    expect(saveBounds!.width).toBeLessThan(240);
+    await online.uncheck();
+    await allow.uncheck();
+    await save.click();
+    const paymentMethodsForm = page.locator("form").filter({ has: save });
+    await expect(paymentMethodsForm.getByRole("alert")).toHaveText("Keep at least one payment method enabled.");
+    await online.check();
+    await allow.setChecked(!originalMethods.data!.accepts_pay_at_marina);
+    await page.getByRole("button", { name: "Save payment methods" }).click();
+    await expect.poll(async () => {
+      const saved = await service.from("marinas").select("accepts_pay_at_marina").eq("id", "d1000000-0000-4000-8000-000000000001").single();
+      expect(saved.error).toBeNull();
+      return saved.data?.accepts_pay_at_marina;
+    }).toBe(!originalMethods.data!.accepts_pay_at_marina);
+    await page.reload();
+    if (originalMethods.data!.accepts_pay_at_marina) await expect(allow).not.toBeChecked();
+    else await expect(allow).toBeChecked();
+    expect(JSON.parse(await payload.inputValue())).toEqual(original);
+  } finally {
+    const restored = await service.from("marinas").update(originalMethods.data!).eq("id", "d1000000-0000-4000-8000-000000000001");
+    expect(restored.error).toBeNull();
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("pricing-settings.png"), fullPage: true });
 });

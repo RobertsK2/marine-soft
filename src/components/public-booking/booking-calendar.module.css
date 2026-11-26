@@ -1,6 +1,7 @@
 .inputWrap { position: relative; min-width: 0; }
-.inputWrap input { padding-right: 40px !important; }
-.trigger { position: absolute; inset: 1px 1px 1px auto; display: grid; place-items: center; width: 38px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--berthio-blue); cursor: pointer; }
+.inputWrap input { padding-left: 44px !important; }
+.trigger { position: absolute; inset: 1px auto 1px 1px; display: grid; place-items: center; width: 38px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #52647c; cursor: pointer; }
+.required { margin-left: -3px; color: #d63239; }
 .trigger:hover { background: #eaf1ff; }
 .positioner { z-index: 80; }
 .popup { width: min(328px, calc(100vw - 24px), var(--available-width)); max-height: var(--available-height); overflow-y: auto; padding: 16px; border: 1px solid #dfe6ee; border-radius: 16px; background: white; color: #172238; box-shadow: 0 12px 38px #17223826; font: 14px/1.4 Arial, Helvetica, sans-serif; }

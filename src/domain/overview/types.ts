@@ -5,8 +5,8 @@ export type OverviewBooking = {
   created_at: string;
   customer_name: string;
   departure_date: string;
-  eta: string;
-  etd: string;
+  eta: string | null;
+  etd: string | null;
   id: string;
   reference: string;
   status: BookingStatus;

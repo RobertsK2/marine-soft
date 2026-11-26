@@ -115,7 +115,6 @@ export default async function PublicMarinaPage({ params, searchParams }: MarinaP
           marinaName={marina.name}
           contactPhone={marina.contactPhone}
           marinaSlug={marina.slug}
-          marinaTimezone={marina.timezone}
           minArrivalDate={minArrivalDate}
           priceError={priceError}
           priceQuote={priceQuote}

@@ -10,7 +10,7 @@ import { bookingNights } from "@/domain/bookings/formatting";
 import styles from "./create-booking.module.css";
 
 const initialState: BookingActionState = { status: "idle" };
-const initialValues: Record<BookingField, string> = { arrivalDate: "", departureDate: "", eta: "", etd: "", customerName: "", customerEmail: "", customerPhone: "", vesselName: "", vesselLengthM: "", vesselBeamM: "", vesselDraftM: "" };
+const initialValues: Record<BookingField, string> = { arrivalDate: "", departureDate: "", eta: "", etd: "", customerName: "", customerEmail: "", customerPhone: "", vesselName: "", vesselLengthM: "", vesselBeamM: "", vesselDraftM: "", bookingTotal: "" };
 
 const subscribeToHydration = () => () => {};
 
@@ -85,8 +85,8 @@ export function BookingForm({ action, timezone }: {
         <div><dt>Stay</dt><dd>{values.arrivalDate && values.departureDate ? `${values.arrivalDate} – ${values.departureDate}` : "Select dates"}{nights ? <small>{nights} night{nights === 1 ? "" : "s"}</small> : null}</dd></div>
         <div><dt>Berth</dt><dd className={styles.capacity}>Suitable capacity<small>Physical assignment after creation</small></dd></div>
       </dl>
-      <div className={styles.total}><span>Total amount</span><strong>Not calculated</strong></div>
-      <p className={styles.helper}>Manual creation does not calculate a price or collect payment. Manage the payment balance after creating the booking.</p>
+      {field("bookingTotal", "Booking total (€)", { required: true, inputMode: "decimal", maxLength: 17, autoComplete: "off" })}
+      <p className={styles.helper}>Payment is due at the marina.</p>
       {state.message ? <p className={styles.formError} role="alert">{state.message}</p> : null}
       {errors && Object.keys(errors).length ? <p className={styles.formError} role="alert">Check the highlighted fields before creating the booking.</p> : null}
       <SubmitButton ready={hydrated} />

@@ -8,8 +8,12 @@ export function formatBookingDate(value: string) {
   );
 }
 
-export function formatBookingTime(value: string) {
-  return value.slice(0, 5);
+export function formatBookingTime(value: string | null) {
+  return value ? value.slice(0, 5) : "Not specified";
+}
+
+export function formatMoney(amountMinor: number, currency: string) {
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(amountMinor / 100);
 }
 
 export function bookingNights(arrivalDate: string, departureDate: string) {
