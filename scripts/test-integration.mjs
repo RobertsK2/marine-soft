@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -45,6 +45,14 @@ env.BERTHIO_REQUIRE_ADMIN_MFA = "true";
 env.E2E_PRODUCTION = process.env.E2E_PRODUCTION === "1" ? "1" : "0";
 env.BERTHIO_ISOLATED_TESTS = "1";
 env.NEXT_TELEMETRY_DISABLED = "1";
+if (mode === "e2e") {
+  const boundary = new Date();
+  boundary.setUTCDate(boundary.getUTCDate() + 60);
+  env.E2E_PUBLIC_PRICING_BOUNDARY = boundary.toISOString().slice(0, 10);
+  const pricingSeed = readFileSync(join(root, "tests/fixtures/public-pricing-seed.sql"), "utf8")
+    .replaceAll("__PRICING_BOUNDARY__", env.E2E_PUBLIC_PRICING_BOUNDARY);
+  appendFileSync(join(target, "pilot-seed.sql"), `\n${pricingSeed}`);
+}
 const cli = join(root, "node_modules/supabase/dist/supabase.js");
 function run(file, args = [], capture = false) {
   const result = spawnSync(process.execPath, [file, ...args], {

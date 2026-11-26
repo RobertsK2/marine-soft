@@ -1,7 +1,15 @@
 import { completeAdminMfa, totp } from "./helpers/admin-mfa";
 import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { calendarKey, shiftCalendarDay } from "../../src/components/public-booking/calendar-model";
+import { shiftCalendarDay } from "../../src/components/public-booking/calendar-model";
+
+const publicPricingPath = "/marina/e2e-pricing-marina";
+
+function publicPricingDate(offset: number) {
+  const boundary = process.env.E2E_PUBLIC_PRICING_BOUNDARY;
+  if (!boundary) throw new Error("The local public pricing fixture is required.");
+  return shiftCalendarDay(boundary, offset);
+}
 
 test("root redirects to the existing sign-in page", async ({ page }) => {
   await page.goto("/");
@@ -37,14 +45,9 @@ test.describe("public marina page", () => {
   });
 
   test("booking search validates and preserves a clean timezone-aware request", async ({ page }, testInfo) => {
-    // The asserted tariff is the seeded 2028 pilot-season tariff.
-    const arrival = new Date("2028-09-25T00:00:00Z");
-    const departure = new Date("2028-09-28T00:00:00Z");
-    const isoDate = (value: Date) => value.toISOString().slice(0, 10);
-
-    await page.goto("/marina/marina-a#booking-entry");
-    await page.getByRole("textbox", { name: "Arrival date", exact: true }).fill(isoDate(arrival));
-    await page.getByRole("textbox", { name: "Departure date", exact: true }).fill(isoDate(departure));
+    await page.goto(`${publicPricingPath}#booking-entry`);
+    await page.getByRole("textbox", { name: "Arrival date", exact: true }).fill(publicPricingDate(-6));
+    await page.getByRole("textbox", { name: "Departure date", exact: true }).fill(publicPricingDate(-3));
     await page.getByRole("radio", { name: /Afternoon/ }).check();
     await page.getByLabel("Vessel name").fill("Test Aurora");
     await page.getByLabel("Length").fill("12.5");
@@ -56,9 +59,9 @@ test.describe("public marina page", () => {
     await expect(page.getByRole("status")).toContainText("Suitable berth available");
     await expect(page.getByRole("status")).toContainText("3 nights");
     await expect(page.getByRole("status")).toContainText("No booking has been created");
-    const quote = page.locator("[data-price-total-minor='15344']");
-    await expect(quote).toHaveAccessibleName("Price breakdown");
-    await expect(quote).toContainText("Pilot season");
+    const quote = page.getByRole("region", { name: "Price breakdown", exact: true });
+    await expect(quote).toHaveAttribute("data-price-total-minor", "15344");
+    await expect(quote).toContainText("Baltic high season");
     await expect(quote).toContainText("Harbour administration");
     await expect(quote).toContainText("Tax / VAT 21%");
     await expect(quote).toContainText("€153.44");
@@ -96,65 +99,27 @@ test.describe("public marina page", () => {
   });
 
   test("public pricing applies each seasonal nightly rate across a boundary", async ({ page }) => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
-    const secretKey = process.env.SUPABASE_SECRET_KEY;
-    if (!secretKey || !["localhost", "127.0.0.1"].includes(new URL(url).hostname)) {
-      throw new Error("Local Supabase fixtures are required for seasonal pricing.");
-    }
-    const supabase = createClient(url, secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
-    const marinaId = "d1000000-0000-4000-8000-000000000001";
-    const today = calendarKey(new Date());
-    let arrivalDate = shiftCalendarDay(today, 30);
-    const { data: seasons, error: seasonError } = await supabase.from("pricing_seasons")
-      .select("starts_on, ends_on").eq("marina_id", marinaId)
-      .gt("ends_on", arrivalDate).order("starts_on");
-    expect(seasonError).toBeNull();
-    // Existing seasons use [start, end) ranges. Find two free nights without moving seeded rates.
-    for (const season of seasons ?? []) {
-      if (shiftCalendarDay(arrivalDate, 2) <= season.starts_on) break;
-      if (arrivalDate < season.ends_on) arrivalDate = season.ends_on;
-    }
-    expect(arrivalDate <= shiftCalendarDay(today, 729), "Fixture arrival must be within the booking horizon").toBe(true);
-    const boundary = shiftCalendarDay(arrivalDate, 1);
-    const departureDate = shiftCalendarDay(arrivalDate, 2);
-    const highSeasonId = crypto.randomUUID();
-    const autumnSeasonId = crypto.randomUUID();
-    const { error: fixtureError } = await supabase.from("pricing_seasons").insert([
-      { id: highSeasonId, marina_id: marinaId, name: "Baltic high season", starts_on: arrivalDate, ends_on: boundary },
-      { id: autumnSeasonId, marina_id: marinaId, name: "Baltic autumn season", starts_on: boundary, ends_on: departureDate },
+    const query = new URLSearchParams({
+      arrivalDate: publicPricingDate(-1),
+      departureDate: publicPricingDate(1),
+      priceTotalMinor: "1",
+      pricingCurrency: "USD",
+      taxRateBps: "0",
+      vesselBeamM: "3.8",
+      vesselDraftM: "2.1",
+      vesselLengthM: "12.5",
+    });
+    await page.goto(`${publicPricingPath}?${query}#booking-entry`);
+    const quote = page.getByRole("region", { name: "Price breakdown", exact: true });
+    await expect(quote).toHaveAttribute("data-price-total-minor", "9272");
+    await expect(quote.getByText("€92.72", { exact: true })).toBeVisible();
+    await quote.getByText("View rate and fee details", { exact: true }).click();
+    const rates = quote.getByRole("term").filter({ hasText: /Baltic (high|autumn) season/ });
+    await expect(rates).toHaveText([
+      /Baltic high season\s*1 night · €3\.00 \/ m · 12\.50 m/,
+      /Baltic autumn season\s*1 night · €2\.20 \/ m · 12\.50 m/,
     ]);
-    expect(fixtureError).toBeNull();
-    try {
-      const { error: rateError } = await supabase.from("pricing_season_meter_rates").insert([
-        { season_id: highSeasonId, marina_id: marinaId, nightly_rate_per_meter_minor: 300 },
-        { season_id: autumnSeasonId, marina_id: marinaId, nightly_rate_per_meter_minor: 220 },
-      ]);
-      expect(rateError).toBeNull();
-      const query = new URLSearchParams({
-        arrivalDate,
-        departureDate,
-        priceTotalMinor: "1",
-        pricingCurrency: "USD",
-        taxRateBps: "0",
-        vesselBeamM: "3.8",
-        vesselDraftM: "2.1",
-        vesselLengthM: "12.5",
-      });
-      await page.goto(`/marina/marina-a?${query}#booking-entry`);
-      const quote = page.getByRole("region", { name: "Price breakdown", exact: true });
-      await expect(quote).toHaveAttribute("data-price-total-minor", "9272");
-      await expect(quote.getByText("€92.72", { exact: true })).toBeVisible();
-      await quote.getByText("View rate and fee details", { exact: true }).click();
-      const rates = quote.getByRole("term").filter({ hasText: /Baltic (high|autumn) season/ });
-      await expect(rates).toHaveText([
-        /Baltic high season\s*1 night · €3\.00 \/ m · 12\.50 m/,
-        /Baltic autumn season\s*1 night · €2\.20 \/ m · 12\.50 m/,
-      ]);
-      await expect(page.locator("[data-booking-id], [data-hold-id]")).toHaveCount(0);
-    } finally {
-      const { error: cleanupError } = await supabase.from("pricing_seasons").delete().in("id", [highSeasonId, autumnSeasonId]);
-      expect(cleanupError).toBeNull();
-    }
+    await expect(page.locator("[data-booking-id], [data-hold-id]")).toHaveCount(0);
   });
 
   test("capacity lost before payment requires a new availability check without Checkout", async ({ page }, testInfo) => {

@@ -26,10 +26,11 @@ test("marina admin enrolls MFA before dashboard access and keeps AAL2 after refr
   if (testInfo.project.name === "mobile") await page.setViewportSize({ width: 320, height: 740 });
   await resetLocalAdminFactors();
   await page.goto("/login");
-  await page.getByLabel("Work Email").fill(process.env.E2E_MARINA_EMAIL!);
+  await page.getByLabel("Work Email").fill("admin-b@berthio.test");
   await page.getByLabel("Password", { exact: true }).fill(process.env.E2E_MARINA_PASSWORD!);
   await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await expect(page).toHaveURL(/\/mfa\?/);
+  await expect(page.getByAltText("Authenticator setup QR code")).toBeVisible();
   await page.goto("/dashboard/settings/pricing");
   await expect(page).toHaveURL(/\/mfa\?next=%2Fdashboard%2Fsettings%2Fpricing/);
   await expect(page.getByRole("heading", { name: "Set up two-factor authentication" })).toBeVisible();
@@ -96,13 +97,7 @@ test("marina admin enrolls MFA before dashboard access and keeps AAL2 after refr
   await page.reload();
   await expect(page.getByRole("heading", { name: /Pricing/i }).first()).toBeVisible();
   if (testInfo.project.name === "mobile") return;
-  // A protected mutation must also accept the refreshed AAL2 session.
-  const taxMode = page.getByLabel("VAT / tax mode");
-  const original = await taxMode.inputValue();
-  await taxMode.selectOption(original === "exclusive" ? "inclusive" : "exclusive");
-  await page.getByRole("button", { name: "Save Changes" }).click();
-  await expect(page.getByRole("status")).toContainText("Pricing configuration updated");
-  await taxMode.selectOption(original);
+  // Exercise the protected action with Marina B's existing configuration.
   await page.getByRole("button", { name: "Save Changes" }).click();
   await expect(page.getByRole("status")).toContainText("Pricing configuration updated");
 });
