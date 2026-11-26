@@ -13,6 +13,11 @@ type Initialization =
   | { message: string };
 
 const ENROLLMENT_STORAGE_KEY = "berthio:mfa-enrollment";
+const CODE_LENGTH = 6;
+
+function getCodeSlot(input: HTMLInputElement) {
+  return Math.min(input.selectionStart ?? 0, CODE_LENGTH - 1);
+}
 
 function readStoredEnrollment(): Enrollment | null {
   try {
@@ -32,6 +37,7 @@ export function MfaForm({ next, identity }: { next: string; identity: string }) 
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [pendingFactorIds, setPendingFactorIds] = useState<string[]>([]);
   const [code, setCode] = useState("");
+  const [activeSlot, setActiveSlot] = useState(0);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
@@ -137,9 +143,26 @@ export function MfaForm({ next, identity }: { next: string; identity: string }) 
     window.location.assign(next);
   }
 
-  function updateCode(value: string) {
-    setCode(value.replace(/\D/g, "").slice(0, 6));
+  function selectCodeSlot(input: HTMLInputElement, index: number) {
+    // A native text field can select an existing digit or place the caret after it.
+    const slot = Math.min(Math.max(index, 0), input.value.length, CODE_LENGTH - 1);
+    input.setSelectionRange(slot, Math.min(slot + 1, input.value.length));
+    setActiveSlot(slot);
+  }
+
+  function updateCode(input: HTMLInputElement) {
+    const caret = input.selectionStart ?? input.value.length;
+    if (/\D/.test(input.value)) {
+      const position = input.value.slice(0, caret).replace(/\D/g, "").length;
+      input.value = code;
+      selectCodeSlot(input, position);
+      return;
+    }
+
+    setCode(input.value.slice(0, CODE_LENGTH));
     setMessage(null);
+    if (caret < input.value.length) selectCodeSlot(input, caret);
+    else setActiveSlot(getCodeSlot(input));
   }
 
   const setupMode = Boolean(enrollment);
@@ -187,14 +210,48 @@ export function MfaForm({ next, identity }: { next: string; identity: string }) 
       <div className={styles.codeField}>
         <label className={styles.visuallyHidden} htmlFor="mfa-code">Authenticator code</label>
         <div className={styles.codeSlots}>
-          {Array.from({ length: 6 }, (_, index) => <span className={styles.codeSlot} key={index} aria-hidden="true">{code[index] ?? ""}</span>)}
+          {Array.from({ length: CODE_LENGTH }, (_, index) => (
+            <span
+              aria-hidden="true"
+              className={styles.codeSlot}
+              data-active={index === Math.min(activeSlot, code.length) ? "" : undefined}
+              key={index}
+            >
+              {code[index] ?? ""}
+            </span>
+          ))}
           <input
             autoComplete="one-time-code"
             className={styles.codeInput}
             id="mfa-code"
             inputMode="numeric"
-            maxLength={6}
-            onChange={(event) => updateCode(event.target.value)}
+            maxLength={CODE_LENGTH}
+            name="code"
+            onChange={(event) => updateCode(event.currentTarget)}
+            onClick={(event) => {
+              if (event.detail !== 1) return;
+              const input = event.currentTarget;
+              const { left, width } = input.getBoundingClientRect();
+              const slot = Math.floor((event.clientX - left) / (width / CODE_LENGTH));
+              selectCodeSlot(input, slot);
+            }}
+            onFocus={(event) => setActiveSlot(getCodeSlot(event.currentTarget))}
+            onKeyDown={(event) => {
+              if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+              if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+              event.preventDefault();
+              const input = event.currentTarget;
+              selectCodeSlot(input, getCodeSlot(input) + (event.key === "ArrowLeft" ? -1 : 1));
+            }}
+            onPaste={(event) => {
+              const digits = event.clipboardData.getData("text").replace(/\D/g, "");
+              if (digits.length !== CODE_LENGTH) return;
+              event.preventDefault();
+              const input = event.currentTarget;
+              input.setRangeText(digits, 0, input.value.length, "end");
+              updateCode(input);
+            }}
+            onSelect={(event) => setActiveSlot(getCodeSlot(event.currentTarget))}
             pattern="[0-9]{6}"
             required
             type="text"
